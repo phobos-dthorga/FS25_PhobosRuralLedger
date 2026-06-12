@@ -30,3 +30,11 @@ Use issues for:
 
 Each shipped mod version should get a GitHub release. Keep old releases so the
 project timeline remains visible.
+
+## Performance Gate
+
+If a hard miss is discovered, new feature work stops in this repository until
+the target is met again. Allowed work is limited to fixing, measuring,
+documenting, splitting, or removing the cause.
+
+Review `performance-targets.md` before feature merges and releases.

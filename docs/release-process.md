@@ -10,6 +10,7 @@ first playable package exists.
 - Build a package set.
 - Launch FS25 and check the game log.
 - Test loading an existing save when save data exists.
+- Review `performance-targets.md`; do not release with a known hard miss.
 - Review multiplayer and optional-integration impact.
 
 ## Build
@@ -25,3 +26,9 @@ versioned package, tag the current commit, push the tag, and create a GitHub
 release when the repository is ready for releases.
 
 Early releases should usually be prereleases.
+
+## Performance Gate
+
+If a hard miss is found, release work switches to fixing, measuring,
+documenting, splitting, or removing the cause. New feature release work resumes
+only after the affected target is met again.

@@ -61,6 +61,14 @@ The mod is staged to depend on `FS25_PhobosLib` for shared Phobos FS25 helpers.
 Any helper that becomes useful across multiple Phobos FS25 mods should move
 there instead of staying local.
 
+## Performance Gate
+
+If a hard performance target miss is found, new feature development stops in
+this repository until the target is met again. Allowed work is limited to
+fixing, measuring, documenting, splitting, or removing the cause.
+
+See `docs/performance-targets.md` and `docs/measurement-and-automation.md`.
+
 ## Packaging
 
 Build a local package with:
@@ -93,6 +101,9 @@ Start with:
 - `docs/implementation-status.md`
 - `docs/research-questions.md`
 - `docs/visual-assets.md`
+- `docs/performance-targets.md`
+- `docs/measurement-and-automation.md`
+- `docs/known-log-lines.md`
 
 ## Author
 

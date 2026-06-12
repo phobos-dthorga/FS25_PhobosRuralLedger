@@ -68,6 +68,10 @@ Add project-specific paths here once available:
 - Check the game log after test launches.
 - Run `python tools/package_set.py --validate --write-sha256 --write-json`
   before proposing a release.
+- Review `docs/performance-targets.md` before feature merges and releases.
+- If a hard performance miss is found, halt new feature work in this repository
+  until the target is met again. Work may continue only on fixing, measuring,
+  documenting, splitting, or removing the cause.
 - Prefer narrow commits with clear messages.
 - Avoid direct pushes to stable branches once a development branch workflow is
   introduced.

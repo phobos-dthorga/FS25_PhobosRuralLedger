@@ -26,6 +26,11 @@ FORBIDDEN_PACKAGE_PREFIXES = (
     "release/",
     "tools/",
 )
+REQUIRED_DOCS = (
+    "docs/performance-targets.md",
+    "docs/measurement-and-automation.md",
+    "docs/known-log-lines.md",
+)
 
 
 class Validation:
@@ -57,6 +62,12 @@ def parse_xml_file(path: Path, validation: Validation) -> ET.ElementTree | None:
     except ET.ParseError as exc:
         validation.error(f"XML parse failed: {path}: {exc}")
     return None
+
+
+def validate_required_docs(repo_root: Path, validation: Validation) -> None:
+    for doc in REQUIRED_DOCS:
+        if not (repo_root / doc).is_file():
+            validation.error(f"Missing required documentation: {doc}")
 
 
 def validate_moddesc(mod_root: Path, validation: Validation) -> None:
@@ -95,7 +106,7 @@ def validate_moddesc(mod_root: Path, validation: Validation) -> None:
         if (node.text or "").strip()
     }
     if "FS25_PhobosLib" not in dependencies:
-        validation.warn("Expected dependency FS25_PhobosLib")
+        validation.error("Expected dependency FS25_PhobosLib")
 
     for node in root.findall("./extraSourceFiles/sourceFile"):
         filename = node.get("filename", "").strip()
@@ -119,6 +130,7 @@ def validate_source(repo_root: Path, mod_source: str, validation: Validation) ->
         validation.error(f"Missing mod source directory: {mod_root}")
         return
 
+    validate_required_docs(repo_root, validation)
     validate_xml_files(mod_root, validation)
     validate_moddesc(mod_root, validation)
 

@@ -43,3 +43,6 @@ Use this folder as the design packet for Phobos' Rural Ledger.
   boundary.
 - `repository-stewardship.md` - issue, branch, commit, and release habits.
 - `release-process.md` - package and release checklist.
+- `performance-targets.md` - performance budgets and feature-freeze rule.
+- `measurement-and-automation.md` - CI, runtime test, and log triage workflow.
+- `known-log-lines.md` - accepted temporary Phobos-owned log lines, if any.
