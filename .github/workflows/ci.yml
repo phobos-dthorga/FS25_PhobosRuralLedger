@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-package:
+    name: Validate and package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Set up Lua
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4
+
+      - name: Compile Python tools
+        run: python -m py_compile tools/*.py
+
+      - name: Compile Lua scripts
+        run: |
+          files="$(git ls-files '*.lua')"
+          if [ -n "$files" ]; then
+            luac5.4 -p $files
+          fi
+
+      - name: Build and validate package set
+        run: python tools/package_set.py --suffix ci --validate --write-sha256 --write-json
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: FS25_PhobosRuralLedger-ci-package
+          path: |
+            dist/*_ci.zip
+            dist/SHA256SUMS.txt
+            dist/package-set.json
+          if-no-files-found: error
+          retention-days: 14

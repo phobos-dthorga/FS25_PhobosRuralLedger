@@ -1,0 +1,9 @@
+{
+  "packages": [
+    {
+      "id": "core",
+      "name": "FS25_PhobosRuralLedger",
+      "source": "mod"
+    }
+  ]
+}

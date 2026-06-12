@@ -1,0 +1,39 @@
+name: Runtime Test
+description: Record an in-game test result.
+title: "[Runtime Test]: "
+labels:
+  - testing
+body:
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod Version Or Commit
+    validations:
+      required: true
+  - type: input
+    id: game-version
+    attributes:
+      label: Farming Simulator 25 Version
+    validations:
+      required: false
+  - type: textarea
+    id: setup
+    attributes:
+      label: Test Setup
+      description: Save, map, other mods, and relevant settings.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: Result
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log Snippet
+      render: text
+    validations:
+      required: false

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<modDesc descVersion="107" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://validation.gdn.giants-software.com/xml/fs25/modDesc.xsd">
+    <author>phobosgekko</author>
+    <version>0.1.0.0</version>
+    <title>
+        <en>Phobos' Rural Ledger</en>
+    </title>
+    <description>
+        <en>Early staging mod for a living local farm economy in Farming Simulator 25. NPC farms receive hidden ledgers, profiles, debt pressure, land pressure, and player-facing economy reports as development progresses.</en>
+    </description>
+    <iconFilename>icon.dds</iconFilename>
+
+    <extraSourceFiles>
+        <sourceFile filename="src/PhobosRuralLedger.lua"/>
+    </extraSourceFiles>
+
+    <dependencies>
+        <dependency>FS25_PhobosLib</dependency>
+    </dependencies>
+
+    <multiplayer supported="true"/>
+</modDesc>

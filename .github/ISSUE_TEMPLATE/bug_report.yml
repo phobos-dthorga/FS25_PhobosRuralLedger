@@ -1,0 +1,67 @@
+name: Bug Report
+description: Report something that is not working correctly.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: checkboxes
+    id: duplicate-check
+    attributes:
+      label: Duplicate Check
+      description: Please search open and closed issues before creating a new report.
+      options:
+        - label: I checked existing issues and this is majorly new or unique.
+          required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: input
+    id: mod-version
+    attributes:
+      label: Mod Version
+      description: Which version or commit are you using?
+      placeholder: "0.1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: game-version
+    attributes:
+      label: Farming Simulator 25 Version
+      description: Include the game patch/version if known.
+    validations:
+      required: false
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps To Reproduce
+      description: List the smallest sequence that reproduces the issue.
+      placeholder: |
+        1. Start a save with...
+        2. Open/use...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Result
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Result
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log Snippet
+      description: Paste the relevant Farming Simulator log lines if available.
+      render: text
+    validations:
+      required: false

@@ -1,0 +1,27 @@
+name: Design Task
+description: Capture a design decision, research task, or planning item.
+title: "[Design]: "
+labels:
+  - design
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What question or design outcome should this resolve?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Link docs, source examples, or notes that matter.
+    validations:
+      required: false
+  - type: textarea
+    id: decision
+    attributes:
+      label: Proposed Direction
+      description: If you already have a leaning, capture it here.
+    validations:
+      required: false

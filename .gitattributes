@@ -1,0 +1,19 @@
+* text=auto
+
+*.xml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.py text eol=lf
+*.ps1 text eol=lf
+*.lua text eol=lf
+*.i3d text eol=lf
+*.dds binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+.gitattributes text eol=lf
+.gitignore text eol=lf
+LICENSE text eol=lf

@@ -1,0 +1,23 @@
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Farming Simulator mod packages and generated output
+*.zip
+dist/
+build/
+release/
+packaged/
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+__pycache__/
+*.pyc
