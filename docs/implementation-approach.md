@@ -7,7 +7,8 @@
 3. Add a deterministic seasonal ledger calculation.
 4. Persist and reload ledger snapshots.
 5. Generate a report-only economy summary.
-6. Add one gameplay hook after the relevant FS25 API path is verified.
+6. Add read-only UI model builders before any custom visual UI.
+7. Add one gameplay hook after the relevant FS25 API path is verified.
 
 ## Development Rules
 
@@ -20,6 +21,7 @@
 ## What To Avoid Early
 
 - Custom UI before the data model earns it.
+- Custom UI before read-only view models exist.
 - Physically simulated NPC operations.
 - Large numbers of random events.
 - Deep integration with land/contracts before API research.

@@ -25,6 +25,8 @@ Use this folder as the design packet for Phobos' Rural Ledger.
 
 - `player-facing-ux.md` - local reports, dashboard sections, report patterns,
   and text style.
+- `ui-screen-plan.md` - staged Rural Ledger screens, view-model boundaries,
+  visibility rules, and UI build order.
 - `naming-and-tone.md` - selected name, subtitle options, alternates, and copy
   guidance.
 - `visual-assets.md` - placeholder icon status and future art direction.

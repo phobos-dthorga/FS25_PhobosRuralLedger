@@ -27,6 +27,8 @@ Early Lua modules should stay small and boring:
 - `Events`: opportunity selection, reasons, cooldowns, and event history.
 - `Reports`: read-only formatting for local news, dashboards, and annual
   summaries.
+- `UiModels`: read-only display-table builders for Overview, Farmers, Farm
+  Detail, and later Market Board or opportunity cards.
 - `Persistence`: save/load and schema migration.
 - `Integrations`: optional runtime-gated links to other mods.
 - `Main`: bootstrap and module load order.
@@ -42,6 +44,26 @@ economy outcomes.
 
 Authoritative economy changes belong in shared gameplay services. This should
 make save/load, multiplayer, and testing easier once implementation begins.
+
+## UI Model Boundary
+
+Build display models before building custom FS25 screens. `UiModels` should
+return plain Lua tables for screen adapters and report formatters:
+
+- `buildOverview(state, options)`;
+- `buildFarmList(state, options)`;
+- `buildFarmDetail(state, farmId, options)`;
+- later `buildMarketBoard(state, options)` and
+  `buildOpportunities(state, options)`.
+
+`UiModels` must not call GUI APIs, mutate state, create contracts, change
+reputation, alter land ownership, or recompute full ledgers per frame. GUI
+adapters can render the tables and delegate player actions back to gameplay
+services.
+
+Rebuild UI models on save load, after period simulation, after accepted
+opportunities, or after manual refresh. Do not perform unbounded farm, field,
+vehicle, placeable, fillType, or active-mod scans from a per-frame UI path.
 
 ## Multiplayer Direction
 

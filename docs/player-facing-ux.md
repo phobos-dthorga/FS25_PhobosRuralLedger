@@ -18,7 +18,9 @@ decisions, not only through internal numbers.
 
 ## Dashboard Sections
 
-The first dashboard should be compact and decision-focused:
+The first dashboard should be compact and decision-focused. The detailed screen
+roadmap lives in `ui-screen-plan.md`; this page captures the player-facing
+style and information rules.
 
 - local market mood;
 - land demand and recent listings;
@@ -30,6 +32,15 @@ The first dashboard should be compact and decision-focused:
 
 Avoid exposing every internal variable. Show enough to make the player believe
 the simulation and decide what to do next.
+
+## Screen Principle
+
+Overview tells the player what matters. Farm Detail tells them why.
+Opportunities tell them what they can do. History proves the world remembers.
+
+Exact accounting values should stay hidden unless debug visibility is enabled.
+Public screens should prefer bands such as cash position, debt pressure, margin
+trend, storage pressure, and risk buffer.
 
 ## Report Detail Pattern
 

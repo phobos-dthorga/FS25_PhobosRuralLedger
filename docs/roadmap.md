@@ -17,7 +17,9 @@ Do not try to make NPCs physically perform every operation at first.
 - Estimate costs from crop type and field size.
 - Run monthly or seasonal profit/loss updates.
 - Trigger contracts, land leases, and land sales from financial condition.
-- Add an economy dashboard or report.
+- Add read-only UI models for Overview, Farmers, and Farm Detail before custom
+  FS25 screen work.
+- Add an economy dashboard or report that consumes those models where possible.
 
 Version 1 should be useful even if it only reports pressure and creates limited
 opportunities. The success test is whether the player understands why nearby
@@ -40,6 +42,8 @@ farms are doing well or struggling.
 - Storage and delayed selling.
 - Neighbour reputation.
 - More direct pressure on contract rewards and land availability.
+- Market Board, Land & Auctions, Relationships, and expanded Farm Detail tabs
+  only after the underlying hooks and saved state exist.
 
 ## Version 3: Regional Systems
 
@@ -47,6 +51,8 @@ farms are doing well or struggling.
 - Co-ops.
 - Production-chain supply and demand.
 - Regional presets based on US, EU, and Australian datasets.
+- Regional Outlook, Co-op Board, Supply Chains, Disaster & Insurance, and Annual
+  Report screens as report layers before hard integrations.
 
 ## Parking Lot
 
