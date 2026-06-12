@@ -11,6 +11,11 @@ Implemented:
 - stress score and stress state assignment;
 - read-only local economy report lines;
 - bounded log-debug access to the generated economy report;
+- read-only UI model builders for Overview, Farmers, Farm Detail, and
+  Settings / Debug;
+- first native FS25 screen controller and XML layout for the V1 Rural Ledger
+  screen;
+- guarded GUI access through a keybinding and settings-menu entry point;
 - versioned persistence import/export shape;
 - bootstrap initialization of an in-memory Rural Ledger state.
 
@@ -26,6 +31,11 @@ mods, but no Phobos-owned errors or warnings.
 
 `v0.1.2.0` adds bounded log-debug visibility for the generated report. It still
 needs the same disposable-save runtime log check before the next feature slice.
+
+`v0.1.3.0` adds the first native read-only screen UI. Static validation can
+prove the Lua, XML, package, and UI model behavior, but the actual FS25 screen
+open path still requires a disposable-save runtime pass before it can be called
+proven in game.
 
 ## Persistence Boundary
 
@@ -50,8 +60,10 @@ added.
 
 Recommended next code step:
 
-1. Runtime-test the `v0.1.2.0` log-debug report output.
-2. Add the first cause-carrying neighbour opportunity from strained or worse
+1. Runtime-test the `v0.1.3.0` screen open path with `FS25_PhobosLib` installed.
+2. Confirm the keybinding, settings entry, tab switching, farm selection,
+   refresh, and debug toggle in `log.txt`.
+3. Add the first cause-carrying neighbour opportunity from strained or worse
    farms.
-3. Research and wire FS25 save/load lifecycle hooks only after the read-only
+4. Research and wire FS25 save/load lifecycle hooks only after the read-only
    state and opportunity data remain stable.

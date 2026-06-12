@@ -356,3 +356,11 @@ per-frame paths.
 5. Add opportunity cards using saved cause and expiry data.
 6. Add Version 2 tabs only after gameplay hooks are real.
 7. Add Version 3 regional screens as report layers before hard integrations.
+
+## Version 1 Implementation Note
+
+`v0.1.3.0` implements the first pass through steps 1-4: read-only UI models,
+report consumption of those models, and a native Rural Ledger screen with
+Overview, Farmers, Farm Detail, and Settings / Debug. It remains a runtime
+candidate until the packaged mod is opened in a disposable FS25 save and the
+log is checked for Phobos-owned errors or warnings.

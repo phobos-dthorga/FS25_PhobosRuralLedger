@@ -8,6 +8,7 @@ source("mod/src/Constants.lua")
 source("mod/src/Profiles.lua")
 source("mod/src/Ledgers.lua")
 source("mod/src/Simulation.lua")
+source("mod/src/UiModels.lua")
 source("mod/src/Reports.lua")
 source("mod/src/Persistence.lua")
 
@@ -16,6 +17,7 @@ local Ledgers = PhobosRuralLedger.Ledgers
 local Persistence = PhobosRuralLedger.Persistence
 local Reports = PhobosRuralLedger.Reports
 local Simulation = PhobosRuralLedger.Simulation
+local UiModels = PhobosRuralLedger.UiModels
 local capturedLogs = {}
 
 PhobosFS25 = {
@@ -79,6 +81,47 @@ assertEquals(
 local report = Reports.buildEconomyReport(stateA, {maxLines = 3})
 assertEquals(4, #report, "report should include a header and requested farm lines")
 assertTrue(string.find(report[1], "Local economy report") ~= nil, "report should include a local economy header")
+assertTrue(string.find(report[2], "cash") ~= nil, "report should include public cash band wording")
+
+local overviewA = UiModels.buildOverview(stateA)
+local overviewB = UiModels.buildOverview(stateB)
+assertEquals(8, overviewA.trackedFarms, "overview should count tracked farms")
+assertEquals(
+    overviewA.localMarketMood,
+    overviewB.localMarketMood,
+    "overview should be deterministic for the same seed"
+)
+assertEquals(6, #overviewA.cards, "overview should expose six V1 cards")
+assertTrue(#overviewA.alerts >= 1, "overview should expose at least one alert or empty-state note")
+
+local farmRowsA = UiModels.buildFarmList(stateA)
+local farmRowsB = UiModels.buildFarmList(stateB)
+assertEquals(8, #farmRowsA, "farm list should include one row per profile")
+assertEquals(
+    farmRowsA[1].displayName,
+    farmRowsB[1].displayName,
+    "farm list ordering should be deterministic"
+)
+assertTrue(farmRowsA[1].stressRank >= farmRowsA[#farmRowsA].stressRank, "farm list should sort by pressure first")
+
+local publicDetail = UiModels.buildFarmDetail(stateA, farmRowsA[1].farmId)
+assertEquals(farmRowsA[1].farmId, publicDetail.farmId, "farm detail should select the requested farm")
+assertTrue(#publicDetail.lines >= 6, "farm detail should include public-band lines")
+for _, line in ipairs(publicDetail.lines) do
+    assertTrue(string.find(line, "Debug") == nil, "public farm detail must not expose debug exact values")
+end
+
+local debugDetail = UiModels.buildFarmDetail(stateA, farmRowsA[1].farmId, {includeDebug = true})
+local sawDebugCash = false
+for _, line in ipairs(debugDetail.lines) do
+    if string.find(line, "Debug cash") ~= nil then
+        sawDebugCash = true
+    end
+end
+assertTrue(sawDebugCash, "debug farm detail should expose exact debug values only when requested")
+
+local debugSummary = UiModels.buildDebugSummary(stateA, {includeExactFarmValues = true})
+assertTrue(#debugSummary.lines >= 10, "debug summary should expose bounded diagnostics")
 
 source("mod/src/PhobosRuralLedger.lua")
 

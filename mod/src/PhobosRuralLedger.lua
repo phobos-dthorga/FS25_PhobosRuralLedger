@@ -37,6 +37,48 @@ local function logInfo(message, ...)
     end
 end
 
+local function logWarn(message, ...)
+    if PhobosFS25 ~= nil and PhobosFS25.Logging ~= nil and PhobosFS25.Logging.warnSource ~= nil then
+        PhobosFS25.Logging.warnSource("PhobosRuralLedger", message, ...)
+    elseif print ~= nil then
+        print(string.format("[PhobosRuralLedger][WARN] %s", formatMessage(message, ...)))
+    end
+end
+
+local function logError(message, ...)
+    if PhobosFS25 ~= nil and PhobosFS25.Logging ~= nil and PhobosFS25.Logging.errorSource ~= nil then
+        PhobosFS25.Logging.errorSource("PhobosRuralLedger", message, ...)
+    elseif print ~= nil then
+        print(string.format("[PhobosRuralLedger][ERROR] %s", formatMessage(message, ...)))
+    end
+end
+
+local function verifyPhobosLibDependency()
+    if PhobosFS25 ~= nil
+        and PhobosFS25.Mods ~= nil
+        and PhobosFS25.Mods.requireLoaded ~= nil
+        and g_modIsLoaded ~= nil
+    then
+        PhobosFS25.Mods.requireLoaded("FS25_PhobosLib", "PhobosRuralLedger")
+    end
+end
+
+function PhobosRuralLedger.logInfo(message, ...)
+    logInfo(message, ...)
+end
+
+function PhobosRuralLedger.logWarn(message, ...)
+    logWarn(message, ...)
+end
+
+function PhobosRuralLedger.logError(message, ...)
+    logError(message, ...)
+end
+
+function PhobosRuralLedger.getState()
+    return PhobosRuralLedger.state
+end
+
 function PhobosRuralLedger.getEconomyReport(options)
     return Reports.buildEconomyReport(PhobosRuralLedger.state, options)
 end
@@ -62,6 +104,7 @@ function PhobosRuralLedger.bootstrap()
     end
 
     PhobosRuralLedger.isBootstrapped = true
+    verifyPhobosLibDependency()
     PhobosRuralLedger.state = Persistence.importState(nil)
     Simulation.calculatePeriod(PhobosRuralLedger.state)
     PhobosRuralLedger.reportLines = PhobosRuralLedger.logEconomyReport()

@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<GUI onOpen="onOpen" onClose="onClose" onCreate="onCreate">
+    <Bitmap profile="fs25_fullScreenBackground" id="background"/>
+
+    <GuiElement profile="rlScreenContainer" id="screenContainer">
+        <GuiElement profile="fs25_menuHeaderPanel" position="0px -20px">
+            <Bitmap profile="fs25_menuHeaderIconBg">
+                <Bitmap profile="fs25_menuHeaderIcon"/>
+            </Bitmap>
+            <Text profile="fs25_menuHeaderTitle" text="Phobos' Rural Ledger"/>
+        </GuiElement>
+
+        <BoxLayout profile="rlTabBox" id="tabBox">
+            <Button profile="rlTabButton" id="overviewTab" text="Overview" onClick="onClickOverview">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+            <Button profile="rlTabButton" id="farmersTab" text="Farmers" onClick="onClickFarmers">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+            <Button profile="rlTabButton" id="detailTab" text="Farm Detail" onClick="onClickDetail">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+            <Button profile="rlTabButton" id="debugTab" text="Settings / Debug" onClick="onClickDebug">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+        </BoxLayout>
+        <ThreePartBitmap profile="fs25_lineSeparatorTopHighlighted" position="0px -145px" size="1520px 4px"/>
+
+        <GuiElement profile="rlContentPanel" id="overviewPanel">
+            <Text profile="rlSectionTitle" id="overviewTitle" position="0px 0px"/>
+            <Text profile="rlSubtleText" id="overviewSubtitle" position="0px -38px"/>
+
+            <GuiElement profile="rlCard" position="0px -95px">
+                <Text profile="rlCardLabel" id="overviewCardLabel[1]" position="0px -8px"/>
+                <Text profile="rlCardValue" id="overviewCardValue[1]" position="0px -34px"/>
+            </GuiElement>
+            <GuiElement profile="rlCard" position="375px -95px">
+                <Text profile="rlCardLabel" id="overviewCardLabel[2]" position="0px -8px"/>
+                <Text profile="rlCardValue" id="overviewCardValue[2]" position="0px -34px"/>
+            </GuiElement>
+            <GuiElement profile="rlCard" position="750px -95px">
+                <Text profile="rlCardLabel" id="overviewCardLabel[3]" position="0px -8px"/>
+                <Text profile="rlCardValue" id="overviewCardValue[3]" position="0px -34px"/>
+            </GuiElement>
+            <GuiElement profile="rlCard" position="1125px -95px">
+                <Text profile="rlCardLabel" id="overviewCardLabel[4]" position="0px -8px"/>
+                <Text profile="rlCardValue" id="overviewCardValue[4]" position="0px -34px"/>
+            </GuiElement>
+            <GuiElement profile="rlCard" position="0px -205px">
+                <Text profile="rlCardLabel" id="overviewCardLabel[5]" position="0px -8px"/>
+                <Text profile="rlCardValue" id="overviewCardValue[5]" position="0px -34px"/>
+            </GuiElement>
+            <GuiElement profile="rlCard" position="375px -205px">
+                <Text profile="rlCardLabel" id="overviewCardLabel[6]" position="0px -8px"/>
+                <Text profile="rlCardValue" id="overviewCardValue[6]" position="0px -34px"/>
+            </GuiElement>
+
+            <Text profile="rlPanelHeading" position="0px -345px" text="Recent economy notes"/>
+            <Text profile="rlBodyText" id="overviewAlert[1]" position="0px -390px"/>
+            <Text profile="rlBodyText" id="overviewAlert[2]" position="0px -430px"/>
+            <Text profile="rlBodyText" id="overviewAlert[3]" position="0px -470px"/>
+            <Text profile="rlBodyText" id="overviewAlert[4]" position="0px -510px"/>
+        </GuiElement>
+
+        <GuiElement profile="rlContentPanel" id="farmersPanel" visible="false">
+            <Text profile="rlSectionTitle" position="0px 0px" text="Tracked Farmers"/>
+            <Text profile="rlSubtleText" position="0px -38px" text="Sorted by visible pressure, highest first."/>
+
+            <GuiElement profile="rlTableHeader" position="0px -90px">
+                <Text profile="rlHeaderCell" position="20px 0px" size="290px 38px" text="Farm"/>
+                <Text profile="rlHeaderCell" position="330px 0px" size="240px 38px" text="Type"/>
+                <Text profile="rlHeaderCellCenter" position="590px 0px" size="90px 38px" text="Fields"/>
+                <Text profile="rlHeaderCellCenter" position="705px 0px" size="160px 38px" text="Stress"/>
+                <Text profile="rlHeaderCell" position="885px 0px" size="330px 38px" text="Main pressure"/>
+                <Text profile="rlHeaderCell" position="1235px 0px" size="220px 38px" text="Relationship"/>
+            </GuiElement>
+
+            <Button profile="rlFarmRow" id="farmRow[1]" position="0px -135px" onClick="onClickFarmRow1">
+                <Text profile="rlRowCell" id="farmName[1]" position="20px 0px" size="290px 38px"/>
+                <Text profile="rlRowCell" id="farmType[1]" position="330px 0px" size="240px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmFields[1]" position="590px 0px" size="90px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmStress[1]" position="705px 0px" size="160px 38px"/>
+                <Text profile="rlRowCell" id="farmPressure[1]" position="885px 0px" size="330px 38px"/>
+                <Text profile="rlRowCell" id="farmRelation[1]" position="1235px 0px" size="220px 38px"/>
+            </Button>
+            <Button profile="rlFarmRowAlt" id="farmRow[2]" position="0px -180px" onClick="onClickFarmRow2">
+                <Text profile="rlRowCell" id="farmName[2]" position="20px 0px" size="290px 38px"/>
+                <Text profile="rlRowCell" id="farmType[2]" position="330px 0px" size="240px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmFields[2]" position="590px 0px" size="90px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmStress[2]" position="705px 0px" size="160px 38px"/>
+                <Text profile="rlRowCell" id="farmPressure[2]" position="885px 0px" size="330px 38px"/>
+                <Text profile="rlRowCell" id="farmRelation[2]" position="1235px 0px" size="220px 38px"/>
+            </Button>
+            <Button profile="rlFarmRow" id="farmRow[3]" position="0px -225px" onClick="onClickFarmRow3">
+                <Text profile="rlRowCell" id="farmName[3]" position="20px 0px" size="290px 38px"/>
+                <Text profile="rlRowCell" id="farmType[3]" position="330px 0px" size="240px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmFields[3]" position="590px 0px" size="90px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmStress[3]" position="705px 0px" size="160px 38px"/>
+                <Text profile="rlRowCell" id="farmPressure[3]" position="885px 0px" size="330px 38px"/>
+                <Text profile="rlRowCell" id="farmRelation[3]" position="1235px 0px" size="220px 38px"/>
+            </Button>
+            <Button profile="rlFarmRowAlt" id="farmRow[4]" position="0px -270px" onClick="onClickFarmRow4">
+                <Text profile="rlRowCell" id="farmName[4]" position="20px 0px" size="290px 38px"/>
+                <Text profile="rlRowCell" id="farmType[4]" position="330px 0px" size="240px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmFields[4]" position="590px 0px" size="90px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmStress[4]" position="705px 0px" size="160px 38px"/>
+                <Text profile="rlRowCell" id="farmPressure[4]" position="885px 0px" size="330px 38px"/>
+                <Text profile="rlRowCell" id="farmRelation[4]" position="1235px 0px" size="220px 38px"/>
+            </Button>
+            <Button profile="rlFarmRow" id="farmRow[5]" position="0px -315px" onClick="onClickFarmRow5">
+                <Text profile="rlRowCell" id="farmName[5]" position="20px 0px" size="290px 38px"/>
+                <Text profile="rlRowCell" id="farmType[5]" position="330px 0px" size="240px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmFields[5]" position="590px 0px" size="90px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmStress[5]" position="705px 0px" size="160px 38px"/>
+                <Text profile="rlRowCell" id="farmPressure[5]" position="885px 0px" size="330px 38px"/>
+                <Text profile="rlRowCell" id="farmRelation[5]" position="1235px 0px" size="220px 38px"/>
+            </Button>
+            <Button profile="rlFarmRowAlt" id="farmRow[6]" position="0px -360px" onClick="onClickFarmRow6">
+                <Text profile="rlRowCell" id="farmName[6]" position="20px 0px" size="290px 38px"/>
+                <Text profile="rlRowCell" id="farmType[6]" position="330px 0px" size="240px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmFields[6]" position="590px 0px" size="90px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmStress[6]" position="705px 0px" size="160px 38px"/>
+                <Text profile="rlRowCell" id="farmPressure[6]" position="885px 0px" size="330px 38px"/>
+                <Text profile="rlRowCell" id="farmRelation[6]" position="1235px 0px" size="220px 38px"/>
+            </Button>
+            <Button profile="rlFarmRow" id="farmRow[7]" position="0px -405px" onClick="onClickFarmRow7">
+                <Text profile="rlRowCell" id="farmName[7]" position="20px 0px" size="290px 38px"/>
+                <Text profile="rlRowCell" id="farmType[7]" position="330px 0px" size="240px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmFields[7]" position="590px 0px" size="90px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmStress[7]" position="705px 0px" size="160px 38px"/>
+                <Text profile="rlRowCell" id="farmPressure[7]" position="885px 0px" size="330px 38px"/>
+                <Text profile="rlRowCell" id="farmRelation[7]" position="1235px 0px" size="220px 38px"/>
+            </Button>
+            <Button profile="rlFarmRowAlt" id="farmRow[8]" position="0px -450px" onClick="onClickFarmRow8">
+                <Text profile="rlRowCell" id="farmName[8]" position="20px 0px" size="290px 38px"/>
+                <Text profile="rlRowCell" id="farmType[8]" position="330px 0px" size="240px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmFields[8]" position="590px 0px" size="90px 38px"/>
+                <Text profile="rlRowCellCenter" id="farmStress[8]" position="705px 0px" size="160px 38px"/>
+                <Text profile="rlRowCell" id="farmPressure[8]" position="885px 0px" size="330px 38px"/>
+                <Text profile="rlRowCell" id="farmRelation[8]" position="1235px 0px" size="220px 38px"/>
+            </Button>
+        </GuiElement>
+
+        <GuiElement profile="rlContentPanel" id="detailPanel" visible="false">
+            <Text profile="rlSectionTitle" id="detailTitle" position="0px 0px"/>
+            <Text profile="rlSubtleText" id="detailSubtitle" position="0px -38px"/>
+            <Text profile="rlHeadlineText" id="detailHeadline" position="0px -90px"/>
+            <Text profile="rlBodyText" id="detailCause" position="0px -135px"/>
+            <Text profile="rlBodyText" id="detailMeaning" position="0px -175px"/>
+
+            <Text profile="rlPanelHeading" position="0px -245px" text="Public farm detail"/>
+            <Text profile="rlBodyText" id="detailLine[1]" position="0px -290px"/>
+            <Text profile="rlBodyText" id="detailLine[2]" position="0px -325px"/>
+            <Text profile="rlBodyText" id="detailLine[3]" position="0px -360px"/>
+            <Text profile="rlBodyText" id="detailLine[4]" position="0px -395px"/>
+            <Text profile="rlBodyText" id="detailLine[5]" position="0px -430px"/>
+            <Text profile="rlBodyText" id="detailLine[6]" position="0px -465px"/>
+            <Text profile="rlBodyText" id="detailLine[7]" position="760px -290px"/>
+            <Text profile="rlBodyText" id="detailLine[8]" position="760px -325px"/>
+            <Text profile="rlBodyText" id="detailLine[9]" position="760px -360px"/>
+            <Text profile="rlBodyText" id="detailLine[10]" position="760px -395px"/>
+            <Text profile="rlBodyText" id="detailLine[11]" position="760px -430px"/>
+            <Text profile="rlBodyText" id="detailLine[12]" position="760px -465px"/>
+        </GuiElement>
+
+        <GuiElement profile="rlContentPanel" id="debugPanel" visible="false">
+            <Text profile="rlSectionTitle" id="debugTitle" position="0px 0px"/>
+            <Text profile="rlSubtleText" id="debugModeText" position="0px -38px"/>
+            <Button profile="rlSmallButton" position="0px -95px" text="Toggle exact debug values" onClick="onClickToggleDebug"/>
+            <Button profile="rlSmallButton" position="330px -95px" text="Refresh display data" onClick="onClickRefresh"/>
+
+            <Text profile="rlPanelHeading" position="0px -175px" text="Diagnostics"/>
+            <Text profile="rlBodyText" id="debugLine[1]" position="0px -220px"/>
+            <Text profile="rlBodyText" id="debugLine[2]" position="0px -255px"/>
+            <Text profile="rlBodyText" id="debugLine[3]" position="0px -290px"/>
+            <Text profile="rlBodyText" id="debugLine[4]" position="0px -325px"/>
+            <Text profile="rlBodyText" id="debugLine[5]" position="0px -360px"/>
+            <Text profile="rlBodyText" id="debugLine[6]" position="0px -395px"/>
+            <Text profile="rlBodyText" id="debugLine[7]" position="760px -220px"/>
+            <Text profile="rlBodyText" id="debugLine[8]" position="760px -255px"/>
+            <Text profile="rlBodyText" id="debugLine[9]" position="760px -290px"/>
+            <Text profile="rlBodyText" id="debugLine[10]" position="760px -325px"/>
+            <Text profile="rlBodyText" id="debugLine[11]" position="760px -360px"/>
+            <Text profile="rlBodyText" id="debugLine[12]" position="760px -395px"/>
+        </GuiElement>
+    </GuiElement>
+
+    <BoxLayout profile="fs25_buttonBox" id="buttonsPanel">
+        <Button profile="buttonExtra1" text="Refresh" onClick="onClickRefresh" id="menuButton[1]">
+            <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
+        </Button>
+        <Button profile="buttonBack" text="Back" onClick="onClickBack" id="menuButton[2]">
+            <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
+        </Button>
+    </BoxLayout>
+
+    <GUIProfiles>
+        <Profile name="rlScreenContainer" extends="emptyPanel" with="anchorTopCenter">
+            <position value="-760px -45px"/>
+            <size value="1520px 830px"/>
+        </Profile>
+        <Profile name="rlTabBox" extends="emptyPanel" with="anchorTopLeft">
+            <position value="0px -82px"/>
+            <size value="1520px 58px"/>
+        </Profile>
+        <Profile name="rlTabButton" extends="fs25_subCategorySelectorTabbedTab">
+            <size value="260px 57px"/>
+        </Profile>
+        <Profile name="rlContentPanel" extends="emptyPanel" with="anchorTopLeft">
+            <position value="0px -185px"/>
+            <size value="1520px 600px"/>
+        </Profile>
+        <Profile name="rlSectionTitle" extends="fs25_textDefault" with="anchorTopLeft">
+            <size value="900px 42px"/>
+            <textSize value="30px"/>
+            <textBold value="true"/>
+            <textColor value="1 1 1 1"/>
+        </Profile>
+        <Profile name="rlSubtleText" extends="fs25_textDefault" with="anchorTopLeft">
+            <size value="1200px 30px"/>
+            <textSize value="17px"/>
+            <textColor value="0.65 0.68 0.72 1"/>
+        </Profile>
+        <Profile name="rlHeadlineText" extends="fs25_textDefault" with="anchorTopLeft">
+            <size value="1300px 36px"/>
+            <textSize value="23px"/>
+            <textBold value="true"/>
+            <textColor value="0.88 0.95 1 1"/>
+        </Profile>
+        <Profile name="rlPanelHeading" extends="fs25_textDefault" with="anchorTopLeft">
+            <size value="600px 30px"/>
+            <textSize value="20px"/>
+            <textBold value="true"/>
+            <textColor value="0.9 0.9 0.9 1"/>
+        </Profile>
+        <Profile name="rlBodyText" extends="fs25_textDefault" with="anchorTopLeft">
+            <size value="720px 30px"/>
+            <textSize value="17px"/>
+            <textColor value="0.86 0.88 0.9 1"/>
+            <textMaxNumLines value="1"/>
+            <textLayoutMode value="scrolling"/>
+        </Profile>
+        <Profile name="rlCard" extends="baseReference" with="anchorTopLeft">
+            <size value="340px 82px"/>
+            <imageColor value="0.08 0.09 0.10 0.88"/>
+        </Profile>
+        <Profile name="rlCardLabel" extends="fs25_textDefault" with="anchorTopLeft">
+            <position value="18px 0px"/>
+            <size value="300px 22px"/>
+            <textSize value="15px"/>
+            <textColor value="0.62 0.66 0.70 1"/>
+        </Profile>
+        <Profile name="rlCardValue" extends="fs25_textDefault" with="anchorTopLeft">
+            <position value="18px 0px"/>
+            <size value="300px 34px"/>
+            <textSize value="22px"/>
+            <textBold value="true"/>
+            <textColor value="0.92 0.96 1 1"/>
+            <textLayoutMode value="scrolling"/>
+        </Profile>
+        <Profile name="rlTableHeader" extends="baseReference" with="anchorTopLeft">
+            <size value="1520px 38px"/>
+            <imageColor value="0.12 0.13 0.16 0.95"/>
+        </Profile>
+        <Profile name="rlHeaderCell" extends="fs25_textDefault" with="anchorTopLeft">
+            <textSize value="15px"/>
+            <textBold value="true"/>
+            <textColor value="0.78 0.8 0.82 1"/>
+            <textLayoutMode value="scrolling"/>
+        </Profile>
+        <Profile name="rlHeaderCellCenter" extends="rlHeaderCell">
+            <textAlignment value="center"/>
+        </Profile>
+        <Profile name="rlFarmRow" extends="baseReference" with="anchorTopLeft">
+            <size value="1520px 40px"/>
+            <imageColor value="0.08 0.08 0.09 0.92"/>
+            <imageSelectedColor value="0.18 0.22 0.24 1"/>
+        </Profile>
+        <Profile name="rlFarmRowAlt" extends="rlFarmRow">
+            <imageColor value="0.10 0.10 0.12 0.92"/>
+        </Profile>
+        <Profile name="rlRowCell" extends="fs25_textDefault" with="anchorTopLeft">
+            <textSize value="15px"/>
+            <textColor value="0.9 0.9 0.9 1"/>
+            <textLayoutMode value="scrolling"/>
+        </Profile>
+        <Profile name="rlRowCellCenter" extends="rlRowCell">
+            <textAlignment value="center"/>
+        </Profile>
+        <Profile name="rlSmallButton" extends="buttonOK" with="anchorTopLeft">
+            <size value="300px 45px"/>
+            <textSize value="15px"/>
+        </Profile>
+    </GUIProfiles>
+</GUI>

@@ -23,7 +23,10 @@ Document uncertainties here before implementing API-sensitive features.
 
 ## UI
 
-- What is the least invasive way to expose a report screen?
+- What is the least invasive way to expose a report screen? Current V1 answer:
+  load a standalone `ScreenElement` with `g_gui:loadGui`, open it with
+  `g_gui:showGui`, and provide a guarded keybinding plus settings-menu entry.
+  Runtime proof is still required.
 - Can existing menu pages be extended safely?
 - Should the first version use notifications/reports instead of custom UI?
 - Is there a safe way to add a market board or economy report entry point to
