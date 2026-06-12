@@ -4,6 +4,7 @@ local Constants = PhobosRuralLedger.Constants
 local Persistence = PhobosRuralLedger.Persistence
 local Reports = PhobosRuralLedger.Reports
 local Simulation = PhobosRuralLedger.Simulation
+local MapDiscovery = PhobosRuralLedger.MapDiscovery
 
 PhobosRuralLedger.MOD_NAME = Constants.MOD_NAME
 PhobosRuralLedger.DISPLAY_NAME = Constants.DISPLAY_NAME
@@ -63,6 +64,20 @@ local function verifyPhobosLibDependency()
     end
 end
 
+local function logMapDiscoverySummary(discovery)
+    discovery = discovery or {}
+
+    logInfo(
+        "Map discovery: %d properties, %d fields, %d farmlands, %d contracts, confidence=%s, precisionFarming=%s.",
+        discovery.discoveredPropertyCount or 0,
+        discovery.discoveredFieldCount or 0,
+        discovery.discoveredFarmlandCount or 0,
+        discovery.discoveredContractCount or 0,
+        tostring(discovery.confidence or "unavailable"),
+        discovery.precisionFarmingAvailable == true and "available" or "not available"
+    )
+end
+
 function PhobosRuralLedger.logInfo(message, ...)
     logInfo(message, ...)
 end
@@ -76,6 +91,30 @@ function PhobosRuralLedger.logError(message, ...)
 end
 
 function PhobosRuralLedger.getState()
+    return PhobosRuralLedger.state
+end
+
+function PhobosRuralLedger.refreshMapBackedState(options)
+    options = options or {}
+
+    local previous = PhobosRuralLedger.state or {}
+    local discovery = nil
+    if MapDiscovery ~= nil and MapDiscovery.discover ~= nil then
+        discovery = MapDiscovery.discover(options.discoveryOptions)
+    end
+
+    PhobosRuralLedger.state = Persistence.createInitialState({
+        seed = previous.seed or Constants.DEFAULT_SEED,
+        periodId = previous.periodId or Constants.DEFAULT_PERIOD_ID,
+        regionalPreset = previous.regionalPreset or Constants.DEFAULT_REGIONAL_PRESET,
+        mapDiscovery = discovery,
+    })
+    PhobosRuralLedger.state.opportunities = previous.opportunities or PhobosRuralLedger.state.opportunities
+    PhobosRuralLedger.state.eventHistory = previous.eventHistory or PhobosRuralLedger.state.eventHistory
+    PhobosRuralLedger.state.cooldowns = previous.cooldowns or PhobosRuralLedger.state.cooldowns
+    Simulation.calculatePeriod(PhobosRuralLedger.state)
+    logMapDiscoverySummary(PhobosRuralLedger.state.mapDiscovery)
+
     return PhobosRuralLedger.state
 end
 
@@ -106,6 +145,7 @@ function PhobosRuralLedger.bootstrap()
     PhobosRuralLedger.isBootstrapped = true
     verifyPhobosLibDependency()
     PhobosRuralLedger.state = Persistence.importState(nil)
+    logMapDiscoverySummary(PhobosRuralLedger.state.mapDiscovery)
     Simulation.calculatePeriod(PhobosRuralLedger.state)
     PhobosRuralLedger.reportLines = PhobosRuralLedger.logEconomyReport()
 end

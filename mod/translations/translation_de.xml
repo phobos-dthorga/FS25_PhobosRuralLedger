@@ -16,7 +16,9 @@
         <text name="rl_overview_empty_alert" text="In diesem Zeitraum gibt es keine öffentlichen Druckmeldungen."/>
         <text name="rl_overview_period" text="Zeitraum %s / %s"/>
         <text name="rl_card_local_mood" text="Lokale Lage"/>
+        <text name="rl_card_discovery_source" text="Erkennungsquelle"/>
         <text name="rl_card_tracked_farms" text="Erfasste Höfe"/>
+        <text name="rl_card_discovered_fields" text="Erkannte Felder"/>
         <text name="rl_card_farms_watching" text="Höfe unter Beobachtung"/>
         <text name="rl_card_strained_or_worse" text="Angespannt oder schlimmer"/>
         <text name="rl_card_main_pressure" text="Hauptdruck"/>
@@ -30,6 +32,7 @@
         <text name="rl_col_stress" text="Stress"/>
         <text name="rl_col_main_pressure" text="Hauptdruck"/>
         <text name="rl_col_relationship" text="Beziehung"/>
+        <text name="rl_col_source" text="Quelle"/>
 
         <text name="rl_detail_public_heading" text="Öffentliche Hofdetails"/>
         <text name="rl_detail_no_farm_title" text="Kein Hof ausgewählt"/>
@@ -41,7 +44,14 @@
         <text name="rl_detail_player_meaning" text="Öffentliche Aufträge sind in diesem Abschnitt noch nicht aktiv."/>
         <text name="rl_detail_support_debt" text="Schuldendruck ist %s"/>
         <text name="rl_detail_support_risk" text="Risikopuffer ist %s"/>
+        <text name="rl_detail_support_field_condition" text="Feldzustand: %s"/>
         <text name="rl_detail_line_profile" text="Profil: %s"/>
+        <text name="rl_detail_line_source" text="Quelle: %s"/>
+        <text name="rl_detail_line_farmlands" text="Flurstücke: %s"/>
+        <text name="rl_detail_line_field_ids" text="Feld-IDs: %s"/>
+        <text name="rl_detail_line_crop_mix" text="Fruchtmix: %s"/>
+        <text name="rl_detail_line_field_condition" text="Feldzustand: %s"/>
+        <text name="rl_detail_line_precision" text="Precision Farming: %s"/>
         <text name="rl_detail_line_fields" text="Kontrollierte Felder: %d"/>
         <text name="rl_detail_line_cash" text="Liquidität: %s"/>
         <text name="rl_detail_line_debt" text="Schuldendruck: %s"/>
@@ -66,6 +76,13 @@
         <text name="rl_debug_snapshots" text="Kontostände: %d"/>
         <text name="rl_debug_opportunities" text="Gelegenheiten: %d"/>
         <text name="rl_debug_events" text="Ereignisse: %d"/>
+        <text name="rl_debug_discovery_source" text="Erkennungsquelle: %s"/>
+        <text name="rl_debug_discovery_confidence" text="Erkennungsvertrauen: %s"/>
+        <text name="rl_debug_discovery_properties" text="Erkannte Betriebe/Flächen: %d"/>
+        <text name="rl_debug_discovery_fields" text="Erkannte Felder: %d"/>
+        <text name="rl_debug_discovery_farmlands" text="Erkannte Flurstücke: %d"/>
+        <text name="rl_debug_discovery_contracts" text="Erkannte Aufträge: %d"/>
+        <text name="rl_debug_precision_farming" text="Precision Farming: %s"/>
         <text name="rl_debug_save_hooks" text="Speicher-/Lade-Hooks: in diesem Abschnitt nicht verbunden"/>
         <text name="rl_debug_first_cash" text="Erste Hof-Liquidität: %s"/>
         <text name="rl_debug_first_debt" text="Erste Hof-Schulden: %s"/>
@@ -98,6 +115,24 @@
         <text name="rl_relationship_neutral" text="Neutral"/>
         <text name="rl_relationship_helpful" text="Hilfsbereit"/>
         <text name="rl_relationship_trusted" text="Vertraut"/>
+
+        <text name="rl_source_map" text="Karte"/>
+        <text name="rl_source_fallback" text="Fallback"/>
+        <text name="rl_source_none" text="Keine Kartenquelle"/>
+        <text name="rl_confidence_high" text="Hoch"/>
+        <text name="rl_confidence_medium" text="Mittel"/>
+        <text name="rl_confidence_low" text="Niedrig"/>
+        <text name="rl_confidence_fallback" text="Fallback"/>
+        <text name="rl_confidence_unavailable" text="Nicht verfügbar"/>
+        <text name="rl_source_confidence_pair" text="%s / %s"/>
+        <text name="rl_precision_available" text="Verfügbar; exakte Werte stehen noch aus"/>
+        <text name="rl_precision_not_available" text="Nicht verfügbar"/>
+        <text name="rl_condition_tracked" text="Erfasst"/>
+        <text name="rl_condition_weeds" text="Unkraut"/>
+        <text name="rl_condition_stones" text="Steine"/>
+        <text name="rl_condition_ploughing" text="Pflügen"/>
+        <text name="rl_condition_rolling" text="Walzen"/>
+        <text name="rl_condition_watered" text="Bewässert"/>
 
         <text name="rl_band_unknown" text="Unbekannt"/>
         <text name="rl_cash_negative" text="Negativ"/>

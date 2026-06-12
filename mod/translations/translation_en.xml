@@ -16,7 +16,9 @@
         <text name="rl_overview_empty_alert" text="No public pressure alerts this period."/>
         <text name="rl_overview_period" text="Period %s / %s"/>
         <text name="rl_card_local_mood" text="Local mood"/>
+        <text name="rl_card_discovery_source" text="Discovery source"/>
         <text name="rl_card_tracked_farms" text="Tracked farms"/>
+        <text name="rl_card_discovered_fields" text="Discovered fields"/>
         <text name="rl_card_farms_watching" text="Farms watching"/>
         <text name="rl_card_strained_or_worse" text="Strained or worse"/>
         <text name="rl_card_main_pressure" text="Main pressure"/>
@@ -30,6 +32,7 @@
         <text name="rl_col_stress" text="Stress"/>
         <text name="rl_col_main_pressure" text="Main pressure"/>
         <text name="rl_col_relationship" text="Relationship"/>
+        <text name="rl_col_source" text="Source"/>
 
         <text name="rl_detail_public_heading" text="Public farm detail"/>
         <text name="rl_detail_no_farm_title" text="No farm selected"/>
@@ -41,7 +44,14 @@
         <text name="rl_detail_player_meaning" text="Public opportunities are not active in this slice."/>
         <text name="rl_detail_support_debt" text="Debt pressure is %s"/>
         <text name="rl_detail_support_risk" text="Risk buffer is %s"/>
+        <text name="rl_detail_support_field_condition" text="Field condition: %s"/>
         <text name="rl_detail_line_profile" text="Profile: %s"/>
+        <text name="rl_detail_line_source" text="Source: %s"/>
+        <text name="rl_detail_line_farmlands" text="Farmlands: %s"/>
+        <text name="rl_detail_line_field_ids" text="Field IDs: %s"/>
+        <text name="rl_detail_line_crop_mix" text="Crop mix: %s"/>
+        <text name="rl_detail_line_field_condition" text="Field condition: %s"/>
+        <text name="rl_detail_line_precision" text="Precision Farming: %s"/>
         <text name="rl_detail_line_fields" text="Fields controlled: %d"/>
         <text name="rl_detail_line_cash" text="Cash position: %s"/>
         <text name="rl_detail_line_debt" text="Debt pressure: %s"/>
@@ -66,6 +76,13 @@
         <text name="rl_debug_snapshots" text="Ledger snapshots: %d"/>
         <text name="rl_debug_opportunities" text="Opportunities: %d"/>
         <text name="rl_debug_events" text="Events: %d"/>
+        <text name="rl_debug_discovery_source" text="Discovery source: %s"/>
+        <text name="rl_debug_discovery_confidence" text="Discovery confidence: %s"/>
+        <text name="rl_debug_discovery_properties" text="Discovered properties: %d"/>
+        <text name="rl_debug_discovery_fields" text="Discovered fields: %d"/>
+        <text name="rl_debug_discovery_farmlands" text="Discovered farmlands: %d"/>
+        <text name="rl_debug_discovery_contracts" text="Discovered contracts: %d"/>
+        <text name="rl_debug_precision_farming" text="Precision Farming: %s"/>
         <text name="rl_debug_save_hooks" text="Save/load hooks: not wired in this slice"/>
         <text name="rl_debug_first_cash" text="First farm cash: %s"/>
         <text name="rl_debug_first_debt" text="First farm debt: %s"/>
@@ -98,6 +115,24 @@
         <text name="rl_relationship_neutral" text="Neutral"/>
         <text name="rl_relationship_helpful" text="Helpful"/>
         <text name="rl_relationship_trusted" text="Trusted"/>
+
+        <text name="rl_source_map" text="Map"/>
+        <text name="rl_source_fallback" text="Fallback"/>
+        <text name="rl_source_none" text="No map source"/>
+        <text name="rl_confidence_high" text="High"/>
+        <text name="rl_confidence_medium" text="Medium"/>
+        <text name="rl_confidence_low" text="Low"/>
+        <text name="rl_confidence_fallback" text="Fallback"/>
+        <text name="rl_confidence_unavailable" text="Unavailable"/>
+        <text name="rl_source_confidence_pair" text="%s / %s"/>
+        <text name="rl_precision_available" text="Available; exact values pending"/>
+        <text name="rl_precision_not_available" text="Not available"/>
+        <text name="rl_condition_tracked" text="Tracked"/>
+        <text name="rl_condition_weeds" text="Weeds"/>
+        <text name="rl_condition_stones" text="Stones"/>
+        <text name="rl_condition_ploughing" text="Ploughing"/>
+        <text name="rl_condition_rolling" text="Rolling"/>
+        <text name="rl_condition_watered" text="Watered"/>
 
         <text name="rl_band_unknown" text="Unknown"/>
         <text name="rl_cash_negative" text="Negative"/>

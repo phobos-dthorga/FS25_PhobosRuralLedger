@@ -51,7 +51,7 @@
                 <Button profile="rlHeaderCellCenter" id="farmHeaderFields" position="485px 0px" size="80px 32px" text="$l10n_rl_col_fields" handleFocus="false"/>
                 <Button profile="rlHeaderCellCenter" id="farmHeaderStress" position="575px 0px" size="150px 32px" text="$l10n_rl_col_stress" handleFocus="false"/>
                 <Button profile="rlHeaderCell" id="farmHeaderPressure" position="735px 0px" size="320px 32px" text="$l10n_rl_col_main_pressure" handleFocus="false"/>
-                <Button profile="rlHeaderCell" id="farmHeaderRelation" position="1065px 0px" size="200px 32px" text="$l10n_rl_col_relationship" handleFocus="false"/>
+                <Button profile="rlHeaderCell" id="farmHeaderRelation" position="1065px 0px" size="200px 32px" text="$l10n_rl_col_source" handleFocus="false"/>
 
                 <Button profile="rlHeaderCell" id="farmHeaderFarmCompact" position="20px 0px" size="360px 32px" text="$l10n_rl_col_farm" handleFocus="false" visible="false"/>
                 <Button profile="rlHeaderCellCenter" id="farmHeaderFieldsCompact" position="390px 0px" size="80px 32px" text="$l10n_rl_col_fields" handleFocus="false" visible="false"/>

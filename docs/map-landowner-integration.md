@@ -63,6 +63,13 @@ The first map-aware implementation should build a read-only discovery snapshot
 on load, manual refresh, or a scheduled period update. It must not scan all
 fields or contracts from a per-frame path.
 
+`v0.1.5.0` implements the first provisional version of this snapshot for
+vanilla FS25 data. It reads loaded fields, farmlands, owner farm IDs, field
+state, active field missions, and optional Precision Farming mod availability.
+It does not mutate land, contracts, save data, ownership, or economy state.
+Exact Precision Farming pH/nitrogen values are intentionally not faked and
+remain pending until a safe API is verified.
+
 Candidate discovery output:
 
 ```lua
@@ -89,8 +96,8 @@ Candidate discovery output:
                     },
                     precisionFarming = {
                         available = true,
-                        nitrogenBand = "low",
-                        phBand = "good"
+                        exactValues = false,
+                        summary = "available; exact values pending"
                     }
                 }
             },
@@ -133,14 +140,19 @@ Exact finance remains hidden unless debug mode or relationship rules allow it.
 
 1. Add a read-only map discovery service that can enumerate landowners,
    farmlands, fields, crops, growth, soil flags, and active contracts where
-   APIs are verified.
+   APIs are verified. Implemented provisionally in `v0.1.5.0`.
 2. Build a `MapPropertyProfile` layer that attaches Rural Ledger profile and
-   stress data to discovered owner/property records.
+   stress data to discovered owner/property records. Implemented provisionally
+   in `v0.1.5.0`.
 3. Replace standalone generated farm records in `Profiles` with map-derived
-   records plus clearly flagged fallback records.
+   records plus clearly flagged fallback records. Implemented provisionally in
+   `v0.1.5.0`.
 4. Update `UiModels` so Overview, Farmers, and Farm Detail can show field IDs,
-   crop mix, property source, and data confidence.
+   crop mix, property source, and data confidence. Implemented provisionally in
+   `v0.1.5.0`.
 5. Add optional Precision Farming reads behind guarded integration checks.
+   Availability is guarded in `v0.1.5.0`; exact pH/nitrogen values are still
+   pending.
 6. Only after the read-only path is stable, consider land, auction, and contract
    hooks.
 

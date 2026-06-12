@@ -185,6 +185,14 @@ local function createSyntheticFields(profileIndex, count)
     return fields
 end
 
+local function mapProfileId(property, index)
+    if property ~= nil and property.propertyId ~= nil then
+        return tostring(property.propertyId)
+    end
+
+    return string.format("map_property_%03d", index)
+end
+
 local function profileId(index)
     return string.format("npc_farm_%02d", index)
 end
@@ -215,6 +223,17 @@ function Profiles.createProfile(index, options)
     return {
         farmId = profileId(index),
         displayName = createDisplayName(seed, index),
+        source = "fallback",
+        discoveryConfidence = "fallback",
+        propertyId = nil,
+        ownerFarmId = nil,
+        farmlandIds = {},
+        fieldIds = copyList(ownedFields),
+        cropSummary = "unknown",
+        fieldConditionCodes = {"tracked"},
+        fieldConditionSummary = "fallback",
+        precisionFarmingStatus = "not_available",
+        precisionFarmingSummary = "not available",
         profileType = archetype.profileType,
         label = archetype.label,
         ownedFields = copyList(ownedFields),
@@ -230,8 +249,107 @@ function Profiles.createProfile(index, options)
     }
 end
 
+local ENTERPRISE_BY_CROP = {
+    barley = "grain",
+    corn = "grain",
+    oat = "grain",
+    rice = "grain",
+    sorghum = "grain",
+    wheat = "grain",
+    canola = "oilseed",
+    soybeans = "oilseed",
+    sunflowers = "oilseed",
+    grass = "forage",
+    meadow = "forage",
+}
+
+local function addUnique(values, candidate)
+    if candidate == nil then
+        return
+    end
+
+    for _, value in ipairs(values) do
+        if value == candidate then
+            return
+        end
+    end
+
+    values[#values + 1] = candidate
+end
+
+local function enterpriseMixFromProperty(property, fallbackMix)
+    local result = {}
+
+    for _, cropType in ipairs((property or {}).cropTypes or {}) do
+        local key = string.lower(tostring(cropType))
+        addUnique(result, ENTERPRISE_BY_CROP[key])
+    end
+
+    if #result == 0 then
+        return copyList(fallbackMix)
+    end
+
+    return result
+end
+
+function Profiles.createProfileFromProperty(property, index, options)
+    options = options or {}
+
+    local seed = options.seed or Constants.DEFAULT_SEED
+    local profileKey = mapProfileId(property, index)
+    local archetype = pick(ARCHETYPES, seed, profileKey, "archetype")
+    local storageRating = pickRange(archetype.storageRange, seed, profileKey, "storageRating")
+    local machineryRating = pickRange(archetype.machineryRange, seed, profileKey, "machineryRating")
+    local relationshipVariance = (hash(seed, profileKey, "relationship") % 3) - 1
+    local fieldIds = copyList((property or {}).fieldIds or {})
+
+    return {
+        farmId = profileKey,
+        displayName = (property or {}).displayName or profileKey,
+        source = (property or {}).source or "map",
+        discoveryConfidence = (property or {}).discoveryConfidence or "medium",
+        propertyId = (property or {}).propertyId,
+        ownerFarmId = (property or {}).ownerFarmId,
+        ownerName = (property or {}).ownerName,
+        npcName = (property or {}).npcName,
+        farmlandIds = copyList((property or {}).farmlandIds or {}),
+        fieldIds = copyList(fieldIds),
+        cropSummary = (property or {}).cropSummary or "unknown",
+        fieldConditionCodes = copyList((property or {}).fieldConditionCodes or {"tracked"}),
+        fieldConditionSummary = (property or {}).fieldConditionSummary or "tracked",
+        precisionFarmingStatus = (property or {}).precisionFarmingStatus or "not_available",
+        precisionFarmingSummary = (property or {}).precisionFarmingSummary or "not available",
+        contractRefs = copyList((property or {}).contractRefs or {}),
+        mapFields = copyList((property or {}).fields or {}),
+        profileType = archetype.profileType,
+        label = archetype.label,
+        ownedFields = fieldIds,
+        leasedFields = {},
+        enterpriseMix = enterpriseMixFromProperty(property, archetype.enterpriseMix),
+        storageRating = storageRating,
+        machineryRating = machineryRating,
+        debtAttitude = archetype.debtAttitude,
+        riskAttitude = archetype.riskAttitude,
+        relationshipScore = clamp(archetype.relationshipBase + relationshipVariance, 1, 5),
+        coOpStatus = "unknown",
+        successionStage = archetype.successionStage,
+    }
+end
+
 function Profiles.generateProfiles(options)
     options = options or {}
+
+    local discovery = options.mapDiscovery or {}
+    local properties = discovery.properties or {}
+    if #properties > 0 then
+        local profiles = {}
+
+        for index, property in ipairs(properties) do
+            profiles[index] = Profiles.createProfileFromProperty(property, index, options)
+        end
+
+        return profiles
+    end
 
     local count = options.count or Constants.DEFAULT_PROFILE_COUNT
     local profiles = {}
@@ -269,6 +387,17 @@ function Profiles.normalizeProfile(profile, fallbackIndex)
     normalized.ownedFields = normalized.ownedFields or {}
     normalized.leasedFields = normalized.leasedFields or {}
     normalized.enterpriseMix = normalized.enterpriseMix or {}
+    normalized.source = normalized.source or "fallback"
+    normalized.discoveryConfidence = normalized.discoveryConfidence or "fallback"
+    normalized.farmlandIds = normalized.farmlandIds or {}
+    normalized.fieldIds = normalized.fieldIds or normalized.ownedFields or {}
+    normalized.cropSummary = normalized.cropSummary or "unknown"
+    normalized.fieldConditionCodes = normalized.fieldConditionCodes or {"tracked"}
+    normalized.fieldConditionSummary = normalized.fieldConditionSummary or "fallback"
+    normalized.precisionFarmingStatus = normalized.precisionFarmingStatus or "not_available"
+    normalized.precisionFarmingSummary = normalized.precisionFarmingSummary or "not available"
+    normalized.contractRefs = normalized.contractRefs or {}
+    normalized.mapFields = normalized.mapFields or {}
 
     return normalized
 end

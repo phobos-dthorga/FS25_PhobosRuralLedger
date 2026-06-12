@@ -6,11 +6,14 @@ Document uncertainties here before implementing API-sensitive features.
 
 - How can a mod inspect field ownership and land ownership safely?
 - How can a mod enumerate existing map landowners/farms and correlate them with
-  farmland IDs and field IDs?
+  farmland IDs and field IDs? Provisional answer in `v0.1.5.0`: use loaded
+  `g_fieldManager.fields`, field center/farmland data, `g_farmlandManager`, and
+  owner farm IDs in a bounded read-only pass.
 - Can land sale availability and price be changed by script?
 - Can a mod add contextual annotations to contracts?
 - How can a mod correlate active or completed contracts with landowner,
-  farmland, and field IDs?
+  farmland, and field IDs? Provisional answer in `v0.1.5.0`: active field
+  missions with a readable `field` are attached by field ID.
 - Can a mod create or alter contracts without breaking multiplayer?
 - What is the safe server-authoritative path for economy state changes?
 - Can the mod observe mission completion and reward data without replacing
@@ -45,10 +48,12 @@ Document uncertainties here before implementing API-sensitive features.
 - Which game systems expose current crop prices and price history?
 - Can a mod read field crop state, growth stage, and harvest readiness safely?
 - Can a mod read soil-composition flags such as weeds, needs ploughing, needs
-  rolling, stones, mulched, and watered state safely?
+  rolling, stones, mulched, and watered state safely? Provisional answer in
+  `v0.1.5.0`: field state exposes raw crop/growth/soil fields; exact gameplay
+  interpretation remains conservative until runtime-tested.
 - When the official Precision Farming mod is installed, can Rural Ledger read
   pH, nitrogen, environmental score, and sample freshness without taking a hard
-  dependency?
+  dependency? Still open. `v0.1.5.0` only records guarded mod availability.
 - Can storage ownership and capacity be inspected for NPC-like profiles?
 - Are NPC farms represented strongly enough in vanilla data to map ledgers onto
   them, and what fallback is acceptable when a map has fields but no useful

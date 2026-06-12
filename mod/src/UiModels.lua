@@ -40,6 +40,29 @@ local RELATIONSHIP_LABELS = {
     [5] = {"rl_relationship_trusted", "Trusted"},
 }
 
+local SOURCE_LABELS = {
+    map = {"rl_source_map", "Map"},
+    fallback = {"rl_source_fallback", "Fallback"},
+    none = {"rl_source_none", "No map source"},
+}
+
+local CONFIDENCE_LABELS = {
+    high = {"rl_confidence_high", "High"},
+    medium = {"rl_confidence_medium", "Medium"},
+    low = {"rl_confidence_low", "Low"},
+    fallback = {"rl_confidence_fallback", "Fallback"},
+    unavailable = {"rl_confidence_unavailable", "Unavailable"},
+}
+
+local CONDITION_LABELS = {
+    tracked = {"rl_condition_tracked", "Tracked"},
+    weeds = {"rl_condition_weeds", "Weeds"},
+    stones = {"rl_condition_stones", "Stones"},
+    ploughing = {"rl_condition_ploughing", "Ploughing"},
+    rolling = {"rl_condition_rolling", "Rolling"},
+    watered = {"rl_condition_watered", "Watered"},
+}
+
 local PROFILE_LABELS = {
     family_farm = {"rl_profile_family_farm", "Small Family Farm"},
     contractor = {"rl_profile_contractor", "Contractor"},
@@ -125,6 +148,23 @@ end
 local function relationshipBand(score)
     score = math.max(1, math.min(5, round(score or 3)))
     return labelFrom(RELATIONSHIP_LABELS[score], "rl_relationship_neutral", "Neutral")
+end
+
+local function sourceLabel(source)
+    return labelFrom(SOURCE_LABELS[source or "fallback"], "rl_source_fallback", "Fallback")
+end
+
+local function confidenceLabel(confidence)
+    return labelFrom(CONFIDENCE_LABELS[confidence or "fallback"], "rl_confidence_fallback", "Fallback")
+end
+
+local function sourceConfidenceLabel(profile)
+    return text(
+        "rl_source_confidence_pair",
+        "%s / %s",
+        sourceLabel((profile or {}).source),
+        confidenceLabel((profile or {}).discoveryConfidence)
+    )
 end
 
 local function countFields(profile)
@@ -231,6 +271,64 @@ local function stateParts(state)
     return profiles, snapshots, Ledgers.indexSnapshotsByFarmId(snapshots)
 end
 
+local function joinList(values, emptyText)
+    if values == nil or #values == 0 then
+        return emptyText or text("rl_band_unknown", "Unknown")
+    end
+
+    local parts = {}
+    for index, value in ipairs(values) do
+        parts[index] = tostring(value)
+    end
+
+    return table.concat(parts, ", ")
+end
+
+local function fieldConditionSummary(profile)
+    local codes = (profile or {}).fieldConditionCodes or {}
+    if #codes == 0 then
+        return (profile or {}).fieldConditionSummary or text("rl_condition_tracked", "Tracked")
+    end
+
+    local parts = {}
+    for _, code in ipairs(codes) do
+        parts[#parts + 1] = labelFrom(CONDITION_LABELS[code], "rl_condition_tracked", tostring(code))
+    end
+
+    return table.concat(parts, ", ")
+end
+
+local function precisionFarmingSummary(profile)
+    local status = (profile or {}).precisionFarmingStatus
+    if status == "available_pending" then
+        return text("rl_precision_available", "Available; exact values pending")
+    end
+
+    return text("rl_precision_not_available", "Not available")
+end
+
+local function discoverySummary(state)
+    local discovery = (state or {}).mapDiscovery or {}
+
+    return {
+        source = sourceLabel(discovery.source),
+        confidence = confidenceLabel(discovery.confidence),
+        sourceConfidence = text(
+            "rl_source_confidence_pair",
+            "%s / %s",
+            sourceLabel(discovery.source),
+            confidenceLabel(discovery.confidence)
+        ),
+        discoveredProperties = discovery.discoveredPropertyCount or 0,
+        discoveredFields = discovery.discoveredFieldCount or 0,
+        discoveredFarmlands = discovery.discoveredFarmlandCount or 0,
+        discoveredContracts = discovery.discoveredContractCount or 0,
+        precisionFarming = discovery.precisionFarmingAvailable == true
+            and text("rl_precision_available", "Available; exact values pending")
+            or text("rl_precision_not_available", "Not available"),
+    }
+end
+
 local function dominantPressure(snapshots)
     local counts = {}
     local bestType = Constants.PRESSURE_TYPES.NONE
@@ -292,6 +390,16 @@ function UiModels.buildFarmList(state, options)
             marginBand = marginBand(snapshot),
             riskBufferBand = riskBufferBand(snapshot),
             relationshipBand = relationshipBand(profile.relationshipScore),
+            source = profile.source or "fallback",
+            sourceLabel = sourceLabel(profile.source),
+            discoveryConfidence = profile.discoveryConfidence or "fallback",
+            discoveryConfidenceLabel = confidenceLabel(profile.discoveryConfidence),
+            sourceConfidenceLabel = sourceConfidenceLabel(profile),
+            fieldIdsText = joinList(profile.fieldIds or profile.ownedFields, text("rl_band_unknown", "Unknown")),
+            farmlandIdsText = joinList(profile.farmlandIds, text("rl_band_unknown", "Unknown")),
+            cropSummary = profile.cropSummary or text("rl_band_unknown", "Unknown"),
+            fieldConditionSummary = fieldConditionSummary(profile),
+            precisionFarmingSummary = precisionFarmingSummary(profile),
             activeOpportunityCount = 0,
             nextOpportunityHint = text("rl_no_public_request", "No public request"),
             lastNote = text("rl_farm_last_note", "%s / %s", marginBand(snapshot), pressureLabel(snapshot.primaryPressure)),
@@ -343,6 +451,7 @@ function UiModels.buildOverview(state, options)
 
     local dominantPressureLabel, dominantPressureCount = dominantPressure(snapshots)
     local farmRows = UiModels.buildFarmList(state, {includeDebug = options.includeDebug})
+    local discovery = discoverySummary(state)
     local alerts = {}
 
     for _, row in ipairs(farmRows) do
@@ -377,9 +486,12 @@ function UiModels.buildOverview(state, options)
         localMarketMood = localMood(stressedCount, strainedOrWorseCount, #profiles),
         dominantPressure = dominantPressureLabel,
         dominantPressureCount = dominantPressureCount,
+        discovery = discovery,
         cards = {
             {label = text("rl_card_local_mood", "Local mood"), value = localMood(stressedCount, strainedOrWorseCount, #profiles)},
+            {label = text("rl_card_discovery_source", "Discovery source"), value = discovery.sourceConfidence},
             {label = text("rl_card_tracked_farms", "Tracked farms"), value = tostring(#profiles)},
+            {label = text("rl_card_discovered_fields", "Discovered fields"), value = tostring(discovery.discoveredFields)},
             {label = text("rl_card_farms_watching", "Farms watching"), value = tostring(stressedCount)},
             {label = text("rl_card_strained_or_worse", "Strained or worse"), value = tostring(strainedOrWorseCount)},
             {label = text("rl_card_main_pressure", "Main pressure"), value = dominantPressureLabel},
@@ -427,6 +539,12 @@ function UiModels.buildFarmDetail(state, farmId, options)
     local snapshot = snapshotsByFarmId[selectedProfile.farmId] or {}
     local visibleLines = {
         text("rl_detail_line_profile", "Profile: %s", profileLabel(selectedProfile)),
+        text("rl_detail_line_source", "Source: %s", sourceConfidenceLabel(selectedProfile)),
+        text("rl_detail_line_farmlands", "Farmlands: %s", joinList(selectedProfile.farmlandIds, text("rl_band_unknown", "Unknown"))),
+        text("rl_detail_line_field_ids", "Field IDs: %s", joinList(selectedProfile.fieldIds or selectedProfile.ownedFields, text("rl_band_unknown", "Unknown"))),
+        text("rl_detail_line_crop_mix", "Crop mix: %s", selectedProfile.cropSummary or text("rl_band_unknown", "Unknown")),
+        text("rl_detail_line_field_condition", "Field condition: %s", fieldConditionSummary(selectedProfile)),
+        text("rl_detail_line_precision", "Precision Farming: %s", precisionFarmingSummary(selectedProfile)),
         text("rl_detail_line_fields", "Fields controlled: %d", countFields(selectedProfile)),
         text("rl_detail_line_cash", "Cash position: %s", cashBand(snapshot)),
         text("rl_detail_line_debt", "Debt pressure: %s", debtBand(snapshot)),
@@ -462,8 +580,18 @@ function UiModels.buildFarmDetail(state, farmId, options)
             supportingCauses = {
                 text("rl_detail_support_debt", "Debt pressure is %s", string.lower(debtBand(snapshot))),
                 text("rl_detail_support_risk", "Risk buffer is %s", string.lower(riskBufferBand(snapshot))),
+                text("rl_detail_support_field_condition", "Field condition: %s", fieldConditionSummary(selectedProfile)),
             },
             playerMeaning = text("rl_detail_player_meaning", "Public opportunities are not active in this slice."),
+        },
+        property = {
+            source = selectedProfile.source or "fallback",
+            discoveryConfidence = selectedProfile.discoveryConfidence or "fallback",
+            farmlands = selectedProfile.farmlandIds or {},
+            fields = selectedProfile.fieldIds or selectedProfile.ownedFields or {},
+            cropSummary = selectedProfile.cropSummary or text("rl_band_unknown", "Unknown"),
+            fieldCondition = fieldConditionSummary(selectedProfile),
+            precisionFarming = precisionFarmingSummary(selectedProfile),
         },
         ledgerEstimate = {
             cash = cashBand(snapshot),
@@ -482,6 +610,7 @@ function UiModels.buildDebugSummary(state, options)
     options = options or {}
 
     local profiles, snapshots = stateParts(state)
+    local discovery = (state or {}).mapDiscovery or {}
     local lines = {
         text("rl_debug_version", "Mod version: %s", Constants.VERSION),
         text("rl_debug_schema", "Schema version: %s", tostring((state or {}).schemaVersion or Constants.SAVE_SCHEMA_VERSION)),
@@ -492,6 +621,19 @@ function UiModels.buildDebugSummary(state, options)
         text("rl_debug_snapshots", "Ledger snapshots: %d", #snapshots),
         text("rl_debug_opportunities", "Opportunities: %d", #((state or {}).opportunities or {})),
         text("rl_debug_events", "Events: %d", #((state or {}).eventHistory or {})),
+        text("rl_debug_discovery_source", "Discovery source: %s", sourceLabel(discovery.source)),
+        text("rl_debug_discovery_confidence", "Discovery confidence: %s", confidenceLabel(discovery.confidence)),
+        text("rl_debug_discovery_properties", "Discovered properties: %d", discovery.discoveredPropertyCount or 0),
+        text("rl_debug_discovery_fields", "Discovered fields: %d", discovery.discoveredFieldCount or 0),
+        text("rl_debug_discovery_farmlands", "Discovered farmlands: %d", discovery.discoveredFarmlandCount or 0),
+        text("rl_debug_discovery_contracts", "Discovered contracts: %d", discovery.discoveredContractCount or 0),
+        text(
+            "rl_debug_precision_farming",
+            "Precision Farming: %s",
+            discovery.precisionFarmingAvailable == true
+                and text("rl_precision_available", "Available; exact values pending")
+                or text("rl_precision_not_available", "Not available")
+        ),
         text("rl_debug_save_hooks", "Save/load hooks: not wired in this slice"),
     }
 

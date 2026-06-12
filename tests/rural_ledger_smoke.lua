@@ -6,6 +6,7 @@ end
 
 source("mod/src/Constants.lua")
 source("mod/src/I18n.lua")
+source("mod/src/MapDiscovery.lua")
 source("mod/src/Profiles.lua")
 source("mod/src/Ledgers.lua")
 source("mod/src/Simulation.lua")
@@ -16,6 +17,7 @@ source("mod/src/Persistence.lua")
 local Constants = PhobosRuralLedger.Constants
 local I18n = PhobosRuralLedger.I18n
 local Ledgers = PhobosRuralLedger.Ledgers
+local MapDiscovery = PhobosRuralLedger.MapDiscovery
 local Persistence = PhobosRuralLedger.Persistence
 local Reports = PhobosRuralLedger.Reports
 local Simulation = PhobosRuralLedger.Simulation
@@ -43,6 +45,10 @@ local function assertTrue(condition, message)
     if not condition then
         error(message, 2)
     end
+end
+
+local function assertContains(text, needle, message)
+    assertTrue(string.find(tostring(text or ""), needle, 1, true) ~= nil, message)
 end
 
 assertEquals("Fallback 7", I18n.get("missing_key", "Fallback %d", 7), "i18n helper should format fallback text")
@@ -111,7 +117,7 @@ assertEquals(
     overviewB.localMarketMood,
     "overview should be deterministic for the same seed"
 )
-assertEquals(6, #overviewA.cards, "overview should expose six V1 cards")
+assertEquals(8, #overviewA.cards, "overview should expose V1 cards plus discovery context")
 assertTrue(#overviewA.alerts >= 1, "overview should expose at least one alert or empty-state note")
 
 local farmRowsA = UiModels.buildFarmList(stateA)
@@ -123,6 +129,8 @@ assertEquals(
     "farm list ordering should be deterministic"
 )
 assertTrue(farmRowsA[1].stressRank >= farmRowsA[#farmRowsA].stressRank, "farm list should sort by pressure first")
+assertEquals("fallback", farmRowsA[1].source, "no-runtime farm rows should be marked as fallback")
+assertEquals("Fallback", farmRowsA[1].sourceLabel, "no-runtime farm rows should expose fallback source label")
 
 local publicDetail = UiModels.buildFarmDetail(stateA, farmRowsA[1].farmId)
 assertEquals(farmRowsA[1].farmId, publicDetail.farmId, "farm detail should select the requested farm")
@@ -142,6 +150,202 @@ assertTrue(sawDebugCash, "debug farm detail should expose exact debug values onl
 
 local debugSummary = UiModels.buildDebugSummary(stateA, {includeExactFarmValues = true})
 assertTrue(#debugSummary.lines >= 10, "debug summary should expose bounded diagnostics")
+
+local fakeRuntime = {}
+
+local function installFakeMapRuntime()
+    local farmland170 = {
+        id = 170,
+        getNPC = function()
+            return {name = "Walter"}
+        end,
+    }
+    local farmland171 = {id = 171}
+    local farmland210 = {
+        id = 210,
+        getNPC = function()
+            return {name = "Miller"}
+        end,
+    }
+
+    local function field(id, farmland, ownerFarmId, fruitTypeIndex, growthState, stateOverrides)
+        local state = {
+            isValid = true,
+            fruitTypeIndex = fruitTypeIndex,
+            growthState = growthState,
+            weedState = 0,
+            stoneLevel = 0,
+            groundType = 1,
+            sprayLevel = 1,
+            sprayType = 0,
+            limeLevel = 1,
+            rollerLevel = 1,
+            plowLevel = 1,
+            stubbleShredLevel = 0,
+            waterLevel = 0,
+            farmlandId = farmland.id,
+            ownerFarmId = ownerFarmId,
+        }
+
+        for key, value in pairs(stateOverrides or {}) do
+            state[key] = value
+        end
+
+        return {
+            farmland = farmland,
+            getId = function()
+                return id
+            end,
+            getName = function()
+                return "Field " .. tostring(id)
+            end,
+            getAreaHa = function()
+                return id == 170 and 14.98 or 6.25
+            end,
+            getCenterOfFieldWorldPosition = function()
+                return id * 2, id * 3
+            end,
+            getFieldState = function()
+                return state
+            end,
+        }
+    end
+
+    local field170 = field(170, farmland170, 7, 1, 5, {weedState = 2, rollerLevel = 0})
+    local field171 = field(171, farmland171, 7, 2, 3)
+    local field210 = field(210, farmland210, nil, 3, 4, {stoneLevel = 1, plowLevel = 0})
+
+    g_currentMission = {
+        missionInfo = {
+            mapId = "smoke_map",
+        },
+    }
+    g_modIsLoaded = {
+        FS25_precisionFarming = true,
+    }
+    g_fieldManager = {
+        fields = {field170, field171, field210},
+    }
+    g_farmlandManager = {
+        getFarmlandOwner = function(_, farmlandId)
+            return farmlandId == 170 and 7 or farmlandId == 171 and 7 or 0
+        end,
+        getFarmlands = function()
+            return {farmland170, farmland171, farmland210}
+        end,
+    }
+    g_farmManager = {
+        getFarmById = function(_, farmId)
+            if farmId == 7 then
+                return {name = "Walter Farm"}
+            end
+
+            return nil
+        end,
+    }
+    g_fruitTypeManager = {
+        getFruitTypeByIndex = function(_, fruitTypeIndex)
+            local names = {
+                [1] = {name = "wheat"},
+                [2] = {name = "barley"},
+                [3] = {name = "canola"},
+            }
+
+            return names[fruitTypeIndex]
+        end,
+    }
+    g_missionManager = {
+        missions = {
+            {
+                field = field170,
+                type = {name = "baleWrapping"},
+                status = 1,
+                getMissionTypeName = function()
+                    return "baleWrapping"
+                end,
+                getReward = function()
+                    return 28087
+                end,
+                getNPC = function()
+                    return {name = "Walter"}
+                end,
+            },
+        },
+    }
+
+    fakeRuntime.fields = {field170, field171, field210}
+end
+
+local function clearFakeMapRuntime()
+    g_currentMission = nil
+    g_modIsLoaded = nil
+    g_fieldManager = nil
+    g_farmlandManager = nil
+    g_farmManager = nil
+    g_fruitTypeManager = nil
+    g_missionManager = nil
+end
+
+installFakeMapRuntime()
+local mapDiscovery = MapDiscovery.discover()
+assertEquals("map", mapDiscovery.source, "fake runtime should create map discovery")
+assertEquals("high", mapDiscovery.confidence, "owner-backed map discovery should be high confidence")
+assertEquals(2, mapDiscovery.discoveredPropertyCount, "fake runtime should group fields into map properties")
+assertEquals(3, mapDiscovery.discoveredFieldCount, "fake runtime should discover all fake fields")
+assertEquals(3, mapDiscovery.discoveredFarmlandCount, "fake runtime should discover all fake farmlands")
+assertEquals(1, mapDiscovery.discoveredContractCount, "fake runtime should discover fake field mission")
+assertTrue(mapDiscovery.precisionFarmingAvailable, "fake runtime should detect optional Precision Farming")
+
+local mapStateA = Persistence.createInitialState({seed = "map_smoke", mapDiscovery = mapDiscovery})
+local mapStateB = Persistence.createInitialState({seed = "map_smoke", mapDiscovery = mapDiscovery})
+Simulation.calculatePeriod(mapStateA)
+Simulation.calculatePeriod(mapStateB)
+assertEquals(2, #mapStateA.profiles, "map state should create one profile per discovered property")
+assertEquals("map", mapStateA.profiles[1].source, "map profile should be marked as map-sourced")
+assertEquals(
+    mapStateA.profiles[1].farmId,
+    mapStateA.ledgerSnapshots[1].farmId,
+    "ledger snapshot should use map-derived profile id"
+)
+assertEquals(
+    mapStateA.ledgerSnapshots[1].operatingCash,
+    mapStateB.ledgerSnapshots[1].operatingCash,
+    "map-backed state should remain deterministic"
+)
+
+local mapRows = UiModels.buildFarmList(mapStateA)
+assertEquals(2, #mapRows, "map farm list should include one row per discovered property")
+assertEquals("map", mapRows[1].source, "map farm rows should expose source")
+assertTrue(mapRows[1].fieldIdsText ~= "Unknown", "map farm rows should expose field IDs")
+assertTrue(mapRows[1].cropSummary ~= "unknown", "map farm rows should expose crop context")
+
+local mapOverview = UiModels.buildOverview(mapStateA)
+assertEquals(8, #mapOverview.cards, "map overview should include discovery cards")
+assertEquals(3, mapOverview.discovery.discoveredFields, "map overview should expose discovered field count")
+
+local mapDetail = UiModels.buildFarmDetail(mapStateA, mapRows[1].farmId)
+local sawFieldIds = false
+local sawPrecisionFarming = false
+for _, line in ipairs(mapDetail.lines) do
+    if string.find(line, "Field IDs") ~= nil then
+        sawFieldIds = true
+    elseif string.find(line, "Precision Farming") ~= nil then
+        sawPrecisionFarming = true
+    end
+end
+assertTrue(sawFieldIds, "map farm detail should expose field IDs")
+assertTrue(sawPrecisionFarming, "map farm detail should expose Precision Farming status")
+
+local mapDebug = UiModels.buildDebugSummary(mapStateA, {})
+local sawDiscoveryDebug = false
+for _, line in ipairs(mapDebug.lines) do
+    if string.find(line, "Discovered fields") ~= nil then
+        sawDiscoveryDebug = true
+    end
+end
+assertTrue(sawDiscoveryDebug, "debug summary should expose discovery diagnostics")
+
+clearFakeMapRuntime()
 
 local function makeElement()
     return {
@@ -288,13 +492,17 @@ assertEquals(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.DETAIL, screen.activeS
 source("mod/src/PhobosRuralLedger.lua")
 
 assertEquals(
-    Constants.DEFAULT_LOG_REPORT_FARM_LINES + 1,
+    Constants.DEFAULT_LOG_REPORT_FARM_LINES + 2,
     #capturedLogs,
-    "bootstrap report logging should include one header plus the default farm line count"
+    "bootstrap logging should include discovery plus one header and the default farm line count"
 )
 assertEquals("PhobosRuralLedger", capturedLogs[1].source, "bootstrap log lines should use the Rural Ledger source")
 assertTrue(
-    string.find(capturedLogs[1].text, "Local economy report") ~= nil,
+    string.find(capturedLogs[1].text, "Map discovery") ~= nil,
+    "bootstrap log should include the discovery summary"
+)
+assertTrue(
+    string.find(capturedLogs[2].text, "Local economy report") ~= nil,
     "bootstrap log should include the report header"
 )
 
@@ -319,6 +527,16 @@ assertEquals(3, #loggedReport, "explicit report logging should respect maxLines"
 assertEquals(3, #capturedLogs, "explicit report logging should write the bounded number of lines")
 assertEquals(2, logOptions.maxLines, "report logging should not mutate caller options")
 assertEquals("PhobosRuralLedger", capturedLogs[1].source, "explicit report logging should use fake PhobosLib logger")
+
+capturedLogs = {}
+installFakeMapRuntime()
+local refreshedState = PhobosRuralLedger.refreshMapBackedState()
+assertEquals("map", refreshedState.mapDiscovery.source, "manual refresh should rebuild map-backed state")
+assertEquals(2, #refreshedState.profiles, "manual refresh should create map-sourced profiles")
+assertContains(capturedLogs[1].text, "Map discovery", "manual refresh should log one discovery summary")
+local refreshedRows = UiModels.buildFarmList(refreshedState)
+assertEquals("map", refreshedRows[1].source, "refreshed UI rows should remain map-sourced")
+clearFakeMapRuntime()
 
 local stable = Ledgers.calculateSnapshot(profile({
     farmId = "stable",

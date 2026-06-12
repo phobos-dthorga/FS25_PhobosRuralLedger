@@ -6,7 +6,11 @@ Implemented:
 
 - explicit Lua module load order in `modDesc.xml`;
 - constants and save key definitions;
+- provisional read-only map discovery for fields, farmlands, owner IDs,
+  field state, active field missions, and Precision Farming availability;
 - deterministic NPC farm profile generation;
+- map-derived profile overlays when discovery finds usable owner/property
+  records;
 - deterministic ledger snapshot calculation;
 - stress score and stress state assignment;
 - read-only local economy report lines;
@@ -20,6 +24,7 @@ Implemented:
 - guarded GUI access through a keybinding and settings-menu entry point;
 - versioned persistence import/export shape;
 - bootstrap initialization of an in-memory Rural Ledger state.
+- manual refresh of the read-only map-backed state and display models.
 
 ## Runtime Evidence
 
@@ -54,6 +59,13 @@ FS25 exposes them. The current generated profiles are therefore a fallback
 implementation detail, not the long-term source of truth. See
 `map-landowner-integration.md`.
 
+`v0.1.5.0` is the first implementation of that rule. It adds a bounded
+read-only map discovery pass, attaches profiles and ledger snapshots to
+discovered owner/property records, exposes source/confidence/field/crop
+condition context in the V1 UI models, and keeps fallback profiles only when no
+runtime map data is usable. Exact Precision Farming pH/nitrogen values remain
+pending until a safe read API is proven; this slice records availability only.
+
 ## Persistence Boundary
 
 `Persistence.lua` currently owns table-shaped save state:
@@ -63,7 +75,9 @@ implementation detail, not the long-term source of truth. See
 - seed;
 - period ID;
 - regional preset;
-- generated profiles;
+- map discovery snapshot;
+- map-derived profiles, or flagged fallback profiles when discovery is
+  unavailable;
 - ledger snapshots;
 - opportunities;
 - event history;
@@ -77,15 +91,15 @@ added.
 
 Recommended next code step:
 
-1. Research and prove a read-only map discovery path for existing landowners,
-   farmlands, field IDs, crop state, growth state, soil flags, contracts, and
-   optional Precision Farming pH/nitrogen data.
-2. Attach Rural Ledger profiles and ledger snapshots to those discovered
-   owner/property records, keeping generated records only as flagged fallback
-   data.
-3. Update the V1 UI models so Overview, Farmers, and Farm Detail can show map
-   source, field IDs, crop mix, field condition, and discovery confidence.
-4. Add the first cause-carrying neighbour opportunity from strained or worse
+1. Runtime-test the `v0.1.5.0` map discovery slice on a disposable save with
+   `FS25_PhobosLib` installed, and optionally with `FS25_precisionFarming`.
+2. Confirm the log shows one bounded map-discovery info line and no
+   Phobos-owned errors or warnings.
+3. Verify Overview, Farmers, Farm Detail, and Settings / Debug show map source,
+   field IDs, crop mix, field condition, and discovery confidence.
+4. Research exact Precision Farming pH/nitrogen read paths only after the
+   vanilla map discovery runtime pass is clean.
+5. Add the first cause-carrying neighbour opportunity from strained or worse
    farms only after the map-first owner/property model is stable.
-5. Research and wire FS25 save/load lifecycle hooks only after the read-only
+6. Research and wire FS25 save/load lifecycle hooks only after the read-only
    state and opportunity data remain stable.

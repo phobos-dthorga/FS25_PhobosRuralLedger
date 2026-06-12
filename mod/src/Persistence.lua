@@ -5,6 +5,7 @@ local Persistence = PhobosRuralLedger.Persistence
 local Constants = PhobosRuralLedger.Constants
 local Profiles = PhobosRuralLedger.Profiles
 local Ledgers = PhobosRuralLedger.Ledgers
+local MapDiscovery = PhobosRuralLedger.MapDiscovery
 
 local function copyArray(values)
     local result = {}
@@ -21,10 +22,16 @@ function Persistence.createInitialState(options)
 
     local seed = options.seed or Constants.DEFAULT_SEED
     local periodId = options.periodId or Constants.DEFAULT_PERIOD_ID
+    local mapDiscovery = options.mapDiscovery
+    if mapDiscovery == nil and MapDiscovery ~= nil and MapDiscovery.discover ~= nil then
+        mapDiscovery = MapDiscovery.discover(options.discoveryOptions)
+    end
+
     local profiles = Profiles.generateProfiles({
         count = options.profileCount or Constants.DEFAULT_PROFILE_COUNT,
         seed = seed,
         fieldsByProfile = options.fieldsByProfile,
+        mapDiscovery = mapDiscovery,
     })
 
     return {
@@ -33,6 +40,7 @@ function Persistence.createInitialState(options)
         seed = seed,
         periodId = periodId,
         regionalPreset = options.regionalPreset or Constants.DEFAULT_REGIONAL_PRESET,
+        mapDiscovery = mapDiscovery,
         profiles = profiles,
         ledgerSnapshots = Ledgers.createInitialSnapshots(profiles, periodId),
         opportunities = {},
@@ -50,6 +58,7 @@ function Persistence.exportState(state)
         seed = source.seed or Constants.DEFAULT_SEED,
         periodId = source.periodId or Constants.DEFAULT_PERIOD_ID,
         regionalPreset = source.regionalPreset or Constants.DEFAULT_REGIONAL_PRESET,
+        mapDiscovery = source.mapDiscovery,
         profiles = copyArray(source.profiles),
         ledgerSnapshots = copyArray(source.ledgerSnapshots),
         opportunities = copyArray(source.opportunities),
@@ -68,6 +77,7 @@ function Persistence.migrateState(data)
         migrated.seed = migrated.seed or Constants.DEFAULT_SEED
         migrated.periodId = migrated.periodId or Constants.DEFAULT_PERIOD_ID
         migrated.regionalPreset = migrated.regionalPreset or Constants.DEFAULT_REGIONAL_PRESET
+        migrated.mapDiscovery = migrated.mapDiscovery or nil
         migrated.profiles = migrated.profiles or {}
         migrated.ledgerSnapshots = migrated.ledgerSnapshots or {}
         migrated.opportunities = migrated.opportunities or {}
@@ -86,6 +96,11 @@ function Persistence.importState(data, options)
     end
 
     local migrated = Persistence.migrateState(data)
+    local mapDiscovery = options.mapDiscovery or migrated.mapDiscovery
+    if mapDiscovery == nil and MapDiscovery ~= nil and MapDiscovery.discover ~= nil then
+        mapDiscovery = MapDiscovery.discover(options.discoveryOptions)
+    end
+
     local profiles = {}
 
     if migrated.profiles == nil or #migrated.profiles == 0 then
@@ -93,6 +108,7 @@ function Persistence.importState(data, options)
             count = options.profileCount or Constants.DEFAULT_PROFILE_COUNT,
             seed = migrated.seed or Constants.DEFAULT_SEED,
             fieldsByProfile = options.fieldsByProfile,
+            mapDiscovery = mapDiscovery,
         })
     else
         for index, profile in ipairs(migrated.profiles) do
@@ -117,6 +133,7 @@ function Persistence.importState(data, options)
         seed = migrated.seed or Constants.DEFAULT_SEED,
         periodId = migrated.periodId or Constants.DEFAULT_PERIOD_ID,
         regionalPreset = migrated.regionalPreset or Constants.DEFAULT_REGIONAL_PRESET,
+        mapDiscovery = mapDiscovery,
         profiles = profiles,
         ledgerSnapshots = snapshots,
         opportunities = migrated.opportunities or {},

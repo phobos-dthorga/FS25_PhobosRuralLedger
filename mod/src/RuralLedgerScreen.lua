@@ -189,6 +189,10 @@ function RuralLedgerScreen:onClickDebug()
 end
 
 function RuralLedgerScreen:onClickRefresh()
+    if PhobosRuralLedger.refreshMapBackedState ~= nil then
+        PhobosRuralLedger.refreshMapBackedState()
+    end
+
     self:refreshModels()
     self:updateDisplay()
     logInfo("%s", i18n("rl_log_display_refreshed", "Rural Ledger display models refreshed."))
@@ -430,7 +434,7 @@ function RuralLedgerScreen:populateFarmCell(index, cell)
     setCellText(cell, "farmFields", tostring(row.fields or ""))
     setCellText(cell, "farmStress", row.stressLabel)
     setCellText(cell, "farmPressure", row.primaryPressureLabel)
-    setCellText(cell, "farmRelation", row.relationshipBand)
+    setCellText(cell, "farmRelation", row.sourceConfidenceLabel)
 
     setCellText(cell, "farmNameCompact", row.displayName)
     setCellText(cell, "farmFieldsCompact", tostring(row.fields or ""))
