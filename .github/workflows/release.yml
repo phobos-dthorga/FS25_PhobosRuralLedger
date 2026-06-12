@@ -20,8 +20,20 @@ on:
         required: false
         default: false
         type: boolean
+      summary:
+        description: "Short public-facing release summary."
+        required: false
+        type: string
       notes:
-        description: "Optional extra release notes appended below the package list."
+        description: "Optional curated release context appended above the package list."
+        required: false
+        type: string
+      testing:
+        description: "Concise validation or runtime test notes."
+        required: false
+        type: string
+      known_issues:
+        description: "Known warnings, limitations, or required follow-up."
         required: false
         type: string
 
@@ -37,7 +49,10 @@ env:
   INPUT_VERSION: ${{ github.event.inputs.version || '' }}
   INPUT_STABLE: ${{ github.event.inputs.stable || 'false' }}
   INPUT_DRAFT: ${{ github.event.inputs.draft || 'false' }}
+  INPUT_SUMMARY: ${{ github.event.inputs.summary || '' }}
   INPUT_NOTES: ${{ github.event.inputs.notes || '' }}
+  INPUT_TESTING: ${{ github.event.inputs.testing || '' }}
+  INPUT_KNOWN_ISSUES: ${{ github.event.inputs.known_issues || '' }}
 
 jobs:
   release:
@@ -80,6 +95,7 @@ jobs:
           python - <<'PY'
           import json
           import os
+          import subprocess
           import sys
           from pathlib import Path
 
@@ -114,18 +130,71 @@ jobs:
           stable = os.environ.get("INPUT_STABLE", "false").lower() == "true"
           draft = os.environ.get("INPUT_DRAFT", "false").lower() == "true"
 
+          def git_output(args):
+              try:
+                  return subprocess.check_output(args, text=True).strip()
+              except subprocess.CalledProcessError:
+                  return ""
+
+          def previous_release_tag(current_tag):
+              tags = git_output(["git", "tag", "--list", "v*", "--merged", "HEAD", "--sort=-creatordate"])
+              for candidate in tags.splitlines():
+                  if candidate and candidate != current_tag:
+                      return candidate
+              return None
+
+          def changelog_lines(previous_tag):
+              command = ["git", "log", "--max-count=50", "--pretty=format:%s%x01%h"]
+              if previous_tag:
+                  command.append(f"{previous_tag}..HEAD")
+              changes = []
+              for raw_line in git_output(command).splitlines():
+                  subject, _, short_sha = raw_line.partition("\x01")
+                  if subject:
+                      changes.append(f"- {subject} ({short_sha})")
+              if not changes:
+                  changes.append("- Packaging-only release.")
+              return changes
+
+          summary = os.environ.get("INPUT_SUMMARY", "").strip() or f"Automated release for {tag}."
+          extra_notes = os.environ.get("INPUT_NOTES", "").strip()
+          testing = os.environ.get("INPUT_TESTING", "").strip() or "Not provided."
+          known_issues = os.environ.get("INPUT_KNOWN_ISSUES", "").strip() or "None documented."
+          status = "Stable" if stable else "Prerelease"
+          previous_tag = previous_release_tag(tag)
+
           lines = [
-              f"Automated package build for {tag}.",
+              f"# {os.environ.get('RELEASE_TITLE_PREFIX', 'Release')} {tag}",
+              "",
+              "## Summary",
+              "",
+              summary,
+              "",
+              f"Status: {status}.",
+              "",
+              "## Changes",
+              "",
+              *changelog_lines(previous_tag),
+          ]
+          if extra_notes:
+              lines.extend(["", "## Notes", "", extra_notes])
+          lines.extend([
               "",
               "## Packages",
               "",
-          ]
+          ])
           for package in packages:
               lines.append(f"- `{package['filename']}` ({package['size']} bytes, SHA256 `{package['sha256']}`)")
-
-          extra_notes = os.environ.get("INPUT_NOTES", "").strip()
-          if extra_notes:
-              lines.extend(["", "## Notes", "", extra_notes])
+          lines.extend([
+              "",
+              "## Testing",
+              "",
+              testing,
+              "",
+              "## Known Issues",
+              "",
+              known_issues,
+          ])
 
           Path("dist/release-notes.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 

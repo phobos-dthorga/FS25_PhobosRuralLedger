@@ -38,10 +38,27 @@ For manual dispatch, leave the version empty to use `mod/modDesc.xml`, or enter
 the same version to make the intent explicit. The workflow refuses to release
 when the requested version, tag version, and package version disagree.
 
+Manual dispatches should use the hybrid release-note inputs:
+
+- `summary`: one short public-facing summary of the release.
+- `notes`: extra curated dependency, gameplay, or compatibility context.
+- `testing`: concise validation or runtime test notes.
+- `known_issues`: known warnings, limitations, or required follow-up.
+
+The workflow combines those curated notes with a generated commit changelog
+since the previous `v*` tag, package sizes, SHA256 hashes, and prerelease/stable
+status. If a curated field is omitted, the release still publishes with useful
+generated notes, but `Testing` will say `Not provided.` and `Known Issues` will
+say `None documented.`.
+
 `tools/release.ps1` remains a local fallback, but GitHub Actions is the
 preferred release path.
 
 Early releases should usually be prereleases.
+
+Feature releases should include meaningful curated notes. Packaging-only
+corrections may rely on the generated changelog, but they should still call out
+validation status and any known warnings.
 
 ## Performance Gate
 

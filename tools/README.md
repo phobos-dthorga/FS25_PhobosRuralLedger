@@ -27,6 +27,10 @@ package set from `tools/package_manifest.json`, validates each package, writes
 checksums and `package-set.json`, and publishes all zips as GitHub release
 assets. Manual dispatch creates the matching tag when needed.
 
+Release notes are hybrid: the workflow generates a commit changelog since the
+previous `v*` tag and package metadata, then blends in curated `summary`,
+`notes`, `testing`, and `known_issues` inputs when supplied.
+
 Use the local `tools/release.ps1` only as a fallback.
 
 ## Validation
