@@ -17,6 +17,18 @@ python tools/package_set.py --validate --write-sha256 --write-json
 Builds all packages from `tools/package_manifest.json`, validates source and
 package structure, and writes release metadata.
 
+## Release Automation
+
+GitHub Actions owns the normal release path through
+`.github/workflows/release.yml`.
+
+The workflow runs on `v*` tags or manual dispatch. It builds the versioned
+package set from `tools/package_manifest.json`, validates each package, writes
+checksums and `package-set.json`, and publishes all zips as GitHub release
+assets. Manual dispatch creates the matching tag when needed.
+
+Use the local `tools/release.ps1` only as a fallback.
+
 ## Validation
 
 ```powershell

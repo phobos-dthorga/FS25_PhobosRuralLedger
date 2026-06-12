@@ -1,0 +1,186 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, for example 0.1.0.0. Defaults to package modDesc version."
+        required: false
+        type: string
+      stable:
+        description: "Publish as a stable release instead of a prerelease."
+        required: false
+        default: false
+        type: boolean
+      draft:
+        description: "Create the release as a draft."
+        required: false
+        default: false
+        type: boolean
+      notes:
+        description: "Optional extra release notes appended below the package list."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TITLE_PREFIX: "Phobos' Rural Ledger"
+  INPUT_VERSION: ${{ github.event.inputs.version || '' }}
+  INPUT_STABLE: ${{ github.event.inputs.stable || 'false' }}
+  INPUT_DRAFT: ${{ github.event.inputs.draft || 'false' }}
+  INPUT_NOTES: ${{ github.event.inputs.notes || '' }}
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Set up Lua
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.4
+
+      - name: Compile Python tools
+        run: python -m py_compile tools/*.py
+
+      - name: Compile Lua scripts
+        run: |
+          files="$(git ls-files '*.lua')"
+          if [ -n "$files" ]; then
+            luac5.4 -p $files
+          fi
+
+      - name: Build versioned package set
+        run: python tools/package_set.py --versioned --validate --write-sha256 --write-json
+
+      - name: Prepare release metadata
+        id: meta
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          package_set = json.loads(Path("dist/package-set.json").read_text(encoding="utf-8"))
+          packages = package_set.get("packages", [])
+          versions = sorted({str(package["version"]) for package in packages})
+
+          if len(versions) != 1:
+              print(f"::error::Package versions do not match: {versions}")
+              sys.exit(1)
+
+          package_version = versions[0]
+          input_version = os.environ.get("INPUT_VERSION", "").strip()
+          if input_version and input_version != package_version:
+              print(f"::error::Workflow input version {input_version} does not match package version {package_version}")
+              sys.exit(1)
+
+          ref_name = os.environ.get("GITHUB_REF_NAME", "")
+          event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+          if event_name == "push":
+              if not ref_name.startswith("v"):
+                  print(f"::error::Release push must be a v* tag, got {ref_name}")
+                  sys.exit(1)
+              tag = ref_name
+              tag_version = ref_name[1:]
+              if tag_version != package_version:
+                  print(f"::error::Tag version {tag_version} does not match package version {package_version}")
+                  sys.exit(1)
+          else:
+              tag = f"v{input_version or package_version}"
+
+          stable = os.environ.get("INPUT_STABLE", "false").lower() == "true"
+          draft = os.environ.get("INPUT_DRAFT", "false").lower() == "true"
+
+          lines = [
+              f"Automated package build for {tag}.",
+              "",
+              "## Packages",
+              "",
+          ]
+          for package in packages:
+              lines.append(f"- `{package['filename']}` ({package['size']} bytes, SHA256 `{package['sha256']}`)")
+
+          extra_notes = os.environ.get("INPUT_NOTES", "").strip()
+          if extra_notes:
+              lines.extend(["", "## Notes", "", extra_notes])
+
+          Path("dist/release-notes.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write(f"version={package_version}\n")
+              output.write(f"tag={tag}\n")
+              output.write(f"prerelease={str(not stable).lower()}\n")
+              output.write(f"draft={str(draft).lower()}\n")
+          PY
+
+      - name: Ensure release tag exists
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          tag="${{ steps.meta.outputs.tag }}"
+          git fetch --tags origin
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            tag_commit="$(git rev-list -n 1 "$tag")"
+            head_commit="$(git rev-parse HEAD)"
+            if [ "$tag_commit" != "$head_commit" ]; then
+              echo "::error::Tag $tag already exists on a different commit."
+              exit 1
+            fi
+            echo "Tag $tag already exists on this commit."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "$tag" -m "$RELEASE_TITLE_PREFIX $tag"
+            git push origin "$tag"
+          fi
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.meta.outputs.tag }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::GitHub release already exists: $tag"
+            exit 1
+          fi
+
+          release_args=(release create "$tag")
+          while IFS= read -r asset; do
+            release_args+=("$asset")
+          done < <(find dist -maxdepth 1 -type f \( -name '*.zip' -o -name 'SHA256SUMS.txt' -o -name 'package-set.json' \) | sort)
+
+          release_args+=(--title "$RELEASE_TITLE_PREFIX $tag")
+          release_args+=(--notes-file dist/release-notes.md)
+          release_args+=(--verify-tag)
+
+          if [ "${{ steps.meta.outputs.prerelease }}" = "true" ]; then
+            release_args+=(--prerelease)
+          fi
+
+          if [ "${{ steps.meta.outputs.draft }}" = "true" ]; then
+            release_args+=(--draft)
+          fi
+
+          gh "${release_args[@]}"
