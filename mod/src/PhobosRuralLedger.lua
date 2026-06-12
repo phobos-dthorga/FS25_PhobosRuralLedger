@@ -10,6 +10,7 @@ PhobosRuralLedger.MOD_NAME = Constants.MOD_NAME
 PhobosRuralLedger.DISPLAY_NAME = Constants.DISPLAY_NAME
 PhobosRuralLedger.VERSION = Constants.VERSION
 PhobosRuralLedger.mapLoadDiscoveryAttempted = PhobosRuralLedger.mapLoadDiscoveryAttempted == true
+PhobosRuralLedger.missionStartDiscoveryAttempted = PhobosRuralLedger.missionStartDiscoveryAttempted == true
 PhobosRuralLedger.screenOpenDiscoveryAttempted = PhobosRuralLedger.screenOpenDiscoveryAttempted == true
 
 local function copyOptionsWithDefaultMaxLines(options)
@@ -71,7 +72,7 @@ local function logMapDiscoverySummary(discovery)
     local diagnostics = discovery.diagnostics or {}
 
     logInfo(
-        "Map discovery (%s): %d properties, %d fields, %d farmlands, %d contracts, confidence=%s, managers=%s/%s/%s/%s, raw=%d/%d/%d, precisionFarming=%s.",
+        "Map discovery (%s): %d properties, %d fields, %d farmlands, %d contracts, confidence=%s, managers=%s/%s/%s/%s, raw=%d/%d/%d, usable=%d, skipped=%d/%d, errors=%d/%d, precisionFarming=%s%s%s.",
         tostring(discovery.trigger or diagnostics.trigger or "unknown"),
         discovery.discoveredPropertyCount or 0,
         discovery.discoveredFieldCount or 0,
@@ -85,7 +86,14 @@ local function logMapDiscoverySummary(discovery)
         diagnostics.rawFieldCount or 0,
         diagnostics.rawFarmlandCount or 0,
         diagnostics.rawMissionCount or 0,
-        discovery.precisionFarmingAvailable == true and "available" or "not available"
+        diagnostics.usableFieldCount or discovery.discoveredFieldCount or 0,
+        diagnostics.skippedFieldCount or 0,
+        diagnostics.skippedMissionCount or 0,
+        diagnostics.fieldErrorCount or 0,
+        diagnostics.missionErrorCount or 0,
+        discovery.precisionFarmingAvailable == true and "available" or "not available",
+        diagnostics.firstSkippedFieldReason ~= nil and ", firstFieldSkip=" or "",
+        diagnostics.firstSkippedFieldReason ~= nil and tostring(diagnostics.firstSkippedFieldReason) or ""
     )
 end
 
@@ -139,7 +147,18 @@ function PhobosRuralLedger.refreshMapBackedState(options)
     local trigger = options.trigger or "manualRefresh"
     local discovery = nil
     if MapDiscovery ~= nil and MapDiscovery.discover ~= nil then
-        discovery = MapDiscovery.discover(copyDiscoveryOptions(options, trigger))
+        local ok, result = pcall(MapDiscovery.discover, copyDiscoveryOptions(options, trigger))
+        if ok then
+            discovery = result
+        elseif MapDiscovery.empty ~= nil then
+            discovery = MapDiscovery.empty({
+                trigger = trigger,
+                mapReadyAttempted = true,
+            })
+            discovery.diagnostics.discoveryError = tostring(result)
+            discovery.diagnostics.fieldErrorCount = (discovery.diagnostics.fieldErrorCount or 0) + 1
+            discovery.diagnostics.firstSkippedFieldReason = discovery.diagnostics.firstSkippedFieldReason or tostring(result)
+        end
     end
 
     PhobosRuralLedger.state = Persistence.createInitialState({
@@ -166,6 +185,12 @@ function PhobosRuralLedger.tryMapReadyDiscovery(trigger)
         end
 
         PhobosRuralLedger.mapLoadDiscoveryAttempted = true
+    elseif trigger == "missionStart" then
+        if PhobosRuralLedger.missionStartDiscoveryAttempted or PhobosRuralLedger.hasUsableMapDiscovery() then
+            return PhobosRuralLedger.state, false
+        end
+
+        PhobosRuralLedger.missionStartDiscoveryAttempted = true
     elseif trigger == "screenOpenRetry" then
         if PhobosRuralLedger.screenOpenDiscoveryAttempted or PhobosRuralLedger.hasUsableMapDiscovery() then
             return PhobosRuralLedger.state, false

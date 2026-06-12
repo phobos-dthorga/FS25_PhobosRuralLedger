@@ -215,15 +215,11 @@ local function installFakeMapRuntime()
         end
 
         return {
+            fieldId = id,
             farmland = farmland,
-            getId = function()
-                return id
-            end,
+            fieldArea = id == 170 and 14.98 or 6.25,
             getName = function()
                 return "Field " .. tostring(id)
-            end,
-            getAreaHa = function()
-                return id == 170 and 14.98 or 6.25
             end,
             getCenterOfFieldWorldPosition = function()
                 return id * 2, id * 3
@@ -237,6 +233,7 @@ local function installFakeMapRuntime()
     local field170 = field(170, farmland170, 7, 1, 5, {weedState = 2, rollerLevel = 0})
     local field171 = field(171, farmland171, 7, 2, 3)
     local field210 = field(210, farmland210, nil, 3, 4, {stoneLevel = 1, plowLevel = 0})
+    local fieldSource = {field170, field171, field210, {name = "Unnumbered meadow"}}
 
     g_currentMission = {
         missionInfo = {
@@ -247,7 +244,7 @@ local function installFakeMapRuntime()
         FS25_precisionFarming = true,
     }
     g_fieldManager = {
-        fields = {field170, field171, field210},
+        fields = fieldSource,
     }
     g_farmlandManager = {
         getFarmlandOwner = function(_, farmlandId)
@@ -305,7 +302,7 @@ local function installFakeMapRuntime()
         },
     }
 
-    fakeRuntime.fields = {field170, field171, field210}
+    fakeRuntime.fields = fieldSource
 end
 
 local function clearFakeMapRuntime()
@@ -330,9 +327,48 @@ assertEquals(3, mapDiscovery.discoveredFieldCount, "fake runtime should discover
 assertEquals(3, mapDiscovery.discoveredFarmlandCount, "fake runtime should discover all fake farmlands")
 assertEquals(1, mapDiscovery.discoveredContractCount, "fake runtime should discover fake field mission")
 assertTrue(mapDiscovery.precisionFarmingAvailable, "fake runtime should detect optional Precision Farming")
-assertEquals(3, mapDiscovery.diagnostics.rawFieldCount, "fake runtime diagnostics should count raw fields")
+assertEquals(4, mapDiscovery.diagnostics.rawFieldCount, "fake runtime diagnostics should count raw fields")
 assertEquals(3, mapDiscovery.diagnostics.rawFarmlandCount, "fake runtime diagnostics should count raw farmlands")
 assertEquals(1, mapDiscovery.diagnostics.rawMissionCount, "fake runtime diagnostics should count raw missions")
+assertEquals(3, mapDiscovery.diagnostics.usableFieldCount, "fake runtime diagnostics should count usable fields")
+assertEquals(1, mapDiscovery.diagnostics.skippedFieldCount, "fake runtime diagnostics should count skipped malformed fields")
+assertContains(mapDiscovery.diagnostics.firstSkippedFieldReason, "fieldId", "fake runtime diagnostics should explain skipped fields")
+
+local previousMissions = g_missionManager.missions
+g_missionManager.missions = {
+    {
+        type = {name = "transportMission"},
+        status = 1,
+        getMissionTypeName = function()
+            return "transportMission"
+        end,
+    },
+    "bad mission entry",
+}
+local missionRobustDiscovery = MapDiscovery.discover({trigger = "manualRefresh", mapReadyAttempted = true})
+assertEquals(1, missionRobustDiscovery.discoveredContractCount, "nil-field missions should be retained without crashing")
+assertEquals(1, missionRobustDiscovery.diagnostics.skippedMissionCount, "bad mission entries should be skipped")
+assertEquals(0, missionRobustDiscovery.diagnostics.missionErrorCount, "plain bad mission entries should not become runtime errors")
+g_missionManager.missions = previousMissions
+
+local previousFarmland = fakeRuntime.fields[1].farmland
+local previousFieldState = fakeRuntime.fields[1].getFieldState
+fakeRuntime.fields[1].farmland = nil
+fakeRuntime.fields[1].getFieldState = function()
+    return {
+        fruitTypeIndex = 1,
+        growthState = 5,
+    }
+end
+g_farmlandManager.getFarmlandAtWorldPosition = function()
+    return 170
+end
+local worldPositionDiscovery = MapDiscovery.discover({trigger = "manualRefresh", mapReadyAttempted = true})
+assertEquals("map", worldPositionDiscovery.source, "numeric farmland world-position lookup should still create map discovery")
+assertEquals(3, worldPositionDiscovery.discoveredFarmlandCount, "numeric world-position farmland IDs should be normalized")
+fakeRuntime.fields[1].farmland = previousFarmland
+fakeRuntime.fields[1].getFieldState = previousFieldState
+g_farmlandManager.getFarmlandAtWorldPosition = nil
 
 local mapStateA = Persistence.createInitialState({seed = "map_smoke", mapDiscovery = mapDiscovery})
 local mapStateB = Persistence.createInitialState({seed = "map_smoke", mapDiscovery = mapDiscovery})
@@ -582,6 +618,26 @@ assertEquals(2, #refreshedState.profiles, "manual refresh should create map-sour
 assertContains(capturedLogs[1].text, "Map discovery", "manual refresh should log one discovery summary")
 local refreshedRows = UiModels.buildFarmList(refreshedState)
 assertEquals("map", refreshedRows[1].source, "refreshed UI rows should remain map-sourced")
+clearFakeMapRuntime()
+
+capturedLogs = {}
+PhobosRuralLedger.state = Persistence.createInitialState({
+    profileCount = 8,
+    seed = "mission_start_smoke",
+    skipMapDiscovery = true,
+    discoveryTrigger = "bootstrap",
+    mapReadyAttempted = false,
+})
+PhobosRuralLedger.missionStartDiscoveryAttempted = false
+installFakeMapRuntime()
+local missionStartState, missionStartRan = PhobosRuralLedger.tryMapReadyDiscovery("missionStart")
+assertEquals(true, missionStartRan, "mission start should run one authoritative discovery pass")
+assertEquals("map", missionStartState.mapDiscovery.source, "mission start should rebuild map-backed state")
+assertEquals("missionStart", missionStartState.mapDiscovery.trigger, "mission start discovery should record its trigger")
+local logsAfterMissionStart = #capturedLogs
+local _, secondMissionStartRan = PhobosRuralLedger.tryMapReadyDiscovery("missionStart")
+assertEquals(false, secondMissionStartRan, "mission start discovery should be bounded to one pass")
+assertEquals(logsAfterMissionStart, #capturedLogs, "second mission start should not log another discovery pass")
 clearFakeMapRuntime()
 
 capturedLogs = {}

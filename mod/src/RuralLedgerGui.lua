@@ -155,6 +155,16 @@ function RuralLedgerGui:loadMap()
     end
 end
 
+function RuralLedgerGui:onStartMission()
+    if PhobosRuralLedger.tryMapReadyDiscovery ~= nil then
+        PhobosRuralLedger.tryMapReadyDiscovery("missionStart")
+    end
+end
+
+local function onMissionStarted()
+    RuralLedgerGui:onStartMission()
+end
+
 local function addPlayerActionEvents(playerInputComponent, superFunc, ...)
     superFunc(playerInputComponent, ...)
 
@@ -199,6 +209,10 @@ if PlayerInputComponent ~= nil and Utils ~= nil and Utils.overwrittenFunction ~=
         PlayerInputComponent.registerGlobalPlayerActionEvents,
         addPlayerActionEvents
     )
+end
+
+if Mission00 ~= nil and Mission00.onStartMission ~= nil and Utils ~= nil and Utils.appendedFunction ~= nil then
+    Mission00.onStartMission = Utils.appendedFunction(Mission00.onStartMission, onMissionStarted)
 end
 
 if addModEventListener ~= nil then

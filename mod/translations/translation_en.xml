@@ -88,6 +88,11 @@
         <text name="rl_debug_manager_fields" text="Field manager: %s, raw fields: %d"/>
         <text name="rl_debug_manager_farmlands" text="Farmland manager: %s, raw farmlands: %d"/>
         <text name="rl_debug_manager_missions" text="Mission manager: %s, raw missions: %d"/>
+        <text name="rl_debug_usable_fields" text="Usable fields: %d"/>
+        <text name="rl_debug_skipped_fields" text="Skipped fields: %d"/>
+        <text name="rl_debug_skipped_missions" text="Skipped missions: %d"/>
+        <text name="rl_debug_discovery_errors" text="Discovery read errors: fields %d, missions %d"/>
+        <text name="rl_debug_first_skip_reason" text="First skip reason: %s"/>
         <text name="rl_debug_precision_farming" text="Precision Farming: %s"/>
         <text name="rl_debug_save_hooks" text="Save/load hooks: not wired in this slice"/>
         <text name="rl_debug_first_cash" text="First farm cash: %s"/>

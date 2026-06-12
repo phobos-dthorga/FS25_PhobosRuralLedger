@@ -87,6 +87,22 @@ confirmed the useful NPC-owner pattern of resolving `farmland.npcIndex` through
 `g_npcManager:getNPCByIndex(...)`; Rural Ledger now mirrors that idea without
 copying third-party code.
 
+Runtime testing of `v0.1.5.1` then showed a second timing and shape problem:
+Rural Ledger saw `raw=200` field-manager entries at `mapLoad`, but still found
+zero usable map-backed fields and later raised repeated Phobos-owned
+`MapDiscovery.lua:125` errors when UI/input paths retried discovery. The same
+log still included repeated unresolved `button` GUI profile warnings.
+
+`v0.1.5.2` is the follow-up hotfix for that evidence. `loadMap` is now treated
+as an early diagnostic probe, while `Mission00.onStartMission` performs the
+first trusted discovery pass because the Soil/Fertilizer reference documents
+that `g_fieldManager.fields` is fully populated at that point. Discovery now
+accepts real-style `field.fieldId`, field area, `field.farmland`,
+`farmland.id`, and `farmland.npcIndex` shapes; malformed fields or missions are
+skipped into bounded diagnostics instead of crashing FS25. Precision Farming
+availability is still detected through the guarded PhobosLib integration helper,
+but exact pH and nitrogen values remain pending until a safe API is proven.
+
 ## Persistence Boundary
 
 `Persistence.lua` currently owns table-shaped save state:
@@ -112,11 +128,11 @@ added.
 
 Recommended next code step:
 
-1. Runtime-test the `v0.1.5.1` discovery hotfix on the same disposable save
+1. Runtime-test the `v0.1.5.2` discovery hotfix on the same disposable save
    with `FS25_PhobosLib` installed, and optionally with `FS25_precisionFarming`.
 2. Confirm the log shows bounded discovery lines for `bootstrap`, `mapLoad`,
-   `screenOpenRetry` only if needed, and `manualRefresh` only when pressed, with
-   no Phobos-owned errors or warnings.
+   `missionStart`, `screenOpenRetry` only if needed, and `manualRefresh` only
+   when pressed, with no Phobos-owned errors or warnings.
 3. Verify Overview, Farmers, Farm Detail, and Settings / Debug show map source,
    field IDs, crop mix, field condition, discovery confidence, and no-data
    notice behavior when managers genuinely remain empty.

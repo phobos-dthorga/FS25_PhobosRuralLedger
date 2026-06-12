@@ -88,6 +88,11 @@
         <text name="rl_debug_manager_fields" text="Feld-Manager: %s, Rohfelder: %d"/>
         <text name="rl_debug_manager_farmlands" text="Flurstück-Manager: %s, Rohflurstücke: %d"/>
         <text name="rl_debug_manager_missions" text="Auftrags-Manager: %s, Rohaufträge: %d"/>
+        <text name="rl_debug_usable_fields" text="Nutzbare Felder: %d"/>
+        <text name="rl_debug_skipped_fields" text="Übersprungene Felder: %d"/>
+        <text name="rl_debug_skipped_missions" text="Übersprungene Aufträge: %d"/>
+        <text name="rl_debug_discovery_errors" text="Lesefehler bei Erkennung: Felder %d, Aufträge %d"/>
+        <text name="rl_debug_first_skip_reason" text="Erster Übersprunggrund: %s"/>
         <text name="rl_debug_precision_farming" text="Precision Farming: %s"/>
         <text name="rl_debug_save_hooks" text="Speicher-/Lade-Hooks: in diesem Abschnitt nicht verbunden"/>
         <text name="rl_debug_first_cash" text="Erste Hof-Liquidität: %s"/>

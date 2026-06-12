@@ -10,7 +10,13 @@ local function call(value, methodName, ...)
         return nil
     end
 
-    local method = value[methodName]
+    local okMethod, method = pcall(function()
+        return value[methodName]
+    end)
+    if not okMethod then
+        return nil
+    end
+
     if method == nil then
         return nil
     end
@@ -112,6 +118,10 @@ local function displayObjectName(value)
         return tostring(fromMethod)
     end
 
+    if type(value) ~= "table" then
+        return nil
+    end
+
     for _, key in ipairs({"name", "title", "displayName", "farmName"}) do
         if value[key] ~= nil and tostring(value[key]) ~= "" then
             return tostring(value[key])
@@ -121,16 +131,49 @@ local function displayObjectName(value)
     return nil
 end
 
+local function tableValue(value, key)
+    if type(value) ~= "table" then
+        return nil
+    end
+
+    return value[key]
+end
+
+local function positiveNumber(value)
+    local number = tonumber(value)
+    if number ~= nil and number > 0 then
+        return number
+    end
+
+    return nil
+end
+
+local function parseIdFromText(value)
+    local text = tostring(value or "")
+    local id = text:match("(%d+)%s*$")
+    return positiveNumber(id)
+end
+
 local function getFieldId(field)
-    return call(field, "getId") or field.id or field.fieldId
+    local id = positiveNumber(tableValue(field, "fieldId"))
+        or positiveNumber(call(field, "getId"))
+        or positiveNumber(tableValue(field, "id"))
+        or parseIdFromText(call(field, "getName"))
+        or parseIdFromText(tableValue(field, "name"))
+
+    return id
 end
 
 local function getFieldArea(field)
-    return call(field, "getAreaHa") or field.areaHa
+    return call(field, "getAreaHa")
+        or tableValue(field, "areaHa")
+        or tableValue(field, "fieldArea")
 end
 
 local function getFieldName(field, fieldId)
-    return call(field, "getName") or field.name or string.format("Field %s", tostring(fieldId or "?"))
+    return call(field, "getName")
+        or tableValue(field, "name")
+        or string.format("Field %s", tostring(fieldId or "?"))
 end
 
 local function getFieldPosition(field)
@@ -144,10 +187,16 @@ local function getFieldPosition(field)
 end
 
 local function getFieldState(field)
-    return call(field, "getFieldState") or {}
+    local fieldState = call(field, "getFieldState") or tableValue(field, "fieldState")
+    if type(fieldState) == "table" then
+        return fieldState
+    end
+
+    return {}
 end
 
 local function getFarmlandById(farmlandId)
+    farmlandId = positiveNumber(farmlandId)
     if g_farmlandManager == nil or farmlandId == nil then
         return nil
     end
@@ -158,40 +207,76 @@ local function getFarmlandById(farmlandId)
     end
 
     local farmlands = managerTable(g_farmlandManager, "getFarmlands", "farmlands")
-    return (farmlands or {})[farmlandId]
+    local byKey = (farmlands or {})[farmlandId]
+    if byKey ~= nil then
+        return byKey
+    end
+
+    for _, candidate in pairs(farmlands or {}) do
+        if positiveNumber(tableValue(candidate, "id")) == farmlandId then
+            return candidate
+        end
+    end
+
+    return nil
+end
+
+local function getFarmlandRecord(value)
+    if type(value) == "table" then
+        return value
+    end
+
+    return getFarmlandById(value)
+end
+
+local function getFarmlandRecordId(value)
+    if type(value) == "table" then
+        return positiveNumber(value.id) or positiveNumber(value.farmlandId)
+    end
+
+    return positiveNumber(value)
 end
 
 local function getFieldFarmland(field, fieldState, x, z)
-    if field ~= nil and field.farmland ~= nil then
-        return field.farmland
+    local fieldFarmland = getFarmlandRecord(tableValue(field, "farmland"))
+    if fieldFarmland ~= nil then
+        return fieldFarmland
     end
 
-    if fieldState ~= nil and fieldState.farmlandId ~= nil then
-        local farmland = getFarmlandById(fieldState.farmlandId)
+    local fieldStateFarmlandId = positiveNumber(tableValue(fieldState, "farmlandId"))
+    if fieldStateFarmlandId ~= nil then
+        local farmland = getFarmlandById(fieldStateFarmlandId)
         if farmland ~= nil then
             return farmland
         end
     end
 
     if g_farmlandManager ~= nil and x ~= nil and z ~= nil then
-        return call(g_farmlandManager, "getFarmlandAtWorldPosition", x, z)
+        return getFarmlandRecord(call(g_farmlandManager, "getFarmlandAtWorldPosition", x, z))
     end
 
     return nil
 end
 
 local function getFarmlandId(fieldState, farmland, x, z)
-    if fieldState ~= nil and tonumber(fieldState.farmlandId) ~= nil and tonumber(fieldState.farmlandId) > 0 then
-        return fieldState.farmlandId
+    local fieldStateFarmlandId = positiveNumber(tableValue(fieldState, "farmlandId"))
+    if fieldStateFarmlandId ~= nil then
+        return fieldStateFarmlandId
     end
 
-    if farmland ~= nil and farmland.id ~= nil then
-        return farmland.id
+    local farmlandId = getFarmlandRecordId(farmland)
+    if farmlandId ~= nil then
+        return farmlandId
     end
 
     if g_farmlandManager ~= nil and x ~= nil and z ~= nil then
-        local farmlandId = call(g_farmlandManager, "getFarmlandIdAtWorldPosition", x, z)
-        if tonumber(farmlandId) ~= nil and tonumber(farmlandId) > 0 then
+        farmlandId = positiveNumber(call(g_farmlandManager, "getFarmlandIdAtWorldPosition", x, z))
+        if farmlandId ~= nil then
+            return farmlandId
+        end
+
+        farmlandId = getFarmlandRecordId(call(g_farmlandManager, "getFarmlandAtWorldPosition", x, z))
+        if farmlandId ~= nil then
             return farmlandId
         end
     end
@@ -199,14 +284,21 @@ local function getFarmlandId(fieldState, farmland, x, z)
     return nil
 end
 
-local function getOwnerFarmId(fieldState, farmlandId)
-    if fieldState ~= nil and tonumber(fieldState.ownerFarmId) ~= nil and tonumber(fieldState.ownerFarmId) > 0 then
-        return fieldState.ownerFarmId
+local function getOwnerFarmId(fieldState, farmland, farmlandId)
+    local fieldStateOwnerFarmId = positiveNumber(tableValue(fieldState, "ownerFarmId"))
+    if fieldStateOwnerFarmId ~= nil then
+        return fieldStateOwnerFarmId
+    end
+
+    local farmlandOwnerFarmId = positiveNumber(tableValue(farmland, "ownerFarmId"))
+        or positiveNumber(tableValue(farmland, "farmId"))
+    if farmlandOwnerFarmId ~= nil then
+        return farmlandOwnerFarmId
     end
 
     if g_farmlandManager ~= nil and farmlandId ~= nil then
-        local ownerFarmId = call(g_farmlandManager, "getFarmlandOwner", farmlandId)
-        if tonumber(ownerFarmId) ~= nil and tonumber(ownerFarmId) > 0 then
+        local ownerFarmId = positiveNumber(call(g_farmlandManager, "getFarmlandOwner", farmlandId))
+        if ownerFarmId ~= nil then
             return ownerFarmId
         end
     end
@@ -236,10 +328,10 @@ local function getNpcName(farmland, mission)
     if npc == nil and farmland ~= nil then
         npc = call(farmland, "getNPC")
         if npc == nil then
-            npc = farmland.npc
+            npc = tableValue(farmland, "npc")
         end
-        if npc == nil and farmland.npcIndex ~= nil and g_npcManager ~= nil then
-            npc = call(g_npcManager, "getNPCByIndex", farmland.npcIndex)
+        if npc == nil and tableValue(farmland, "npcIndex") ~= nil and g_npcManager ~= nil then
+            npc = call(g_npcManager, "getNPCByIndex", tableValue(farmland, "npcIndex"))
         end
     end
 
@@ -258,7 +350,7 @@ local function getFruitName(fruitTypeIndex)
     if g_fruitTypeManager ~= nil then
         local desc = call(g_fruitTypeManager, "getFruitTypeByIndex", fruitTypeIndex)
         if desc ~= nil then
-            return displayObjectName(desc) or desc.name or desc.fillTypeName
+            return displayObjectName(desc) or tableValue(desc, "name") or tableValue(desc, "fillTypeName")
         end
     end
 
@@ -300,13 +392,21 @@ local function summarizeConditionCodes(codes)
 end
 
 local function createFieldRecord(field, missionByFieldId)
+    if type(field) ~= "table" then
+        return nil, "field entry is not a table"
+    end
+
     local fieldId = getFieldId(field)
+    if fieldId == nil then
+        return nil, "field has no usable fieldId"
+    end
+
     local x, z = getFieldPosition(field)
     local fieldState = getFieldState(field)
     local farmland = getFieldFarmland(field, fieldState, x, z)
     local farmlandId = getFarmlandId(fieldState, farmland, x, z)
-    local ownerFarmId = getOwnerFarmId(fieldState, farmlandId)
-    local mission = missionByFieldId[fieldId]
+    local ownerFarmId = getOwnerFarmId(fieldState, farmland, farmlandId)
+    local mission = (missionByFieldId or {})[fieldId]
     local npcName = getNpcName(farmland, mission)
     local cropType = getFruitName(fieldState.fruitTypeIndex)
     local fieldConditionCodes = conditionCodes(fieldState)
@@ -344,46 +444,69 @@ end
 
 local function missionTypeName(mission)
     return call(mission, "getMissionTypeName")
-        or (mission.type ~= nil and mission.type.name)
-        or mission.typeName
-        or mission.name
+        or tableValue(tableValue(mission, "type"), "name")
+        or tableValue(mission, "typeName")
+        or tableValue(mission, "name")
         or "field_mission"
 end
 
 local function getMissionField(mission)
-    return call(mission, "getField") or mission.field
+    return call(mission, "getField") or tableValue(mission, "field")
+end
+
+local function createMissionRecord(mission, missionIndex)
+    if type(mission) ~= "table" then
+        return nil, "mission entry is not a table"
+    end
+
+    local field = getMissionField(mission)
+    local fieldId = getFieldId(field)
+    local reward = call(mission, "getReward") or call(mission, "getTotalReward")
+
+    return {
+        missionId = call(mission, "getUniqueId") or mission.uniqueId or string.format("mission_%03d", missionIndex),
+        fieldId = fieldId,
+        type = missionTypeName(mission),
+        reward = reward,
+        status = mission.status,
+        npcName = getNpcName(type(field) == "table" and field.farmland or nil, mission),
+    }
 end
 
 local function discoverMissions(missionSource)
     local missions = {}
     local missionByFieldId = {}
+    local diagnostics = {
+        skippedMissionCount = 0,
+        missionErrorCount = 0,
+        firstSkippedMissionReason = nil,
+    }
 
     if g_missionManager == nil and missionSource == nil then
-        return missions, missionByFieldId
+        return missions, missionByFieldId, diagnostics
     end
 
     local missionIndex = 0
     for _, mission in pairs(missionSource or {}) do
         missionIndex = missionIndex + 1
-        local field = getMissionField(mission)
-        local fieldId = getFieldId(field)
-        local reward = call(mission, "getReward") or call(mission, "getTotalReward")
-        local missionRecord = {
-            missionId = call(mission, "getUniqueId") or mission.uniqueId or string.format("mission_%03d", missionIndex),
-            fieldId = fieldId,
-            type = missionTypeName(mission),
-            reward = reward,
-            status = mission.status,
-            npcName = getNpcName(field ~= nil and field.farmland or nil, mission),
-        }
+        local ok, missionRecord, reason = pcall(createMissionRecord, mission, missionIndex)
 
-        missions[#missions + 1] = missionRecord
-        if fieldId ~= nil then
-            missionByFieldId[fieldId] = missionRecord
+        if ok and missionRecord ~= nil then
+            missions[#missions + 1] = missionRecord
+            if missionRecord.fieldId ~= nil then
+                missionByFieldId[missionRecord.fieldId] = missionRecord
+            end
+        else
+            diagnostics.skippedMissionCount = diagnostics.skippedMissionCount + 1
+            if not ok then
+                diagnostics.missionErrorCount = diagnostics.missionErrorCount + 1
+                reason = missionRecord
+            end
+            diagnostics.firstSkippedMissionReason = diagnostics.firstSkippedMissionReason or tostring(reason or "unknown mission skip")
         end
     end
 
-    return missions, missionByFieldId
+    return missions, missionByFieldId, diagnostics
 end
 
 local function propertyKey(field)
@@ -482,16 +605,19 @@ function MapDiscovery.discover(options)
     local mapReadyAttempted = options.mapReadyAttempted ~= false
     local diagnostics, fieldSource, _, missionSource = collectDiagnostics(trigger)
     local precisionFarmingAvailable = detectPrecisionFarming()
-    local missions, missionByFieldId = discoverMissions(missionSource)
+    local missions, missionByFieldId, missionDiagnostics = discoverMissions(missionSource)
     local fieldRecords = {}
     local propertyByKey = {}
     local properties = {}
     local farmlandIds = {}
+    local skippedFieldCount = 0
+    local fieldErrorCount = 0
+    local firstSkippedFieldReason = nil
 
     if fieldSource ~= nil then
         for _, field in pairs(fieldSource or {}) do
-            local fieldRecord = createFieldRecord(field, missionByFieldId)
-            if fieldRecord.fieldId ~= nil then
+            local ok, fieldRecord, reason = pcall(createFieldRecord, field, missionByFieldId)
+            if ok and fieldRecord ~= nil and fieldRecord.fieldId ~= nil then
                 fieldRecords[#fieldRecords + 1] = fieldRecord
                 appendUnique(farmlandIds, fieldRecord.farmlandId)
 
@@ -504,6 +630,13 @@ function MapDiscovery.discover(options)
                 end
 
                 appendFieldToProperty(property, fieldRecord)
+            else
+                skippedFieldCount = skippedFieldCount + 1
+                if not ok then
+                    fieldErrorCount = fieldErrorCount + 1
+                    reason = fieldRecord
+                end
+                firstSkippedFieldReason = firstSkippedFieldReason or tostring(reason or "field has no usable record")
             end
         end
     end
@@ -531,6 +664,14 @@ function MapDiscovery.discover(options)
         end
     end
 
+    diagnostics.usableFieldCount = #fieldRecords
+    diagnostics.skippedFieldCount = skippedFieldCount
+    diagnostics.fieldErrorCount = fieldErrorCount
+    diagnostics.firstSkippedFieldReason = firstSkippedFieldReason
+    diagnostics.skippedMissionCount = missionDiagnostics.skippedMissionCount
+    diagnostics.missionErrorCount = missionDiagnostics.missionErrorCount
+    diagnostics.firstSkippedMissionReason = missionDiagnostics.firstSkippedMissionReason
+
     return {
         source = #properties > 0 and "map" or "none",
         confidence = confidence,
@@ -556,6 +697,11 @@ function MapDiscovery.empty(options)
     local trigger = options.trigger or "bootstrap"
     local diagnostics = collectDiagnostics(trigger)
     local precisionFarmingAvailable = detectPrecisionFarming()
+    diagnostics.usableFieldCount = 0
+    diagnostics.skippedFieldCount = 0
+    diagnostics.fieldErrorCount = 0
+    diagnostics.skippedMissionCount = 0
+    diagnostics.missionErrorCount = 0
 
     return {
         source = "none",

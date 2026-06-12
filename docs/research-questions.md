@@ -49,11 +49,14 @@ Document uncertainties here before implementing API-sensitive features.
 - Can a mod read field crop state, growth stage, and harvest readiness safely?
 - Can a mod read soil-composition flags such as weeds, needs ploughing, needs
   rolling, stones, mulched, and watered state safely? Provisional answer in
-  `v0.1.5.0`: field state exposes raw crop/growth/soil fields; exact gameplay
-  interpretation remains conservative until runtime-tested.
+  `v0.1.5.2`: field state exposes raw crop/growth/soil fields after
+  `Mission00.onStartMission`; exact gameplay interpretation remains
+  conservative until runtime-tested.
 - When the official Precision Farming mod is installed, can Rural Ledger read
   pH, nitrogen, environmental score, and sample freshness without taking a hard
-  dependency? Still open. `v0.1.5.0` only records guarded mod availability.
+  dependency? Still open. `v0.1.5.2` only records guarded mod availability via
+  PhobosLib. The Soil/Fertilizer reference suggests a future diagnostic probe
+  or bridge can be useful before exact pH/nitrogen values become player-facing.
 - Can storage ownership and capacity be inspected for NPC-like profiles?
 - Are NPC farms represented strongly enough in vanilla data to map ledgers onto
   them, and what fallback is acceptable when a map has fields but no useful

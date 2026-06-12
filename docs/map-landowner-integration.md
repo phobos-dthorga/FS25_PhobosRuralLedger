@@ -87,6 +87,23 @@ that an NPC owner can be resolved from `farmland.npcIndex` through
 `g_npcManager:getNPCByIndex(...)`. Rural Ledger now uses the same style of
 nil-safe lookup, without copying third-party code.
 
+Runtime testing of `v0.1.5.1` showed that `loadMap` can still be too early for
+usable field records even when `g_fieldManager.fields` already has raw entries.
+The failing log showed `raw=200` fields, zero usable discovery records, and
+repeated `MapDiscovery.lua:125` errors from later UI/input retries. The
+Soil/Fertilizer reference provided the stronger lifecycle lesson: its code
+treats `loadMission00Finished` as useful for setup, but waits until
+`Mission00.onStartMission` before relying on fully populated field data.
+`v0.1.5.2` therefore keeps `loadMap` as a bounded probe and adds a mission-start
+discovery pass as the first trusted map-backed read.
+
+The same Soil/Fertilizer reference is useful for Precision Farming boundaries.
+It exposes a diagnostic/PF-bridge style for investigating APIs, but Rural Ledger
+does not copy that code and does not fake exact pH or nitrogen values. For now,
+Rural Ledger only records optional Precision Farming availability through
+PhobosLib's guarded integration helper. Exact pH/nitrogen reads need a separate
+runtime proof or debug probe before they become player-facing data.
+
 Candidate discovery output:
 
 ```lua
@@ -165,13 +182,13 @@ Exact finance remains hidden unless debug mode or relationship rules allow it.
    records plus clearly flagged fallback records. Implemented provisionally in
    `v0.1.5.0`.
 4. Update `UiModels` so Overview, Farmers, and Farm Detail can show field IDs,
-   crop mix, property source, and data confidence. Implemented provisionally in
-   `v0.1.5.0`.
+   crop mix, property source, data confidence, and discovery diagnostics.
+   Implemented provisionally in `v0.1.5.2`.
 5. Add optional Precision Farming reads behind guarded integration checks.
-   Availability is guarded in `v0.1.5.0`; exact pH/nitrogen values are still
+   Availability is guarded in `v0.1.5.2`; exact pH/nitrogen values are still
    pending.
 6. Harden map lifecycle timing, no-data visibility, and NPC owner lookup.
-   Implemented provisionally in `v0.1.5.1`.
+   Implemented provisionally in `v0.1.5.2`.
 7. Only after the read-only path is stable, consider land, auction, and contract
    hooks.
 

@@ -129,7 +129,7 @@
         <Profile name="rlTabBox" extends="fs25_subCategorySelectorTabbedBox">
             <position value="0px -10px"/>
         </Profile>
-        <Profile name="rlTabButton" extends="baseReference">
+        <Profile name="rlTabButton" extends="fs25_subCategorySelectorTabbedTab">
             <size value="245px 57px"/>
             <imageColor value="0 0 0 0"/>
             <imageFocusedColor value="$preset_fs25_colorMainHighlight"/>
@@ -285,7 +285,7 @@
             <textSelectedColor value="$preset_fs25_colorMainDark"/>
             <textLayoutMode value="scrolling"/>
         </Profile>
-        <Profile name="rlSmallButton" extends="baseReference" with="anchorTopLeft">
+        <Profile name="rlSmallButton" extends="buttonOK" with="anchorTopLeft">
             <size value="310px 45px"/>
             <imageColor value="$preset_fs25_colorGreyDark_50"/>
             <imageFocusedColor value="$preset_fs25_colorMainHighlight"/>
@@ -298,7 +298,7 @@
             <textSize value="14px"/>
             <textLayoutMode value="resize"/>
         </Profile>
-        <Profile name="rlFooterButton" extends="baseReference">
+        <Profile name="rlFooterButton" extends="buttonOK">
             <size value="210px 45px"/>
             <imageColor value="0 0 0 0"/>
             <imageFocusedColor value="$preset_fs25_colorMainHighlight"/>

@@ -35,9 +35,6 @@ REQUIRED_LOCALES = ("en", "de")
 REQUIRED_L10N_KEYS = ("input_PHOBOS_RURAL_LEDGER_MENU",)
 FORBIDDEN_GUI_PROFILE_NAMES = {
     "button",
-    "buttonOK",
-    "buttonBack",
-    "buttonExtra1",
 }
 
 
@@ -229,18 +226,39 @@ def validate_gui_profiles(mod_root: Path, validation: Validation) -> None:
     if not gui_root.is_dir():
         return
 
+    custom_profile_extends: dict[str, str] = {}
+    button_profiles: set[str] = set()
+
     for path in sorted(gui_root.rglob("*.xml")):
         tree = parse_xml_file(path, validation)
         if tree is None:
             continue
 
         for node in tree.getroot().iter():
+            if node.tag == "Profile":
+                name = (node.get("name") or "").strip()
+                extends = (node.get("extends") or "").strip()
+                if name:
+                    custom_profile_extends[name] = extends
+
+            if node.tag == "Button" or (node.tag == "GuiElement" and (node.get("type") or "").strip() == "button"):
+                profile = (node.get("profile") or "").strip()
+                if profile:
+                    button_profiles.add(profile)
+
             for attribute in ("profile", "extends"):
                 value = (node.get(attribute) or "").strip()
                 if value in FORBIDDEN_GUI_PROFILE_NAMES:
                     validation.error(
                         f"GUI uses profile path that produced runtime warnings in {path.relative_to(mod_root)}: {attribute}='{value}'"
                     )
+
+    for profile in sorted(button_profiles):
+        extends = custom_profile_extends.get(profile)
+        if extends == "baseReference":
+            validation.error(
+                f"Custom Button profile extends plain baseReference and may trigger runtime 'button' profile warnings: {profile}"
+            )
 
 
 def validate_xml_files(mod_root: Path, validation: Validation) -> None:

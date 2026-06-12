@@ -658,6 +658,11 @@ function UiModels.buildDebugSummary(state, options)
         text("rl_debug_manager_fields", "Field manager: %s, raw fields: %d", boolText(diagnostics.fieldManagerAvailable), diagnostics.rawFieldCount or 0),
         text("rl_debug_manager_farmlands", "Farmland manager: %s, raw farmlands: %d", boolText(diagnostics.farmlandManagerAvailable), diagnostics.rawFarmlandCount or 0),
         text("rl_debug_manager_missions", "Mission manager: %s, raw missions: %d", boolText(diagnostics.missionManagerAvailable), diagnostics.rawMissionCount or 0),
+        text("rl_debug_usable_fields", "Usable fields: %d", diagnostics.usableFieldCount or discovery.discoveredFieldCount or 0),
+        text("rl_debug_skipped_fields", "Skipped fields: %d", diagnostics.skippedFieldCount or 0),
+        text("rl_debug_skipped_missions", "Skipped missions: %d", diagnostics.skippedMissionCount or 0),
+        text("rl_debug_discovery_errors", "Discovery read errors: fields %d, missions %d", diagnostics.fieldErrorCount or 0, diagnostics.missionErrorCount or 0),
+        text("rl_debug_first_skip_reason", "First skip reason: %s", tostring(diagnostics.firstSkippedFieldReason or diagnostics.firstSkippedMissionReason or diagnostics.discoveryError or "none")),
         text(
             "rl_debug_precision_farming",
             "Precision Farming: %s",
