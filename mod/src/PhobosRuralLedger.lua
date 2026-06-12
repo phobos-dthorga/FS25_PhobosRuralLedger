@@ -2,6 +2,8 @@ PhobosRuralLedger = PhobosRuralLedger or {}
 
 local Constants = PhobosRuralLedger.Constants
 local Persistence = PhobosRuralLedger.Persistence
+local Reports = PhobosRuralLedger.Reports
+local Simulation = PhobosRuralLedger.Simulation
 
 PhobosRuralLedger.MOD_NAME = Constants.MOD_NAME
 PhobosRuralLedger.DISPLAY_NAME = Constants.DISPLAY_NAME
@@ -14,6 +16,8 @@ function PhobosRuralLedger.bootstrap()
 
     PhobosRuralLedger.isBootstrapped = true
     PhobosRuralLedger.state = Persistence.importState(nil)
+    Simulation.calculatePeriod(PhobosRuralLedger.state)
+    PhobosRuralLedger.reportLines = Reports.buildEconomyReport(PhobosRuralLedger.state)
 end
 
 PhobosRuralLedger.bootstrap()

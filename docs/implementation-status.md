@@ -7,9 +7,17 @@ Implemented:
 - explicit Lua module load order in `modDesc.xml`;
 - constants and save key definitions;
 - deterministic NPC farm profile generation;
-- empty ledger snapshot creation;
+- deterministic ledger snapshot calculation;
+- stress score and stress state assignment;
+- read-only local economy report lines;
 - versioned persistence import/export shape;
 - bootstrap initialization of an in-memory Rural Ledger state.
+
+## Runtime Evidence
+
+`v0.1.0.0` was published as the first prerelease and installed with
+`FS25_PhobosLib`. The refreshed FS25 log showed both mods loading and no
+Phobos-owned errors or warnings.
 
 ## Persistence Boundary
 
@@ -34,7 +42,9 @@ added.
 
 Recommended next code step:
 
-1. Add deterministic ledger calculations.
-2. Generate stress states from profile and ledger inputs.
-3. Add read-only local economy report output.
-4. Only then research and wire FS25 save/load lifecycle hooks.
+1. Add a simple verified report/debug access path for the generated economy
+   report.
+2. Add the first cause-carrying neighbour opportunity from strained or worse
+   farms.
+3. Research and wire FS25 save/load lifecycle hooks only after the read-only
+   state and opportunity data remain stable.

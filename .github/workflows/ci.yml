@@ -44,6 +44,15 @@ jobs:
             luac5.4 -p $files
           fi
 
+      - name: Run Lua smoke tests
+        run: |
+          tests="$(git ls-files 'tests/*.lua' 'tests/**/*.lua')"
+          if [ -n "$tests" ]; then
+            for test in $tests; do
+              lua5.4 "$test" .
+            done
+          fi
+
       - name: Build and validate package set
         run: python tools/package_set.py --suffix ci --validate --write-sha256 --write-json
 
