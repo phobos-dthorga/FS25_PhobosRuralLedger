@@ -90,6 +90,7 @@ Start with:
 - `docs/player-facing-ux.md`
 - `docs/integration-strategy.md`
 - `docs/naming-and-tone.md`
+- `docs/implementation-status.md`
 - `docs/research-questions.md`
 - `docs/visual-assets.md`
 

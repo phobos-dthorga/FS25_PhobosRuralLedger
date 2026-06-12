@@ -11,6 +11,12 @@
     <iconFilename>icon.dds</iconFilename>
 
     <extraSourceFiles>
+        <sourceFile filename="src/Constants.lua"/>
+        <sourceFile filename="src/Profiles.lua"/>
+        <sourceFile filename="src/Ledgers.lua"/>
+        <sourceFile filename="src/Simulation.lua"/>
+        <sourceFile filename="src/Reports.lua"/>
+        <sourceFile filename="src/Persistence.lua"/>
         <sourceFile filename="src/PhobosRuralLedger.lua"/>
     </extraSourceFiles>
 

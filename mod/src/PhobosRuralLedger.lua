@@ -1,8 +1,11 @@
 PhobosRuralLedger = PhobosRuralLedger or {}
 
-PhobosRuralLedger.MOD_NAME = "FS25_PhobosRuralLedger"
-PhobosRuralLedger.DISPLAY_NAME = "Phobos' Rural Ledger"
-PhobosRuralLedger.VERSION = "0.1.0.0"
+local Constants = PhobosRuralLedger.Constants
+local Persistence = PhobosRuralLedger.Persistence
+
+PhobosRuralLedger.MOD_NAME = Constants.MOD_NAME
+PhobosRuralLedger.DISPLAY_NAME = Constants.DISPLAY_NAME
+PhobosRuralLedger.VERSION = Constants.VERSION
 
 function PhobosRuralLedger.bootstrap()
     if PhobosRuralLedger.isBootstrapped then
@@ -10,6 +13,7 @@ function PhobosRuralLedger.bootstrap()
     end
 
     PhobosRuralLedger.isBootstrapped = true
+    PhobosRuralLedger.state = Persistence.importState(nil)
 end
 
 PhobosRuralLedger.bootstrap()

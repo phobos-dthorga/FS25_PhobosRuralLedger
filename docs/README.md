@@ -39,5 +39,7 @@ Use this folder as the design packet for Phobos' Rural Ledger.
   gameplay-sensitive features.
 - `implementation-approach.md` - first implementation sequence and early
   development rules.
+- `implementation-status.md` - current code slice and next implementation
+  boundary.
 - `repository-stewardship.md` - issue, branch, commit, and release habits.
 - `release-process.md` - package and release checklist.
