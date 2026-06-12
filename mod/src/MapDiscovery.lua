@@ -23,6 +23,46 @@ local function call(value, methodName, ...)
     return nil
 end
 
+local function countPairs(values)
+    local count = 0
+
+    for _ in pairs(values or {}) do
+        count = count + 1
+    end
+
+    return count
+end
+
+local function managerTable(manager, methodName, fallbackKey)
+    if manager == nil then
+        return nil
+    end
+
+    local fromMethod = call(manager, methodName)
+    if fromMethod ~= nil then
+        return fromMethod
+    end
+
+    return manager[fallbackKey]
+end
+
+local function collectDiagnostics(trigger)
+    local fields = managerTable(g_fieldManager, "getFields", "fields")
+    local farmlands = managerTable(g_farmlandManager, "getFarmlands", "farmlands")
+    local missions = managerTable(g_missionManager, "getMissions", "missions")
+
+    return {
+        trigger = trigger or "manualRefresh",
+        fieldManagerAvailable = g_fieldManager ~= nil,
+        farmlandManagerAvailable = g_farmlandManager ~= nil,
+        missionManagerAvailable = g_missionManager ~= nil,
+        npcManagerAvailable = g_npcManager ~= nil,
+        rawFieldCount = countPairs(fields),
+        rawFarmlandCount = countPairs(farmlands),
+        rawMissionCount = countPairs(missions),
+    }, fields, farmlands, missions
+end
+
 local function arrayContains(values, candidate)
     for _, value in ipairs(values or {}) do
         if value == candidate then
@@ -60,6 +100,11 @@ end
 local function displayObjectName(value)
     if value == nil then
         return nil
+    end
+
+    if type(value) == "string" or type(value) == "number" then
+        local text = tostring(value)
+        return text ~= "" and text or nil
     end
 
     local fromMethod = call(value, "getName")
@@ -102,9 +147,30 @@ local function getFieldState(field)
     return call(field, "getFieldState") or {}
 end
 
-local function getFieldFarmland(field, x, z)
+local function getFarmlandById(farmlandId)
+    if g_farmlandManager == nil or farmlandId == nil then
+        return nil
+    end
+
+    local farmland = call(g_farmlandManager, "getFarmlandById", farmlandId)
+    if farmland ~= nil then
+        return farmland
+    end
+
+    local farmlands = managerTable(g_farmlandManager, "getFarmlands", "farmlands")
+    return (farmlands or {})[farmlandId]
+end
+
+local function getFieldFarmland(field, fieldState, x, z)
     if field ~= nil and field.farmland ~= nil then
         return field.farmland
+    end
+
+    if fieldState ~= nil and fieldState.farmlandId ~= nil then
+        local farmland = getFarmlandById(fieldState.farmlandId)
+        if farmland ~= nil then
+            return farmland
+        end
     end
 
     if g_farmlandManager ~= nil and x ~= nil and z ~= nil then
@@ -162,10 +228,19 @@ local function getNpcName(farmland, mission)
 
     if mission ~= nil then
         npc = call(mission, "getNPC")
+        if npc == nil then
+            npc = mission.npc or mission.npcName
+        end
     end
 
     if npc == nil and farmland ~= nil then
         npc = call(farmland, "getNPC")
+        if npc == nil then
+            npc = farmland.npc
+        end
+        if npc == nil and farmland.npcIndex ~= nil and g_npcManager ~= nil then
+            npc = call(g_npcManager, "getNPCByIndex", farmland.npcIndex)
+        end
     end
 
     return displayObjectName(npc)
@@ -228,7 +303,7 @@ local function createFieldRecord(field, missionByFieldId)
     local fieldId = getFieldId(field)
     local x, z = getFieldPosition(field)
     local fieldState = getFieldState(field)
-    local farmland = getFieldFarmland(field, x, z)
+    local farmland = getFieldFarmland(field, fieldState, x, z)
     local farmlandId = getFarmlandId(fieldState, farmland, x, z)
     local ownerFarmId = getOwnerFarmId(fieldState, farmlandId)
     local mission = missionByFieldId[fieldId]
@@ -279,20 +354,22 @@ local function getMissionField(mission)
     return call(mission, "getField") or mission.field
 end
 
-local function discoverMissions()
+local function discoverMissions(missionSource)
     local missions = {}
     local missionByFieldId = {}
 
-    if g_missionManager == nil then
+    if g_missionManager == nil and missionSource == nil then
         return missions, missionByFieldId
     end
 
-    for index, mission in ipairs(g_missionManager.missions or {}) do
+    local missionIndex = 0
+    for _, mission in pairs(missionSource or {}) do
+        missionIndex = missionIndex + 1
         local field = getMissionField(mission)
         local fieldId = getFieldId(field)
         local reward = call(mission, "getReward") or call(mission, "getTotalReward")
         local missionRecord = {
-            missionId = call(mission, "getUniqueId") or mission.uniqueId or string.format("mission_%03d", index),
+            missionId = call(mission, "getUniqueId") or mission.uniqueId or string.format("mission_%03d", missionIndex),
             fieldId = fieldId,
             type = missionTypeName(mission),
             reward = reward,
@@ -401,15 +478,18 @@ end
 function MapDiscovery.discover(options)
     options = options or {}
 
+    local trigger = options.trigger or "manualRefresh"
+    local mapReadyAttempted = options.mapReadyAttempted ~= false
+    local diagnostics, fieldSource, _, missionSource = collectDiagnostics(trigger)
     local precisionFarmingAvailable = detectPrecisionFarming()
-    local missions, missionByFieldId = discoverMissions()
+    local missions, missionByFieldId = discoverMissions(missionSource)
     local fieldRecords = {}
     local propertyByKey = {}
     local properties = {}
     local farmlandIds = {}
 
-    if g_fieldManager ~= nil then
-        for _, field in ipairs(g_fieldManager.fields or {}) do
+    if fieldSource ~= nil then
+        for _, field in pairs(fieldSource or {}) do
             local fieldRecord = createFieldRecord(field, missionByFieldId)
             if fieldRecord.fieldId ~= nil then
                 fieldRecords[#fieldRecords + 1] = fieldRecord
@@ -457,6 +537,9 @@ function MapDiscovery.discover(options)
         mapId = options.mapId or ((g_currentMission or {}).missionInfo or {}).mapId or ((g_currentMission or {}).missionInfo or {}).mapTitle or "unknown",
         precisionFarmingAvailable = precisionFarmingAvailable,
         precisionFarmingExactValues = false,
+        trigger = trigger,
+        mapReadyAttempted = mapReadyAttempted,
+        diagnostics = diagnostics,
         properties = properties,
         fields = fieldRecords,
         missions = missions,
@@ -464,5 +547,31 @@ function MapDiscovery.discover(options)
         discoveredFieldCount = #fieldRecords,
         discoveredFarmlandCount = #farmlandIds,
         discoveredContractCount = #missions,
+    }
+end
+
+function MapDiscovery.empty(options)
+    options = options or {}
+
+    local trigger = options.trigger or "bootstrap"
+    local diagnostics = collectDiagnostics(trigger)
+    local precisionFarmingAvailable = detectPrecisionFarming()
+
+    return {
+        source = "none",
+        confidence = "unavailable",
+        mapId = options.mapId or ((g_currentMission or {}).missionInfo or {}).mapId or ((g_currentMission or {}).missionInfo or {}).mapTitle or "unknown",
+        precisionFarmingAvailable = precisionFarmingAvailable,
+        precisionFarmingExactValues = false,
+        trigger = trigger,
+        mapReadyAttempted = options.mapReadyAttempted == true,
+        diagnostics = diagnostics,
+        properties = {},
+        fields = {},
+        missions = {},
+        discoveredPropertyCount = 0,
+        discoveredFieldCount = 0,
+        discoveredFarmlandCount = 0,
+        discoveredContractCount = 0,
     }
 end

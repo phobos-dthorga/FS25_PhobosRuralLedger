@@ -11,6 +11,7 @@
         <text name="rl_button_back" text="Zurück"/>
         <text name="rl_button_toggle_debug" text="Exakte Debugwerte umschalten"/>
         <text name="rl_button_refresh_display" text="Anzeigedaten aktualisieren"/>
+        <text name="rl_no_map_data_notice" text="Noch keine Kartendaten verfügbar. Speichere/lade das Spiel oder drücke Aktualisieren, nachdem die Karte vollständig geladen ist."/>
 
         <text name="rl_overview_recent_notes" text="Aktuelle Wirtschaftshinweise"/>
         <text name="rl_overview_empty_alert" text="In diesem Zeitraum gibt es keine öffentlichen Druckmeldungen."/>
@@ -78,10 +79,15 @@
         <text name="rl_debug_events" text="Ereignisse: %d"/>
         <text name="rl_debug_discovery_source" text="Erkennungsquelle: %s"/>
         <text name="rl_debug_discovery_confidence" text="Erkennungsvertrauen: %s"/>
+        <text name="rl_debug_discovery_trigger" text="Erkennungsauslöser: %s"/>
+        <text name="rl_debug_map_ready_attempted" text="Kartenbereite Erkennung versucht: %s"/>
         <text name="rl_debug_discovery_properties" text="Erkannte Betriebe/Flächen: %d"/>
         <text name="rl_debug_discovery_fields" text="Erkannte Felder: %d"/>
         <text name="rl_debug_discovery_farmlands" text="Erkannte Flurstücke: %d"/>
         <text name="rl_debug_discovery_contracts" text="Erkannte Aufträge: %d"/>
+        <text name="rl_debug_manager_fields" text="Feld-Manager: %s, Rohfelder: %d"/>
+        <text name="rl_debug_manager_farmlands" text="Flurstück-Manager: %s, Rohflurstücke: %d"/>
+        <text name="rl_debug_manager_missions" text="Auftrags-Manager: %s, Rohaufträge: %d"/>
         <text name="rl_debug_precision_farming" text="Precision Farming: %s"/>
         <text name="rl_debug_save_hooks" text="Speicher-/Lade-Hooks: in diesem Abschnitt nicht verbunden"/>
         <text name="rl_debug_first_cash" text="Erste Hof-Liquidität: %s"/>
@@ -159,6 +165,8 @@
         <text name="rl_machinery_adequate" text="Ausreichend"/>
         <text name="rl_machinery_strong" text="Stark"/>
         <text name="rl_tracked" text="Erfasst"/>
+        <text name="rl_yes" text="Ja"/>
+        <text name="rl_no" text="Nein"/>
 
         <text name="rl_mood_no_farms" text="Keine erfassten Höfe"/>
         <text name="rl_mood_under_pressure" text="Unter Druck"/>

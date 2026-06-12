@@ -11,6 +11,7 @@
         <text name="rl_button_back" text="Back"/>
         <text name="rl_button_toggle_debug" text="Toggle exact debug values"/>
         <text name="rl_button_refresh_display" text="Refresh display data"/>
+        <text name="rl_no_map_data_notice" text="No map data available yet. Save/load the game or press Refresh after the map finishes loading."/>
 
         <text name="rl_overview_recent_notes" text="Recent economy notes"/>
         <text name="rl_overview_empty_alert" text="No public pressure alerts this period."/>
@@ -78,10 +79,15 @@
         <text name="rl_debug_events" text="Events: %d"/>
         <text name="rl_debug_discovery_source" text="Discovery source: %s"/>
         <text name="rl_debug_discovery_confidence" text="Discovery confidence: %s"/>
+        <text name="rl_debug_discovery_trigger" text="Discovery trigger: %s"/>
+        <text name="rl_debug_map_ready_attempted" text="Map-ready discovery attempted: %s"/>
         <text name="rl_debug_discovery_properties" text="Discovered properties: %d"/>
         <text name="rl_debug_discovery_fields" text="Discovered fields: %d"/>
         <text name="rl_debug_discovery_farmlands" text="Discovered farmlands: %d"/>
         <text name="rl_debug_discovery_contracts" text="Discovered contracts: %d"/>
+        <text name="rl_debug_manager_fields" text="Field manager: %s, raw fields: %d"/>
+        <text name="rl_debug_manager_farmlands" text="Farmland manager: %s, raw farmlands: %d"/>
+        <text name="rl_debug_manager_missions" text="Mission manager: %s, raw missions: %d"/>
         <text name="rl_debug_precision_farming" text="Precision Farming: %s"/>
         <text name="rl_debug_save_hooks" text="Save/load hooks: not wired in this slice"/>
         <text name="rl_debug_first_cash" text="First farm cash: %s"/>
@@ -159,6 +165,8 @@
         <text name="rl_machinery_adequate" text="Adequate"/>
         <text name="rl_machinery_strong" text="Strong"/>
         <text name="rl_tracked" text="Tracked"/>
+        <text name="rl_yes" text="Yes"/>
+        <text name="rl_no" text="No"/>
 
         <text name="rl_mood_no_farms" text="No tracked farms"/>
         <text name="rl_mood_under_pressure" text="Under pressure"/>

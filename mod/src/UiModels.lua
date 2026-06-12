@@ -167,6 +167,28 @@ local function sourceConfidenceLabel(profile)
     )
 end
 
+local function boolText(value)
+    return value == true and text("rl_yes", "Yes") or text("rl_no", "No")
+end
+
+local function noDataNotice(state)
+    local discovery = (state or {}).mapDiscovery or {}
+    local visible = discovery.mapReadyAttempted == true
+        and (
+            discovery.source == nil
+            or discovery.source == "none"
+            or (discovery.discoveredFieldCount or 0) == 0
+        )
+
+    return {
+        visible = visible,
+        text = visible and text(
+            "rl_no_map_data_notice",
+            "No map data available yet. Save/load the game or press Refresh after the map finishes loading."
+        ) or "",
+    }
+end
+
 local function countFields(profile)
     return #(profile.ownedFields or {}) + #(profile.leasedFields or {})
 end
@@ -452,6 +474,7 @@ function UiModels.buildOverview(state, options)
     local dominantPressureLabel, dominantPressureCount = dominantPressure(snapshots)
     local farmRows = UiModels.buildFarmList(state, {includeDebug = options.includeDebug})
     local discovery = discoverySummary(state)
+    local notice = noDataNotice(state)
     local alerts = {}
 
     for _, row in ipairs(farmRows) do
@@ -487,6 +510,7 @@ function UiModels.buildOverview(state, options)
         dominantPressure = dominantPressureLabel,
         dominantPressureCount = dominantPressureCount,
         discovery = discovery,
+        noDataNotice = notice,
         cards = {
             {label = text("rl_card_local_mood", "Local mood"), value = localMood(stressedCount, strainedOrWorseCount, #profiles)},
             {label = text("rl_card_discovery_source", "Discovery source"), value = discovery.sourceConfidence},
@@ -611,6 +635,8 @@ function UiModels.buildDebugSummary(state, options)
 
     local profiles, snapshots = stateParts(state)
     local discovery = (state or {}).mapDiscovery or {}
+    local diagnostics = discovery.diagnostics or {}
+    local notice = noDataNotice(state)
     local lines = {
         text("rl_debug_version", "Mod version: %s", Constants.VERSION),
         text("rl_debug_schema", "Schema version: %s", tostring((state or {}).schemaVersion or Constants.SAVE_SCHEMA_VERSION)),
@@ -623,10 +649,15 @@ function UiModels.buildDebugSummary(state, options)
         text("rl_debug_events", "Events: %d", #((state or {}).eventHistory or {})),
         text("rl_debug_discovery_source", "Discovery source: %s", sourceLabel(discovery.source)),
         text("rl_debug_discovery_confidence", "Discovery confidence: %s", confidenceLabel(discovery.confidence)),
+        text("rl_debug_discovery_trigger", "Discovery trigger: %s", tostring(discovery.trigger or diagnostics.trigger or "unknown")),
+        text("rl_debug_map_ready_attempted", "Map-ready discovery attempted: %s", boolText(discovery.mapReadyAttempted)),
         text("rl_debug_discovery_properties", "Discovered properties: %d", discovery.discoveredPropertyCount or 0),
         text("rl_debug_discovery_fields", "Discovered fields: %d", discovery.discoveredFieldCount or 0),
         text("rl_debug_discovery_farmlands", "Discovered farmlands: %d", discovery.discoveredFarmlandCount or 0),
         text("rl_debug_discovery_contracts", "Discovered contracts: %d", discovery.discoveredContractCount or 0),
+        text("rl_debug_manager_fields", "Field manager: %s, raw fields: %d", boolText(diagnostics.fieldManagerAvailable), diagnostics.rawFieldCount or 0),
+        text("rl_debug_manager_farmlands", "Farmland manager: %s, raw farmlands: %d", boolText(diagnostics.farmlandManagerAvailable), diagnostics.rawFarmlandCount or 0),
+        text("rl_debug_manager_missions", "Mission manager: %s, raw missions: %d", boolText(diagnostics.missionManagerAvailable), diagnostics.rawMissionCount or 0),
         text(
             "rl_debug_precision_farming",
             "Precision Farming: %s",
@@ -646,6 +677,7 @@ function UiModels.buildDebugSummary(state, options)
     return {
         title = text("rl_tab_settings_debug", "Settings / Debug"),
         debugVisible = options.includeExactFarmValues == true,
+        noDataNotice = notice,
         lines = lines,
     }
 end

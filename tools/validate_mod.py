@@ -33,6 +33,12 @@ REQUIRED_DOCS = (
 )
 REQUIRED_LOCALES = ("en", "de")
 REQUIRED_L10N_KEYS = ("input_PHOBOS_RURAL_LEDGER_MENU",)
+FORBIDDEN_GUI_PROFILE_NAMES = {
+    "button",
+    "buttonOK",
+    "buttonBack",
+    "buttonExtra1",
+}
 
 
 class Validation:
@@ -218,6 +224,25 @@ def validate_gui_l10n_references(
                 )
 
 
+def validate_gui_profiles(mod_root: Path, validation: Validation) -> None:
+    gui_root = mod_root / "gui"
+    if not gui_root.is_dir():
+        return
+
+    for path in sorted(gui_root.rglob("*.xml")):
+        tree = parse_xml_file(path, validation)
+        if tree is None:
+            continue
+
+        for node in tree.getroot().iter():
+            for attribute in ("profile", "extends"):
+                value = (node.get(attribute) or "").strip()
+                if value in FORBIDDEN_GUI_PROFILE_NAMES:
+                    validation.error(
+                        f"GUI uses profile path that produced runtime warnings in {path.relative_to(mod_root)}: {attribute}='{value}'"
+                    )
+
+
 def validate_xml_files(mod_root: Path, validation: Validation) -> None:
     xml_files = sorted(mod_root.rglob("*.xml"))
     if not xml_files:
@@ -238,6 +263,7 @@ def validate_source(repo_root: Path, mod_source: str, validation: Validation) ->
     validate_xml_files(mod_root, validation)
     validate_moddesc(mod_root, validation)
     validate_l10n(mod_root, validation)
+    validate_gui_profiles(mod_root, validation)
 
 
 def package_expected_entries(names: set[str], archive: zipfile.ZipFile, validation: Validation) -> set[str]:

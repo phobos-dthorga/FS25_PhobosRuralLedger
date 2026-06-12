@@ -29,7 +29,8 @@
         <GuiElement profile="rlTabContainer" id="overviewPanel">
             <Text profile="rlSectionTitle" id="overviewTitle" position="0px 0px"/>
             <Text profile="rlSubtleText" id="overviewSubtitle" position="0px -36px"/>
-            <Text profile="rlPanelHeading" position="0px -82px" text="$l10n_rl_overview_recent_notes"/>
+            <Text profile="rlNoDataNotice" id="overviewNoDataNotice" position="0px -78px" text="$l10n_rl_no_map_data_notice" visible="false"/>
+            <Text profile="rlPanelHeading" position="0px -146px" text="$l10n_rl_overview_recent_notes"/>
             <SmoothList profile="rlOverviewList" id="overviewList">
                 <ListItem profile="rlInfoListItem">
                     <Text profile="rlInfoListLabel" name="label"/>
@@ -46,17 +47,17 @@
             <Text profile="rlSubtleText" position="0px -36px" text="$l10n_rl_farmers_subtitle"/>
 
             <GuiElement profile="fs25_statisticsHeaderBox" position="0px -82px">
-                <Button profile="rlHeaderCell" id="farmHeaderFarm" position="20px 0px" size="260px 32px" text="$l10n_rl_col_farm" handleFocus="false"/>
-                <Button profile="rlHeaderCell" id="farmHeaderType" position="290px 0px" size="185px 32px" text="$l10n_rl_col_type" handleFocus="false"/>
-                <Button profile="rlHeaderCellCenter" id="farmHeaderFields" position="485px 0px" size="80px 32px" text="$l10n_rl_col_fields" handleFocus="false"/>
-                <Button profile="rlHeaderCellCenter" id="farmHeaderStress" position="575px 0px" size="150px 32px" text="$l10n_rl_col_stress" handleFocus="false"/>
-                <Button profile="rlHeaderCell" id="farmHeaderPressure" position="735px 0px" size="320px 32px" text="$l10n_rl_col_main_pressure" handleFocus="false"/>
-                <Button profile="rlHeaderCell" id="farmHeaderRelation" position="1065px 0px" size="200px 32px" text="$l10n_rl_col_source" handleFocus="false"/>
+                <Text profile="rlHeaderCell" id="farmHeaderFarm" position="20px 0px" size="260px 32px" text="$l10n_rl_col_farm"/>
+                <Text profile="rlHeaderCell" id="farmHeaderType" position="290px 0px" size="185px 32px" text="$l10n_rl_col_type"/>
+                <Text profile="rlHeaderCellCenter" id="farmHeaderFields" position="485px 0px" size="80px 32px" text="$l10n_rl_col_fields"/>
+                <Text profile="rlHeaderCellCenter" id="farmHeaderStress" position="575px 0px" size="150px 32px" text="$l10n_rl_col_stress"/>
+                <Text profile="rlHeaderCell" id="farmHeaderPressure" position="735px 0px" size="320px 32px" text="$l10n_rl_col_main_pressure"/>
+                <Text profile="rlHeaderCell" id="farmHeaderRelation" position="1065px 0px" size="200px 32px" text="$l10n_rl_col_source"/>
 
-                <Button profile="rlHeaderCell" id="farmHeaderFarmCompact" position="20px 0px" size="360px 32px" text="$l10n_rl_col_farm" handleFocus="false" visible="false"/>
-                <Button profile="rlHeaderCellCenter" id="farmHeaderFieldsCompact" position="390px 0px" size="80px 32px" text="$l10n_rl_col_fields" handleFocus="false" visible="false"/>
-                <Button profile="rlHeaderCellCenter" id="farmHeaderStressCompact" position="480px 0px" size="150px 32px" text="$l10n_rl_col_stress" handleFocus="false" visible="false"/>
-                <Button profile="rlHeaderCell" id="farmHeaderPressureCompact" position="640px 0px" size="470px 32px" text="$l10n_rl_col_main_pressure" handleFocus="false" visible="false"/>
+                <Text profile="rlHeaderCell" id="farmHeaderFarmCompact" position="20px 0px" size="360px 32px" text="$l10n_rl_col_farm" visible="false"/>
+                <Text profile="rlHeaderCellCenter" id="farmHeaderFieldsCompact" position="390px 0px" size="80px 32px" text="$l10n_rl_col_fields" visible="false"/>
+                <Text profile="rlHeaderCellCenter" id="farmHeaderStressCompact" position="480px 0px" size="150px 32px" text="$l10n_rl_col_stress" visible="false"/>
+                <Text profile="rlHeaderCell" id="farmHeaderPressureCompact" position="640px 0px" size="470px 32px" text="$l10n_rl_col_main_pressure" visible="false"/>
                 <ThreePartBitmap profile="fs25_lineSeparatorBottom" position="0px -2dp"/>
             </GuiElement>
 
@@ -102,7 +103,8 @@
             <Text profile="rlSubtleText" id="debugModeText" position="0px -36px"/>
             <Button profile="rlSmallButton" position="0px -84px" text="$l10n_rl_button_toggle_debug" onClick="onClickToggleDebug"/>
             <Button profile="rlSmallButton" position="335px -84px" text="$l10n_rl_button_refresh_display" onClick="onClickRefresh"/>
-            <Text profile="rlPanelHeading" position="0px -150px" text="$l10n_rl_debug_diagnostics"/>
+            <Text profile="rlNoDataNotice" id="debugNoDataNotice" position="0px -146px" text="$l10n_rl_no_map_data_notice" visible="false"/>
+            <Text profile="rlPanelHeading" position="0px -214px" text="$l10n_rl_debug_diagnostics"/>
             <SmoothList profile="rlDebugList" id="debugList">
                 <ListItem profile="rlTextListItem">
                     <Text profile="rlTextListLine" name="line"/>
@@ -115,10 +117,10 @@
     </GuiElement>
 
     <BoxLayout profile="fs25_buttonBox" id="buttonsPanel">
-        <Button profile="buttonExtra1" text="$l10n_rl_button_refresh" onClick="onClickRefresh" id="menuButton[1]">
+        <Button profile="rlFooterButton" text="$l10n_rl_button_refresh" onClick="onClickRefresh" id="menuButton[1]">
             <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
         </Button>
-        <Button profile="buttonBack" text="$l10n_rl_button_back" onClick="onClickBack" id="menuButton[2]">
+        <Button profile="rlFooterButton" text="$l10n_rl_button_back" onClick="onClickBack" id="menuButton[2]">
             <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
         </Button>
     </BoxLayout>
@@ -127,8 +129,17 @@
         <Profile name="rlTabBox" extends="fs25_subCategorySelectorTabbedBox">
             <position value="0px -10px"/>
         </Profile>
-        <Profile name="rlTabButton" extends="fs25_subCategorySelectorTabbedTab">
+        <Profile name="rlTabButton" extends="baseReference">
             <size value="245px 57px"/>
+            <imageColor value="0 0 0 0"/>
+            <imageFocusedColor value="$preset_fs25_colorMainHighlight"/>
+            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+            <textSize value="15px"/>
+            <textBold value="true"/>
+            <textUpperCase value="true"/>
+            <textColor value="$preset_fs25_colorMainLight"/>
+            <textSelectedColor value="$preset_fs25_colorMainDark"/>
+            <textFocusedColor value="$preset_fs25_colorMainDark"/>
             <textLayoutMode value="resize"/>
         </Profile>
         <Profile name="rlTabContainer" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
@@ -168,6 +179,13 @@
             <textColor value="0.86 0.88 0.9 1"/>
             <textLayoutMode value="scrolling"/>
         </Profile>
+        <Profile name="rlNoDataNotice" extends="fs25_textDefault" with="anchorTopLeft">
+            <size value="1250px 58px"/>
+            <textSize value="24px"/>
+            <textBold value="true"/>
+            <textColor value="1 0.78 0.18 1"/>
+            <textLayoutMode value="scrolling"/>
+        </Profile>
         <Profile name="rlHeaderCell" extends="baseReference">
             <imageColor value="0 0 0 0"/>
             <textFocusedColor value="$preset_fs25_colorMainHighlight"/>
@@ -183,12 +201,12 @@
             <textAlignment value="center"/>
         </Profile>
         <Profile name="rlOverviewList" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
-            <position value="0px -122px"/>
-            <absoluteSizeOffset value="0px 180px"/>
+            <position value="0px -186px"/>
+            <absoluteSizeOffset value="0px 245px"/>
         </Profile>
         <Profile name="rlOverviewSliderBox" extends="fs25_listSliderBox" with="anchorTopStretchingX pivotTopRight">
-            <position value="28px -122px"/>
-            <absoluteSizeOffset value="0px 180px"/>
+            <position value="28px -186px"/>
+            <absoluteSizeOffset value="0px 245px"/>
         </Profile>
         <Profile name="rlFarmList" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
             <position value="0px -124px"/>
@@ -207,12 +225,12 @@
             <absoluteSizeOffset value="0px 285px"/>
         </Profile>
         <Profile name="rlDebugList" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
-            <position value="0px -190px"/>
-            <absoluteSizeOffset value="0px 215px"/>
+            <position value="0px -254px"/>
+            <absoluteSizeOffset value="0px 280px"/>
         </Profile>
         <Profile name="rlDebugSliderBox" extends="fs25_listSliderBox" with="anchorTopStretchingX pivotTopRight">
-            <position value="28px -190px"/>
-            <absoluteSizeOffset value="0px 215px"/>
+            <position value="28px -254px"/>
+            <absoluteSizeOffset value="0px 280px"/>
         </Profile>
         <Profile name="rlInfoListItem" extends="baseReference" with="anchorTopStretchingX alternating">
             <height value="44px"/>
@@ -267,8 +285,29 @@
             <textSelectedColor value="$preset_fs25_colorMainDark"/>
             <textLayoutMode value="scrolling"/>
         </Profile>
-        <Profile name="rlSmallButton" extends="buttonOK" with="anchorTopLeft">
+        <Profile name="rlSmallButton" extends="baseReference" with="anchorTopLeft">
             <size value="310px 45px"/>
+            <imageColor value="$preset_fs25_colorGreyDark_50"/>
+            <imageFocusedColor value="$preset_fs25_colorMainHighlight"/>
+            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+            <textColor value="$preset_fs25_colorMainLight"/>
+            <textFocusedColor value="$preset_fs25_colorMainDark"/>
+            <textSelectedColor value="$preset_fs25_colorMainDark"/>
+            <textBold value="true"/>
+            <textUpperCase value="true"/>
+            <textSize value="14px"/>
+            <textLayoutMode value="resize"/>
+        </Profile>
+        <Profile name="rlFooterButton" extends="baseReference">
+            <size value="210px 45px"/>
+            <imageColor value="0 0 0 0"/>
+            <imageFocusedColor value="$preset_fs25_colorMainHighlight"/>
+            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
+            <textColor value="$preset_fs25_colorMainLight"/>
+            <textFocusedColor value="$preset_fs25_colorMainDark"/>
+            <textSelectedColor value="$preset_fs25_colorMainDark"/>
+            <textBold value="true"/>
+            <textUpperCase value="true"/>
             <textSize value="14px"/>
             <textLayoutMode value="resize"/>
         </Profile>

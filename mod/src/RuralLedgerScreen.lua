@@ -132,6 +132,10 @@ end
 
 function RuralLedgerScreen:onOpen()
     RuralLedgerScreen:superClass().onOpen(self)
+    if PhobosRuralLedger.tryMapReadyDiscovery ~= nil then
+        PhobosRuralLedger.tryMapReadyDiscovery("screenOpenRetry")
+    end
+
     self:refreshModels()
     self:updateDisplay()
     logInfo("%s", i18n("rl_log_screen_opened", "Rural Ledger screen opened."))
@@ -190,7 +194,7 @@ end
 
 function RuralLedgerScreen:onClickRefresh()
     if PhobosRuralLedger.refreshMapBackedState ~= nil then
-        PhobosRuralLedger.refreshMapBackedState()
+        PhobosRuralLedger.refreshMapBackedState({trigger = "manualRefresh", mapReadyAttempted = true})
     end
 
     self:refreshModels()
@@ -328,6 +332,7 @@ end
 
 function RuralLedgerScreen:updateOverview()
     local model = self.cachedOverview or {}
+    local notice = model.noDataNotice or {}
 
     setText(self.overviewTitle, model.title or i18n("rl_ui_title", "Phobos' Rural Ledger"))
     setText(self.overviewSubtitle, i18n(
@@ -336,6 +341,8 @@ function RuralLedgerScreen:updateOverview()
         tostring(model.period or "-"),
         tostring(model.regionalPreset or "-")
     ))
+    setText(self.overviewNoDataNotice, notice.text or "")
+    setVisible(self.overviewNoDataNotice, notice.visible == true)
 end
 
 function RuralLedgerScreen:updateFarmDetail()
@@ -356,6 +363,7 @@ end
 
 function RuralLedgerScreen:updateDebug()
     local debugModel = self.cachedDebug or {}
+    local notice = debugModel.noDataNotice or {}
 
     setText(self.debugTitle, debugModel.title or i18n("rl_tab_settings_debug", "Settings / Debug"))
     setText(
@@ -363,6 +371,8 @@ function RuralLedgerScreen:updateDebug()
         self.debugVisible and i18n("rl_debug_exact_visible", "Exact debug values visible")
             or i18n("rl_debug_exact_hidden", "Exact debug values hidden")
     )
+    setText(self.debugNoDataNotice, notice.text or "")
+    setVisible(self.debugNoDataNotice, notice.visible == true)
 end
 
 function RuralLedgerScreen:reloadVisibleLists()

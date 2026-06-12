@@ -17,13 +17,40 @@ local function copyArray(values)
     return result
 end
 
+local function emptyMapDiscovery(options)
+    options = options or {}
+
+    if MapDiscovery ~= nil and MapDiscovery.empty ~= nil then
+        return MapDiscovery.empty({
+            trigger = options.discoveryTrigger or ((options.discoveryOptions or {}).trigger) or "bootstrap",
+            mapReadyAttempted = options.mapReadyAttempted == true,
+        })
+    end
+
+    return {
+        source = "none",
+        confidence = "unavailable",
+        trigger = options.discoveryTrigger or "bootstrap",
+        mapReadyAttempted = options.mapReadyAttempted == true,
+        properties = {},
+        fields = {},
+        missions = {},
+        discoveredPropertyCount = 0,
+        discoveredFieldCount = 0,
+        discoveredFarmlandCount = 0,
+        discoveredContractCount = 0,
+    }
+end
+
 function Persistence.createInitialState(options)
     options = options or {}
 
     local seed = options.seed or Constants.DEFAULT_SEED
     local periodId = options.periodId or Constants.DEFAULT_PERIOD_ID
     local mapDiscovery = options.mapDiscovery
-    if mapDiscovery == nil and MapDiscovery ~= nil and MapDiscovery.discover ~= nil then
+    if mapDiscovery == nil and options.skipMapDiscovery == true then
+        mapDiscovery = emptyMapDiscovery(options)
+    elseif mapDiscovery == nil and MapDiscovery ~= nil and MapDiscovery.discover ~= nil then
         mapDiscovery = MapDiscovery.discover(options.discoveryOptions)
     end
 
@@ -97,7 +124,9 @@ function Persistence.importState(data, options)
 
     local migrated = Persistence.migrateState(data)
     local mapDiscovery = options.mapDiscovery or migrated.mapDiscovery
-    if mapDiscovery == nil and MapDiscovery ~= nil and MapDiscovery.discover ~= nil then
+    if mapDiscovery == nil and options.skipMapDiscovery == true then
+        mapDiscovery = emptyMapDiscovery(options)
+    elseif mapDiscovery == nil and MapDiscovery ~= nil and MapDiscovery.discover ~= nil then
         mapDiscovery = MapDiscovery.discover(options.discoveryOptions)
     end
 

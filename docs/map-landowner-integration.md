@@ -70,6 +70,23 @@ It does not mutate land, contracts, save data, ownership, or economy state.
 Exact Precision Farming pH/nitrogen values are intentionally not faked and
 remain pending until a safe API is verified.
 
+The first runtime test of `v0.1.5.0` showed why discovery must be tied to the
+map lifecycle instead of plain Lua bootstrap. At bootstrap, the relevant
+managers can exist but still expose zero usable fields/farmlands, producing a
+misleading permanent `No map source` screen. `v0.1.5.1` changes the lifecycle:
+
+- bootstrap builds fallback profiles with `mapReadyAttempted = false`;
+- `loadMap` performs one bounded map-ready discovery pass;
+- first screen open retries once only if discovery is still empty;
+- manual Refresh performs one explicit rediscovery pass;
+- Overview and Settings / Debug show a prominent localized no-data notice when
+  a map-ready attempt still finds no usable fields.
+
+The BetterContracts reference was useful for owner identity. Its pattern shows
+that an NPC owner can be resolved from `farmland.npcIndex` through
+`g_npcManager:getNPCByIndex(...)`. Rural Ledger now uses the same style of
+nil-safe lookup, without copying third-party code.
+
 Candidate discovery output:
 
 ```lua
@@ -153,7 +170,9 @@ Exact finance remains hidden unless debug mode or relationship rules allow it.
 5. Add optional Precision Farming reads behind guarded integration checks.
    Availability is guarded in `v0.1.5.0`; exact pH/nitrogen values are still
    pending.
-6. Only after the read-only path is stable, consider land, auction, and contract
+6. Harden map lifecycle timing, no-data visibility, and NPC owner lookup.
+   Implemented provisionally in `v0.1.5.1`.
+7. Only after the read-only path is stable, consider land, auction, and contract
    hooks.
 
 ## Performance Boundary

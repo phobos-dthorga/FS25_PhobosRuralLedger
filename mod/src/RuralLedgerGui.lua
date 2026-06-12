@@ -150,6 +150,9 @@ end
 
 function RuralLedgerGui:loadMap()
     self:loadScreen()
+    if PhobosRuralLedger.tryMapReadyDiscovery ~= nil then
+        PhobosRuralLedger.tryMapReadyDiscovery("mapLoad")
+    end
 end
 
 local function addPlayerActionEvents(playerInputComponent, superFunc, ...)

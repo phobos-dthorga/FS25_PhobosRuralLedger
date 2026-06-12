@@ -23,8 +23,13 @@ Implemented:
   report, and input-binding text;
 - guarded GUI access through a keybinding and settings-menu entry point;
 - versioned persistence import/export shape;
-- bootstrap initialization of an in-memory Rural Ledger state.
-- manual refresh of the read-only map-backed state and display models.
+- bootstrap initialization of an in-memory Rural Ledger fallback state without
+  treating early empty map managers as final discovery;
+- one bounded map-ready discovery pass after map load;
+- one bounded screen-open retry when discovery is still empty;
+- manual refresh of the read-only map-backed state and display models;
+- prominent localized no-data notices when a map-ready discovery attempt still
+  finds no usable field data.
 
 ## Runtime Evidence
 
@@ -66,6 +71,22 @@ condition context in the V1 UI models, and keeps fallback profiles only when no
 runtime map data is usable. Exact Precision Farming pH/nitrogen values remain
 pending until a safe read API is proven; this slice records availability only.
 
+Runtime testing of `v0.1.5.0` found a lifecycle timing failure: bootstrap ran
+map discovery before `g_fieldManager` / `g_farmlandManager` had usable map
+data, so the screen showed `No map source` even after the map was loaded. The
+same test exposed repeated GUI profile warnings for the unresolved `button`
+profile path.
+
+`v0.1.5.1` is the hotfix for that evidence. Bootstrap now creates a clearly
+non-map-ready fallback state, discovery runs once after map load, the first
+Rural Ledger screen open retries once if discovery is still empty, and manual
+Refresh remains a single bounded rediscovery pass. The discovery diagnostics
+now include manager availability, raw field/farmland/mission counts, and the
+trigger that produced the current snapshot. The BetterContracts reference also
+confirmed the useful NPC-owner pattern of resolving `farmland.npcIndex` through
+`g_npcManager:getNPCByIndex(...)`; Rural Ledger now mirrors that idea without
+copying third-party code.
+
 ## Persistence Boundary
 
 `Persistence.lua` currently owns table-shaped save state:
@@ -91,12 +112,14 @@ added.
 
 Recommended next code step:
 
-1. Runtime-test the `v0.1.5.0` map discovery slice on a disposable save with
-   `FS25_PhobosLib` installed, and optionally with `FS25_precisionFarming`.
-2. Confirm the log shows one bounded map-discovery info line and no
-   Phobos-owned errors or warnings.
+1. Runtime-test the `v0.1.5.1` discovery hotfix on the same disposable save
+   with `FS25_PhobosLib` installed, and optionally with `FS25_precisionFarming`.
+2. Confirm the log shows bounded discovery lines for `bootstrap`, `mapLoad`,
+   `screenOpenRetry` only if needed, and `manualRefresh` only when pressed, with
+   no Phobos-owned errors or warnings.
 3. Verify Overview, Farmers, Farm Detail, and Settings / Debug show map source,
-   field IDs, crop mix, field condition, and discovery confidence.
+   field IDs, crop mix, field condition, discovery confidence, and no-data
+   notice behavior when managers genuinely remain empty.
 4. Research exact Precision Farming pH/nitrogen read paths only after the
    vanilla map discovery runtime pass is clean.
 5. Add the first cause-carrying neighbour opportunity from strained or worse
