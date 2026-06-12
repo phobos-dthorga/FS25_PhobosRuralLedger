@@ -5,12 +5,13 @@ local Constants = PhobosRuralLedger.Constants
 
 Constants.MOD_NAME = "FS25_PhobosRuralLedger"
 Constants.DISPLAY_NAME = "Phobos' Rural Ledger"
-Constants.VERSION = "0.1.1.0"
+Constants.VERSION = "0.1.2.0"
 Constants.SAVE_SCHEMA_VERSION = 1
 Constants.DEFAULT_SEED = "phobos-rural-ledger"
 Constants.DEFAULT_PROFILE_COUNT = 8
 Constants.DEFAULT_PERIOD_ID = "season_0001"
 Constants.DEFAULT_REGIONAL_PRESET = "temperate_mixed"
+Constants.DEFAULT_LOG_REPORT_FARM_LINES = 4
 
 Constants.STRESS_STATES = {
     STABLE = "stable",

@@ -10,6 +10,7 @@ Implemented:
 - deterministic ledger snapshot calculation;
 - stress score and stress state assignment;
 - read-only local economy report lines;
+- bounded log-debug access to the generated economy report;
 - versioned persistence import/export shape;
 - bootstrap initialization of an in-memory Rural Ledger state.
 
@@ -18,6 +19,13 @@ Implemented:
 `v0.1.0.0` was published as the first prerelease and installed with
 `FS25_PhobosLib`. The refreshed FS25 log showed both mods loading and no
 Phobos-owned errors or warnings.
+
+`v0.1.1.0` was installed and loaded successfully after adding deterministic
+ledger calculations. The broader log contained unrelated errors from other
+mods, but no Phobos-owned errors or warnings.
+
+`v0.1.2.0` adds bounded log-debug visibility for the generated report. It still
+needs the same disposable-save runtime log check before the next feature slice.
 
 ## Persistence Boundary
 
@@ -42,8 +50,7 @@ added.
 
 Recommended next code step:
 
-1. Add a simple verified report/debug access path for the generated economy
-   report.
+1. Runtime-test the `v0.1.2.0` log-debug report output.
 2. Add the first cause-carrying neighbour opportunity from strained or worse
    farms.
 3. Research and wire FS25 save/load lifecycle hooks only after the read-only

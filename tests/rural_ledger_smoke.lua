@@ -16,6 +16,18 @@ local Ledgers = PhobosRuralLedger.Ledgers
 local Persistence = PhobosRuralLedger.Persistence
 local Reports = PhobosRuralLedger.Reports
 local Simulation = PhobosRuralLedger.Simulation
+local capturedLogs = {}
+
+PhobosFS25 = {
+    Logging = {
+        infoSource = function(source, message, ...)
+            capturedLogs[#capturedLogs + 1] = {
+                source = source,
+                text = string.format(message, ...),
+            }
+        end,
+    },
+}
 
 local function assertEquals(expected, actual, message)
     if expected ~= actual then
@@ -67,6 +79,41 @@ assertEquals(
 local report = Reports.buildEconomyReport(stateA, {maxLines = 3})
 assertEquals(4, #report, "report should include a header and requested farm lines")
 assertTrue(string.find(report[1], "Local economy report") ~= nil, "report should include a local economy header")
+
+source("mod/src/PhobosRuralLedger.lua")
+
+assertEquals(
+    Constants.DEFAULT_LOG_REPORT_FARM_LINES + 1,
+    #capturedLogs,
+    "bootstrap report logging should include one header plus the default farm line count"
+)
+assertEquals("PhobosRuralLedger", capturedLogs[1].source, "bootstrap log lines should use the Rural Ledger source")
+assertTrue(
+    string.find(capturedLogs[1].text, "Local economy report") ~= nil,
+    "bootstrap log should include the report header"
+)
+
+local publicReportA = PhobosRuralLedger.getEconomyReport({maxLines = 2})
+local publicReportB = PhobosRuralLedger.getEconomyReport({maxLines = 2})
+assertEquals(3, #publicReportA, "public economy report should include one header plus requested farm lines")
+assertEquals(publicReportA[1], publicReportB[1], "public economy report should be deterministic")
+publicReportA[1] = "mutated"
+assertTrue(publicReportB[1] ~= "mutated", "public report access should not return shared mutable report lines")
+
+local profileSummary = PhobosRuralLedger.getProfileSummary()
+assertEquals(
+    Constants.DEFAULT_PROFILE_COUNT,
+    #profileSummary,
+    "public profile summary should include one line per generated profile"
+)
+
+capturedLogs = {}
+local logOptions = {maxLines = 2}
+local loggedReport = PhobosRuralLedger.logEconomyReport(logOptions)
+assertEquals(3, #loggedReport, "explicit report logging should respect maxLines")
+assertEquals(3, #capturedLogs, "explicit report logging should write the bounded number of lines")
+assertEquals(2, logOptions.maxLines, "report logging should not mutate caller options")
+assertEquals("PhobosRuralLedger", capturedLogs[1].source, "explicit report logging should use fake PhobosLib logger")
 
 local stable = Ledgers.calculateSnapshot(profile({
     farmId = "stable",
