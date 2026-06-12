@@ -22,6 +22,17 @@ any FS25 economy or UI API assumptions are locked in.
   news rather than raw accounting screens only.
 - Keep optional integrations guarded so standalone installs remain stable.
 
+## Design Promise
+
+Phobos' Rural Ledger should make the countryside feel accounted for. Every NPC
+farm should have enough hidden financial state to explain why it expands,
+struggles, rents land, sells land, requests contract help, joins local co-ops,
+or competes with the player.
+
+The mod should stay broad and playable rather than becoming accounting
+homework. Real farm-finance categories are used to create pressure, opportunity,
+and readable consequences.
+
 ## Repository Layout
 
 - `mod/` - Farming Simulator mod source files.
@@ -68,10 +79,17 @@ python tools/package_set.py --validate --write-sha256 --write-json
 
 Start with:
 
+- `docs/README.md`
 - `docs/design-brief.md`
+- `docs/feature-matrix.md`
+- `docs/mvp-scope.md`
 - `docs/roadmap.md`
 - `docs/architecture.md`
 - `docs/simulation-model.md`
+- `docs/event-causality.md`
+- `docs/player-facing-ux.md`
+- `docs/integration-strategy.md`
+- `docs/naming-and-tone.md`
 - `docs/research-questions.md`
 - `docs/visual-assets.md`
 

@@ -10,6 +10,21 @@ The believable first model needs only five ledgers per NPC:
 - fixed costs: land rent, interest, depreciation, wages, maintenance;
 - risk buffer: insurance, savings, crop diversity, storage, access to credit.
 
+## Inputs
+
+The first model can stay coarse. Each farm needs enough data to produce
+believable pressure:
+
+- fields controlled by the farm;
+- enterprise mix, such as grain, dairy, livestock, contracting, or mixed;
+- rough crop mix and expected yield quality;
+- operating style, such as conservative, expansionist, contractor, or
+  specialist;
+- debt level and interest sensitivity;
+- storage capacity and selling patience;
+- machinery age or maintenance burden;
+- regional preset and current market pressure.
+
 ## Seasonal Profit Sketch
 
 ```text
@@ -32,6 +47,30 @@ season_profit =
 ```
 
 The math can stay simple while the outcomes feel complex.
+
+## Stress Score
+
+The ledger should produce a single stress score that downstream systems can use
+without reading every accounting field.
+
+Suggested inputs:
+
+- negative operating cash;
+- debt service above seasonal cash buffer;
+- low crop diversity;
+- weak storage;
+- repeated bad gross margins;
+- recent disaster or disease event;
+- poor machinery condition;
+- high land rent or interest pressure.
+
+Suggested outputs:
+
+- `stable`: no player-facing pressure;
+- `watch`: report-only warning;
+- `strained`: discounted or urgent contract opportunities;
+- `distressed`: lease, sale, auction, or debt-reduction behavior;
+- `insolvent`: bankruptcy or receiver-style event when supported.
 
 ## Cause Before Consequence
 
@@ -72,3 +111,21 @@ Potential profile archetypes:
 - absentee landowner: leases land out and rarely farms directly;
 - regenerative farmer: accepts lower short-term yield for soil bonuses,
   conservation payments, or lower input costs.
+
+## Decision Style
+
+Every farm should have a bias, but not a script. The conservative farmer can
+still expand after several good seasons. The expansionist can still sell land
+when interest pressure becomes painful. The goal is personality-shaped
+probability, not fixed destiny.
+
+## Event Pipeline
+
+1. Update regional indicators.
+2. Update each farm's ledger.
+3. Calculate farm stress and opportunity scores.
+4. Select a small number of eligible player-facing events.
+5. Attach a readable cause to each event.
+6. Save event history and cooldowns.
+
+This keeps the simulation explainable and limits noisy output.

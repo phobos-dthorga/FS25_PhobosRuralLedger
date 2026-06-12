@@ -16,6 +16,24 @@ Planned layers:
 - player-facing reports and UI adapters;
 - optional integration adapters.
 
+## Candidate Module Map
+
+Early Lua modules should stay small and boring:
+
+- `Constants`: mod IDs, save keys, stress states, event types, and tuning keys.
+- `Profiles`: profile archetypes and generated NPC farm identity.
+- `Ledgers`: current ledger state and ledger snapshots.
+- `Simulation`: seasonal/monthly profit, stress, and market indicator updates.
+- `Events`: opportunity selection, reasons, cooldowns, and event history.
+- `Reports`: read-only formatting for local news, dashboards, and annual
+  summaries.
+- `Persistence`: save/load and schema migration.
+- `Integrations`: optional runtime-gated links to other mods.
+- `Main`: bootstrap and module load order.
+
+Avoid a large all-knowing manager module. If a module needs both UI formatting
+and state mutation, split it.
+
 ## Business Logic Separation
 
 UI and report files should present data and delegate actions. They should not
@@ -45,6 +63,16 @@ Recommended state groups:
 - active pressure flags;
 - generated land/contract/reputation opportunities;
 - cooldowns and event history.
+
+## Save Versioning
+
+Every saved root should include a schema version. Migrations should be explicit
+and idempotent:
+
+- missing optional values get defaults;
+- removed values are ignored;
+- renamed values migrate once and keep a compatibility note;
+- invalid generated state can be rebuilt only when it is safe and documented.
 
 ## Shared Library Boundary
 

@@ -18,6 +18,31 @@ for the decisions they make.
 The mod should become the backbone of a living local farm economy where land
 ownership, contracts, leases, prices, auctions, and relationships are connected.
 
+## Plausible FS25 Shape
+
+Treat Rural Ledger as a scripted PC-first mod unless a feature can be kept fully
+data/placeable based. Console release is not a near-term design target because
+scripted economy and UI behavior would need GIANTS and ModHub validation.
+
+The initial implementation should avoid deep hooks until the relevant FS25 APIs
+are verified. The design can still be ambitious, but early code should be
+modest, testable, and reversible.
+
+## What It Is
+
+- A shadow economy model for NPC farms.
+- A source of contextual contracts, reports, land pressure, and neighbour
+  opportunities.
+- A way to make field ownership and local production feel connected.
+- A design base for future Phobos FS25 cross-mod tie-ins.
+
+## What It Is Not
+
+- A full real-world accounting simulator.
+- A promise that NPCs physically drive every operation.
+- A random event pack with unexplained penalties.
+- A replacement for FS25's core economy until specific API paths are proven.
+
 ## NPC Farm Profile Axes
 
 - Farmer identity: small family farm, large contractor, dairy operator, grain
@@ -57,6 +82,14 @@ than when it is just another anonymous field job.
 A local market board is the third strong feature. It can show regional
 indicators such as grain oversupply, hay shortage, milk margin, diesel price,
 fertiliser index, bank lending mood, land demand, and NPC stress.
+
+## Player Fantasy
+
+The player should feel like they are farming inside a local economy rather than
+beside static field owners. A good session might include reading a bank note
+about tightening credit, accepting an urgent harvest job from a stressed
+neighbour, noticing that hay demand is high, and deciding whether to save cash
+for a possible land auction.
 
 ## Design North Star
 

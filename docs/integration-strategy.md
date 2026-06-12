@@ -14,6 +14,8 @@ Potential future tie-ins:
 
 - `FS25_BgaExtensions`: local substrate demand, dry fuel logistics, production
   supply pressure, and contractor work.
+- future Phobos production mods: local input shortages, oversupply, contract
+  work, and regional demand reports.
 - `FS25_PhobosLib`: shared logging, active-mod detection, save helpers, and
   guarded compatibility utilities.
 
@@ -29,6 +31,22 @@ Possible future integration categories:
 
 Do not reference provider-owned fill types, placeables, or APIs until their
 provider is declared or detected as required by the integration design.
+
+## Production Chain Economy
+
+The reference design calls out production-chain pressure as a major later
+feature. In practice, this should start as abstract demand signals, not direct
+rewrites of every production point.
+
+Examples:
+
+- a local BGA raises demand for silage, slurry, manure, or substrate hauling;
+- a mill shortage creates grain hauling or grain sale opportunities;
+- a dairy-heavy map raises hay, silage, straw, and feed pressure;
+- a sawmill or biomass route increases woodchip and transport demand.
+
+Implementation should prefer additive reports and opportunities first. Direct
+price or production changes should wait until the FS25 API path is verified.
 
 ## Data Pack Direction
 

@@ -1,6 +1,14 @@
 # Roadmap
 
-## Version 1: Shadow Ledgers
+## Phase 0: Research And Skeleton
+
+- Keep the repo packageable and CI-validated.
+- Verify FS25 save/load, mission, farmland, contract, and UI API paths.
+- Decide the first persistence format before storing any real save data.
+- Keep all gameplay-affecting logic out of UI code.
+- Add static checks as soon as the first data files appear.
+
+## Version 1: Shadow Ledgers And Reports
 
 Do not try to make NPCs physically perform every operation at first.
 
@@ -11,6 +19,19 @@ Do not try to make NPCs physically perform every operation at first.
 - Trigger contracts, land leases, and land sales from financial condition.
 - Add an economy dashboard or report.
 
+Version 1 should be useful even if it only reports pressure and creates limited
+opportunities. The success test is whether the player understands why nearby
+farms are doing well or struggling.
+
+## Version 1.1: Contextual Opportunities
+
+- Add templated local news items.
+- Add urgent work requests from stressed farms.
+- Add soft market-board indicators such as land demand, input pressure, and
+  commodity pressure.
+- Add cooldowns so the same farm does not spam the same event.
+- Add player-readable reasons to every generated opportunity.
+
 ## Version 2: Debt And Market Pressure
 
 - Loans, interest, and debt servicing.
@@ -18,6 +39,7 @@ Do not try to make NPCs physically perform every operation at first.
 - Crop-choice changes.
 - Storage and delayed selling.
 - Neighbour reputation.
+- More direct pressure on contract rewards and land availability.
 
 ## Version 3: Regional Systems
 
@@ -32,6 +54,7 @@ Do not try to make NPCs physically perform every operation at first.
 - Full accounting-grade balance sheets.
 - Deep legal/business ownership structures.
 - AI-driven narrative generation beyond templated local reports.
+- Complex inheritance, succession law, and family ownership modeling.
 
 These are not rejected ideas. They are deferred until the core simulation proves
 it can create good gameplay without overwhelming the player or the save.
