@@ -13,8 +13,10 @@ Implemented:
 - bounded log-debug access to the generated economy report;
 - read-only UI model builders for Overview, Farmers, Farm Detail, and
   Settings / Debug;
-- first native FS25 screen controller and XML layout for the V1 Rural Ledger
-  screen;
+- native FS25 screen controller and responsive list-backed XML layout for the
+  V1 Rural Ledger screen;
+- English and German translation files for player-facing Rural Ledger UI,
+  report, and input-binding text;
 - guarded GUI access through a keybinding and settings-menu entry point;
 - versioned persistence import/export shape;
 - bootstrap initialization of an in-memory Rural Ledger state.
@@ -32,10 +34,16 @@ mods, but no Phobos-owned errors or warnings.
 `v0.1.2.0` adds bounded log-debug visibility for the generated report. It still
 needs the same disposable-save runtime log check before the next feature slice.
 
-`v0.1.3.0` adds the first native read-only screen UI. Static validation can
-prove the Lua, XML, package, and UI model behavior, but the actual FS25 screen
-open path still requires a disposable-save runtime pass before it can be called
-proven in game.
+`v0.1.3.0` added the first native read-only screen UI and the packaged mod
+opened in game, but the runtime screenshot showed fixed-position UI elements
+bleeding off the left side of a 3440x1440 display. The log also contained the
+Phobos-owned warning `Missing l10n 'input_PHOBOS_RURAL_LEDGER_MENU'`.
+
+`v0.1.4.0` is the repair slice for that runtime evidence. It replaces the
+fixed 1520px screen shell with FS25-style menu containers, `SmoothList` backed
+tables, stretching list profiles, compact farm-list columns, and English/German
+translation files. Runtime proof is still required after packaging, but static
+validation now blocks missing Rural Ledger l10n keys and hardcoded GUI text.
 
 ## Persistence Boundary
 
@@ -60,9 +68,10 @@ added.
 
 Recommended next code step:
 
-1. Runtime-test the `v0.1.3.0` screen open path with `FS25_PhobosLib` installed.
+1. Runtime-test the `v0.1.4.0` responsive screen with `FS25_PhobosLib`
+   installed.
 2. Confirm the keybinding, settings entry, tab switching, farm selection,
-   refresh, and debug toggle in `log.txt`.
+   refresh, debug toggle, and German/English l10n behavior in `log.txt`.
 3. Add the first cause-carrying neighbour opportunity from strained or worse
    farms.
 4. Research and wire FS25 save/load lifecycle hooks only after the read-only

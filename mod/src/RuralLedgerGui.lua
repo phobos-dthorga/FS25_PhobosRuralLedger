@@ -22,14 +22,8 @@ local function logWarn(message, ...)
 end
 
 local function text(key, fallback)
-    if g_i18n ~= nil and g_i18n.getText ~= nil then
-        local ok, value = pcall(function()
-            return g_i18n:getText(key)
-        end)
-
-        if ok and value ~= nil and value ~= "" and value ~= key then
-            return value
-        end
+    if PhobosRuralLedger.I18n ~= nil and PhobosRuralLedger.I18n.get ~= nil then
+        return PhobosRuralLedger.I18n.get(key, fallback)
     end
 
     return fallback
@@ -96,7 +90,7 @@ function RuralLedgerGui:addSettingsEntry(frame)
     if headerTemplate ~= nil then
         local header = headerTemplate:clone()
         header:applyProfile("fs25_settingsSectionHeader", true)
-        header:setText(Constants.DISPLAY_NAME)
+        header:setText(text("rl_ui_title", Constants.DISPLAY_NAME))
         header.focusChangeData = {}
 
         if FocusManager ~= nil and FocusManager.serveAutoFocusId ~= nil then
@@ -112,8 +106,8 @@ function RuralLedgerGui:addSettingsEntry(frame)
     option.target = RuralLedgerGui
     option.onClickCallback = RuralLedgerGui.onSettingsOpenClicked
     option.buttonLRChange = RuralLedgerGui.onSettingsOpenClicked
-    option.texts[1] = text("ui_open", "Open")
-    option.texts[2] = text("ui_open", "Open")
+    option.texts[1] = text("input_PHOBOS_RURAL_LEDGER_MENU", "Open Rural Ledger")
+    option.texts[2] = text("input_PHOBOS_RURAL_LEDGER_MENU", "Open Rural Ledger")
 
     frame.phobosRuralLedgerOpenButton = option
 
@@ -121,7 +115,7 @@ function RuralLedgerGui:addSettingsEntry(frame)
         local optionTitle = settingsTemplate.elements[2]:clone()
         optionTitle.id = "phobosRuralLedgerOpenTitle"
         optionTitle:applyProfile("fs25_settingsMultiTextOptionTitle", true)
-        optionTitle:setText("Rural Ledger")
+        optionTitle:setText(text("rl_ui_title", Constants.DISPLAY_NAME))
 
         local optionContainer = settingsTemplate:clone()
         optionContainer.id = "phobosRuralLedgerOpenContainer"
@@ -184,7 +178,7 @@ local function addPlayerActionEvents(playerInputComponent, superFunc, ...)
     end
 
     if eventId ~= nil and g_inputBinding.setActionEventText ~= nil then
-        g_inputBinding:setActionEventText(eventId, Constants.DISPLAY_NAME)
+        g_inputBinding:setActionEventText(eventId, text("input_PHOBOS_RURAL_LEDGER_MENU", Constants.DISPLAY_NAME))
     end
 end
 

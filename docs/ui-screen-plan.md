@@ -359,8 +359,14 @@ per-frame paths.
 
 ## Version 1 Implementation Note
 
-`v0.1.3.0` implements the first pass through steps 1-4: read-only UI models,
+`v0.1.3.0` implemented the first pass through steps 1-4: read-only UI models,
 report consumption of those models, and a native Rural Ledger screen with
-Overview, Farmers, Farm Detail, and Settings / Debug. It remains a runtime
-candidate until the packaged mod is opened in a disposable FS25 save and the
-log is checked for Phobos-owned errors or warnings.
+Overview, Farmers, Farm Detail, and Settings / Debug.
+
+`v0.1.4.0` repairs the first runtime UI findings. The screen should use
+FS25-native menu containers, `SmoothList` tables, sliders, stretching profiles,
+and `$l10n_...` labels instead of a fixed 1520px absolute-position canvas.
+Farmers is list-backed, farm detail/debug output is list-backed, and compact
+farm-table columns hide lower-priority Type/Relationship fields on narrower
+containers. The reusable GUI-loading pattern remains a future `FS25_PhobosLib`
+candidate only after more than one Phobos FS25 mod needs it.

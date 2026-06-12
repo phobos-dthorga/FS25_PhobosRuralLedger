@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+    <texts>
+        <text name="input_PHOBOS_RURAL_LEDGER_MENU" text="Open Rural Ledger"/>
+        <text name="rl_ui_title" text="Phobos' Rural Ledger"/>
+        <text name="rl_tab_overview" text="Overview"/>
+        <text name="rl_tab_farmers" text="Farmers"/>
+        <text name="rl_tab_farm_detail" text="Farm Detail"/>
+        <text name="rl_tab_settings_debug" text="Settings / Debug"/>
+        <text name="rl_button_refresh" text="Refresh"/>
+        <text name="rl_button_back" text="Back"/>
+        <text name="rl_button_toggle_debug" text="Toggle exact debug values"/>
+        <text name="rl_button_refresh_display" text="Refresh display data"/>
+
+        <text name="rl_overview_recent_notes" text="Recent economy notes"/>
+        <text name="rl_overview_empty_alert" text="No public pressure alerts this period."/>
+        <text name="rl_overview_period" text="Period %s / %s"/>
+        <text name="rl_card_local_mood" text="Local mood"/>
+        <text name="rl_card_tracked_farms" text="Tracked farms"/>
+        <text name="rl_card_farms_watching" text="Farms watching"/>
+        <text name="rl_card_strained_or_worse" text="Strained or worse"/>
+        <text name="rl_card_main_pressure" text="Main pressure"/>
+        <text name="rl_card_active_requests" text="Active requests"/>
+
+        <text name="rl_farmers_title" text="Tracked Farmers"/>
+        <text name="rl_farmers_subtitle" text="Sorted by visible pressure, highest first."/>
+        <text name="rl_col_farm" text="Farm"/>
+        <text name="rl_col_type" text="Type"/>
+        <text name="rl_col_fields" text="Fields"/>
+        <text name="rl_col_stress" text="Stress"/>
+        <text name="rl_col_main_pressure" text="Main pressure"/>
+        <text name="rl_col_relationship" text="Relationship"/>
+
+        <text name="rl_detail_public_heading" text="Public farm detail"/>
+        <text name="rl_detail_no_farm_title" text="No farm selected"/>
+        <text name="rl_detail_no_farm_headline" text="No farm selected."/>
+        <text name="rl_detail_no_farm_cause" text="No tracked farm is available."/>
+        <text name="rl_detail_no_farm_meaning" text="No public action is available."/>
+        <text name="rl_detail_primary_pressure" text="Primary pressure: %s"/>
+        <text name="rl_detail_headline" text="%s is %s."/>
+        <text name="rl_detail_player_meaning" text="Public opportunities are not active in this slice."/>
+        <text name="rl_detail_support_debt" text="Debt pressure is %s"/>
+        <text name="rl_detail_support_risk" text="Risk buffer is %s"/>
+        <text name="rl_detail_line_profile" text="Profile: %s"/>
+        <text name="rl_detail_line_fields" text="Fields controlled: %d"/>
+        <text name="rl_detail_line_cash" text="Cash position: %s"/>
+        <text name="rl_detail_line_debt" text="Debt pressure: %s"/>
+        <text name="rl_detail_line_margin" text="Margin trend: %s"/>
+        <text name="rl_detail_line_risk" text="Risk buffer: %s"/>
+        <text name="rl_detail_line_storage" text="Storage pressure: %s"/>
+        <text name="rl_detail_line_machinery" text="Machinery position: %s"/>
+        <text name="rl_detail_line_relationship" text="Relationship: %s"/>
+        <text name="rl_detail_line_debug_cash" text="Debug cash: %s"/>
+        <text name="rl_detail_line_debug_debt" text="Debug debt: %s"/>
+        <text name="rl_detail_line_debug_stress" text="Debug stress score: %d"/>
+
+        <text name="rl_debug_diagnostics" text="Diagnostics"/>
+        <text name="rl_debug_exact_visible" text="Exact debug values visible"/>
+        <text name="rl_debug_exact_hidden" text="Exact debug values hidden"/>
+        <text name="rl_debug_version" text="Mod version: %s"/>
+        <text name="rl_debug_schema" text="Schema version: %s"/>
+        <text name="rl_debug_seed" text="Seed: %s"/>
+        <text name="rl_debug_period" text="Period: %s"/>
+        <text name="rl_debug_regional" text="Regional preset: %s"/>
+        <text name="rl_debug_profiles" text="Profiles: %d"/>
+        <text name="rl_debug_snapshots" text="Ledger snapshots: %d"/>
+        <text name="rl_debug_opportunities" text="Opportunities: %d"/>
+        <text name="rl_debug_events" text="Events: %d"/>
+        <text name="rl_debug_save_hooks" text="Save/load hooks: not wired in this slice"/>
+        <text name="rl_debug_first_cash" text="First farm cash: %s"/>
+        <text name="rl_debug_first_debt" text="First farm debt: %s"/>
+        <text name="rl_debug_first_stress" text="First farm stress score: %d"/>
+
+        <text name="rl_report_profile_summary" text="%s: %s, %d fields, %s stress, %s"/>
+        <text name="rl_report_header" text="Local economy report: %d farms tracked, %d showing watch or worse."/>
+        <text name="rl_report_row" text="%s is %s: %s margin, %s cash, %s."/>
+        <text name="rl_overview_alert_row" text="%s: %s, %s"/>
+        <text name="rl_farm_last_note" text="%s / %s"/>
+
+        <text name="rl_pressure_none" text="No dominant pressure"/>
+        <text name="rl_pressure_negative_cash" text="Cash is tight"/>
+        <text name="rl_pressure_weak_margin" text="Season margin is weak"/>
+        <text name="rl_pressure_debt_service" text="Debt service is heavy"/>
+        <text name="rl_pressure_storage_shortage" text="Storage limits selling options"/>
+        <text name="rl_pressure_machinery_cost" text="Machinery costs are high"/>
+        <text name="rl_pressure_low_diversity" text="Income is not diversified"/>
+        <text name="rl_pressure_mixed" text="Mixed pressure"/>
+
+        <text name="rl_stress_stable" text="Stable"/>
+        <text name="rl_stress_watch" text="Watch"/>
+        <text name="rl_stress_strained" text="Strained"/>
+        <text name="rl_stress_distressed" text="Distressed"/>
+        <text name="rl_stress_insolvent" text="Insolvent"/>
+        <text name="rl_stress_unknown" text="Unknown"/>
+
+        <text name="rl_relationship_unknown" text="Unknown"/>
+        <text name="rl_relationship_distant" text="Distant"/>
+        <text name="rl_relationship_neutral" text="Neutral"/>
+        <text name="rl_relationship_helpful" text="Helpful"/>
+        <text name="rl_relationship_trusted" text="Trusted"/>
+
+        <text name="rl_band_unknown" text="Unknown"/>
+        <text name="rl_cash_negative" text="Negative"/>
+        <text name="rl_cash_tight" text="Tight"/>
+        <text name="rl_cash_adequate" text="Adequate"/>
+        <text name="rl_cash_strong" text="Strong"/>
+        <text name="rl_debt_very_heavy" text="Very heavy"/>
+        <text name="rl_debt_heavy" text="Heavy"/>
+        <text name="rl_debt_moderate" text="Moderate"/>
+        <text name="rl_debt_light" text="Light"/>
+        <text name="rl_margin_losing" text="Losing money"/>
+        <text name="rl_margin_thin" text="Thin"/>
+        <text name="rl_margin_workable" text="Workable"/>
+        <text name="rl_margin_healthy" text="Healthy"/>
+        <text name="rl_risk_low" text="Low"/>
+        <text name="rl_risk_moderate" text="Moderate"/>
+        <text name="rl_risk_good" text="Good"/>
+        <text name="rl_storage_severe" text="Severe limits"/>
+        <text name="rl_storage_limited" text="Limited"/>
+        <text name="rl_storage_adequate" text="Adequate"/>
+        <text name="rl_storage_flexible" text="Flexible"/>
+        <text name="rl_machinery_fragile" text="Fragile"/>
+        <text name="rl_machinery_stretched" text="Stretched"/>
+        <text name="rl_machinery_adequate" text="Adequate"/>
+        <text name="rl_machinery_strong" text="Strong"/>
+        <text name="rl_tracked" text="Tracked"/>
+
+        <text name="rl_mood_no_farms" text="No tracked farms"/>
+        <text name="rl_mood_under_pressure" text="Under pressure"/>
+        <text name="rl_mood_cautious" text="Cautious"/>
+        <text name="rl_mood_mixed_watchful" text="Mixed but watchful"/>
+        <text name="rl_mood_steady" text="Steady"/>
+        <text name="rl_no_public_request" text="No public request"/>
+
+        <text name="rl_profile_family_farm" text="Small Family Farm"/>
+        <text name="rl_profile_contractor" text="Contractor"/>
+        <text name="rl_profile_dairy_operator" text="Dairy Operator"/>
+        <text name="rl_profile_grain_grower" text="Grain Grower"/>
+        <text name="rl_profile_struggling_beginner" text="Struggling Beginner"/>
+        <text name="rl_profile_wealthy_landholder" text="Wealthy Landholder"/>
+        <text name="rl_profile_livestock_specialist" text="Livestock Specialist"/>
+        <text name="rl_profile_regenerative_farmer" text="Regenerative Farmer"/>
+        <text name="rl_profile_unknown" text="Unknown Profile"/>
+
+        <text name="rl_log_screen_opened" text="Rural Ledger screen opened."/>
+        <text name="rl_log_display_refreshed" text="Rural Ledger display models refreshed."/>
+        <text name="rl_log_debug_visibility" text="Rural Ledger debug visibility is %s."/>
+        <text name="rl_log_debug_enabled" text="enabled"/>
+        <text name="rl_log_debug_disabled" text="disabled"/>
+    </texts>
+</l10n>

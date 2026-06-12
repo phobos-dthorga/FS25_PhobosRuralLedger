@@ -31,6 +31,8 @@ REQUIRED_DOCS = (
     "docs/measurement-and-automation.md",
     "docs/known-log-lines.md",
 )
+REQUIRED_LOCALES = ("en", "de")
+REQUIRED_L10N_KEYS = ("input_PHOBOS_RURAL_LEDGER_MENU",)
 
 
 class Validation:
@@ -62,6 +64,27 @@ def parse_xml_file(path: Path, validation: Validation) -> ET.ElementTree | None:
     except ET.ParseError as exc:
         validation.error(f"XML parse failed: {path}: {exc}")
     return None
+
+
+def l10n_files_from_prefix(mod_root: Path, prefix: str) -> dict[str, Path]:
+    return {
+        locale: mod_root / f"{prefix}_{locale}.xml"
+        for locale in REQUIRED_LOCALES
+    }
+
+
+def read_l10n_keys(path: Path, validation: Validation) -> set[str]:
+    tree = parse_xml_file(path, validation)
+    if tree is None:
+        return set()
+
+    keys: set[str] = set()
+    for node in tree.getroot().findall("./texts/text"):
+        name = (node.get("name") or "").strip()
+        if name:
+            keys.add(name)
+
+    return keys
 
 
 def validate_required_docs(repo_root: Path, validation: Validation) -> None:
@@ -100,6 +123,14 @@ def validate_moddesc(mod_root: Path, validation: Validation) -> None:
     if icon_filename and not (mod_root / icon_filename).is_file():
         validation.warn(f"modDesc.xml references missing iconFilename: {icon_filename}")
 
+    l10n_node = root.find("l10n")
+    if l10n_node is None:
+        validation.error("modDesc.xml must declare <l10n filenamePrefix=\"translations/translation\"/>")
+    else:
+        filename_prefix = (l10n_node.get("filenamePrefix") or "").strip()
+        if filename_prefix != "translations/translation":
+            validation.error(f"Unexpected l10n filenamePrefix: '{filename_prefix}'")
+
     dependencies = {
         (node.text or "").strip()
         for node in root.findall("./dependencies/dependency")
@@ -112,6 +143,79 @@ def validate_moddesc(mod_root: Path, validation: Validation) -> None:
         filename = node.get("filename", "").strip()
         if filename and not (mod_root / filename).is_file():
             validation.error(f"modDesc.xml references missing sourceFile: {filename}")
+
+
+def validate_l10n(mod_root: Path, validation: Validation) -> None:
+    moddesc_path = mod_root / "modDesc.xml"
+    tree = parse_xml_file(moddesc_path, validation)
+    if tree is None:
+        return
+
+    l10n_node = tree.getroot().find("l10n")
+    if l10n_node is None:
+        return
+
+    filename_prefix = (l10n_node.get("filenamePrefix") or "").strip()
+    if not filename_prefix:
+        validation.error("modDesc.xml l10n node must define filenamePrefix")
+        return
+
+    locale_files = l10n_files_from_prefix(mod_root, filename_prefix)
+    keys_by_locale: dict[str, set[str]] = {}
+    for locale, path in locale_files.items():
+        if not path.is_file():
+            validation.error(f"Missing required {locale} translation file: {path.relative_to(mod_root)}")
+            keys_by_locale[locale] = set()
+            continue
+        keys_by_locale[locale] = read_l10n_keys(path, validation)
+
+    english_keys = keys_by_locale.get("en", set())
+    german_keys = keys_by_locale.get("de", set())
+    for key in REQUIRED_L10N_KEYS:
+        if key not in english_keys:
+            validation.error(f"English translation is missing required key: {key}")
+        if key not in german_keys:
+            validation.error(f"German translation is missing required key: {key}")
+
+    for key in sorted(english_keys - german_keys):
+        validation.error(f"German translation is missing key present in English: {key}")
+    for key in sorted(german_keys - english_keys):
+        validation.error(f"English translation is missing key present in German: {key}")
+
+    validate_gui_l10n_references(mod_root, keys_by_locale, validation)
+
+
+def validate_gui_l10n_references(
+    mod_root: Path,
+    keys_by_locale: dict[str, set[str]],
+    validation: Validation,
+) -> None:
+    gui_root = mod_root / "gui"
+    if not gui_root.is_dir():
+        return
+
+    all_keys = set.intersection(*keys_by_locale.values()) if keys_by_locale else set()
+    for path in sorted(gui_root.rglob("*.xml")):
+        tree = parse_xml_file(path, validation)
+        if tree is None:
+            continue
+
+        for node in tree.getroot().iter():
+            text_value = (node.get("text") or "").strip()
+            if not text_value:
+                continue
+
+            if not text_value.startswith("$l10n_"):
+                validation.error(
+                    f"GUI text must use l10n key in {path.relative_to(mod_root)}: '{text_value}'"
+                )
+                continue
+
+            key = text_value[len("$l10n_"):]
+            if key not in all_keys:
+                validation.error(
+                    f"GUI l10n key is not present in all required locales in {path.relative_to(mod_root)}: {key}"
+                )
 
 
 def validate_xml_files(mod_root: Path, validation: Validation) -> None:
@@ -133,6 +237,7 @@ def validate_source(repo_root: Path, mod_source: str, validation: Validation) ->
     validate_required_docs(repo_root, validation)
     validate_xml_files(mod_root, validation)
     validate_moddesc(mod_root, validation)
+    validate_l10n(mod_root, validation)
 
 
 def package_expected_entries(names: set[str], archive: zipfile.ZipFile, validation: Validation) -> set[str]:
@@ -154,6 +259,12 @@ def package_expected_entries(names: set[str], archive: zipfile.ZipFile, validati
         filename = node.get("filename", "").strip()
         if filename:
             expected.add(filename.replace("\\", "/"))
+
+    l10n_node = root.find("l10n")
+    if l10n_node is not None:
+        filename_prefix = (l10n_node.get("filenamePrefix") or "").strip()
+        for locale in REQUIRED_LOCALES:
+            expected.add(f"{filename_prefix}_{locale}.xml".replace("\\", "/"))
 
     return expected
 

@@ -5,6 +5,7 @@ local function source(path)
 end
 
 source("mod/src/Constants.lua")
+source("mod/src/I18n.lua")
 source("mod/src/Profiles.lua")
 source("mod/src/Ledgers.lua")
 source("mod/src/Simulation.lua")
@@ -13,6 +14,7 @@ source("mod/src/Reports.lua")
 source("mod/src/Persistence.lua")
 
 local Constants = PhobosRuralLedger.Constants
+local I18n = PhobosRuralLedger.I18n
 local Ledgers = PhobosRuralLedger.Ledgers
 local Persistence = PhobosRuralLedger.Persistence
 local Reports = PhobosRuralLedger.Reports
@@ -42,6 +44,24 @@ local function assertTrue(condition, message)
         error(message, 2)
     end
 end
+
+assertEquals("Fallback 7", I18n.get("missing_key", "Fallback %d", 7), "i18n helper should format fallback text")
+
+g_i18n = {
+    getText = function(_, key)
+        if key == "rl_ui_title" then
+            return "Test Ledger"
+        elseif key == "rl_stress_stable" then
+            return "Stabil"
+        end
+
+        return key
+    end,
+}
+
+assertEquals("Test Ledger", I18n.get("rl_ui_title", "Fallback"), "i18n helper should read runtime translations")
+assertEquals("Stabil", UiModels.getStressLabel(Constants.STRESS_STATES.STABLE), "UI models should use runtime translations")
+g_i18n = nil
 
 local function profile(overrides)
     local result = {
@@ -122,6 +142,148 @@ assertTrue(sawDebugCash, "debug farm detail should expose exact debug values onl
 
 local debugSummary = UiModels.buildDebugSummary(stateA, {includeExactFarmValues = true})
 assertTrue(#debugSummary.lines >= 10, "debug summary should expose bounded diagnostics")
+
+local function makeElement()
+    return {
+        text = "",
+        visible = true,
+        setText = function(self, value)
+            self.text = value
+        end,
+        setVisible = function(self, value)
+            self.visible = value
+        end,
+        setSelected = function(self, value)
+            self.selected = value
+        end,
+    }
+end
+
+local function makeList()
+    return {
+        reloads = 0,
+        setDataSource = function(self, value)
+            self.dataSource = value
+        end,
+        setDelegate = function(self, value)
+            self.delegate = value
+        end,
+        reloadData = function(self)
+            self.reloads = self.reloads + 1
+        end,
+    }
+end
+
+local function makeCell(names)
+    local attributes = {}
+    for _, name in ipairs(names) do
+        attributes[name] = makeElement()
+    end
+
+    return {
+        attributes = attributes,
+        getAttribute = function(self, name)
+            return self.attributes[name]
+        end,
+    }
+end
+
+ScreenElement = {
+    new = function(target, customMt)
+        local self = target or {}
+        if customMt ~= nil then
+            setmetatable(self, customMt)
+        end
+
+        return self
+    end,
+    onGuiSetupFinished = function() end,
+    onOpen = function() end,
+}
+
+function Class(classObject, superClass)
+    classObject.superClass = function()
+        return superClass
+    end
+
+    return {
+        __index = classObject,
+    }
+end
+
+source("mod/src/RuralLedgerScreen.lua")
+
+local screen = PhobosRuralLedger.RuralLedgerScreen.new()
+screen.screenContainer = {absSize = {1300}}
+screen.farmersPanel = {absSize = {1300}}
+screen.overviewPanel = makeElement()
+screen.farmersPanel.setVisible = makeElement().setVisible
+screen.detailPanel = makeElement()
+screen.debugPanel = makeElement()
+screen.overviewTab = makeElement()
+screen.farmersTab = makeElement()
+screen.detailTab = makeElement()
+screen.debugTab = makeElement()
+screen.farmHeaderFarm = makeElement()
+screen.farmHeaderType = makeElement()
+screen.farmHeaderFields = makeElement()
+screen.farmHeaderStress = makeElement()
+screen.farmHeaderPressure = makeElement()
+screen.farmHeaderRelation = makeElement()
+screen.farmHeaderFarmCompact = makeElement()
+screen.farmHeaderFieldsCompact = makeElement()
+screen.farmHeaderStressCompact = makeElement()
+screen.farmHeaderPressureCompact = makeElement()
+screen.overviewTitle = makeElement()
+screen.overviewSubtitle = makeElement()
+screen.detailTitle = makeElement()
+screen.detailSubtitle = makeElement()
+screen.detailHeadline = makeElement()
+screen.detailCause = makeElement()
+screen.detailMeaning = makeElement()
+screen.debugTitle = makeElement()
+screen.debugModeText = makeElement()
+screen.overviewList = makeList()
+screen.farmTable = makeList()
+screen.detailList = makeList()
+screen.debugList = makeList()
+
+function PhobosRuralLedger.getState()
+    return stateA
+end
+
+screen:onGuiSetupFinished()
+assertTrue(screen.farmTable.dataSource == screen, "farm table should use the screen as data source")
+assertEquals(#farmRowsA, screen:getNumberOfItemsInSection(screen.farmTable, 1), "farm table item count should match cached rows")
+
+local farmCell = makeCell({
+    "farmName",
+    "farmType",
+    "farmFields",
+    "farmStress",
+    "farmPressure",
+    "farmRelation",
+    "farmNameCompact",
+    "farmFieldsCompact",
+    "farmStressCompact",
+    "farmPressureCompact",
+})
+screen:populateCellForItemInSection(screen.farmTable, 1, 1, farmCell)
+assertTrue(farmCell.attributes.farmName.visible, "standard layout should show standard farm column")
+assertTrue(not farmCell.attributes.farmNameCompact.visible, "standard layout should hide compact farm column")
+
+screen.screenContainer.absSize = {900}
+screen.farmersPanel.absSize = {900}
+screen:adaptLayout()
+screen:populateCellForItemInSection(screen.farmTable, 1, 1, farmCell)
+assertTrue(not farmCell.attributes.farmType.visible, "compact layout should hide lower-priority type column")
+assertTrue(not farmCell.attributes.farmRelation.visible, "compact layout should hide lower-priority relationship column")
+assertTrue(farmCell.attributes.farmNameCompact.visible, "compact layout should show compact farm column")
+
+screen.isReloading = false
+screen:onListSelectionChanged(screen.farmTable, 1, 2)
+assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "farm selection should update selected farm")
+assertEquals(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.DETAIL, screen.activeSection, "farm selection should switch to detail")
 
 source("mod/src/PhobosRuralLedger.lua")
 

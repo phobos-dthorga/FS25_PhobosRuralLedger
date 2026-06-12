@@ -3,14 +3,31 @@ PhobosRuralLedger.Reports = PhobosRuralLedger.Reports or {}
 
 local Reports = PhobosRuralLedger.Reports
 local Constants = PhobosRuralLedger.Constants
+local I18n = PhobosRuralLedger.I18n
 local UiModels = PhobosRuralLedger.UiModels
+
+local function text(key, fallback, ...)
+    if I18n ~= nil and I18n.get ~= nil then
+        return I18n.get(key, fallback, ...)
+    end
+
+    if select("#", ...) > 0 then
+        local ok, value = pcall(string.format, fallback or key, ...)
+        if ok then
+            return value
+        end
+    end
+
+    return fallback or key
+end
 
 function Reports.buildProfileSummary(state)
     local lines = {}
     local rows = UiModels.buildFarmList(state)
 
     for index, row in ipairs(rows) do
-        lines[index] = string.format(
+        lines[index] = text(
+            "rl_report_profile_summary",
             "%s: %s, %d fields, %s stress, %s",
             row.displayName,
             row.profileLabel,
@@ -31,7 +48,8 @@ function Reports.buildEconomyReport(state, options)
     local rows = UiModels.buildFarmList(state)
     local maxLines = options.maxLines or #rows
 
-    lines[#lines + 1] = string.format(
+    lines[#lines + 1] = text(
+        "rl_report_header",
         "Local economy report: %d farms tracked, %d showing watch or worse.",
         overview.trackedFarms,
         overview.stressedFarms
@@ -42,7 +60,8 @@ function Reports.buildEconomyReport(state, options)
             break
         end
 
-        lines[#lines + 1] = string.format(
+        lines[#lines + 1] = text(
+            "rl_report_row",
             "%s is %s: %s margin, %s cash, %s.",
             row.displayName,
             string.lower(row.stressLabel),

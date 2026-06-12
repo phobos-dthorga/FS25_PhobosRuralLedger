@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<l10n>
+    <texts>
+        <text name="input_PHOBOS_RURAL_LEDGER_MENU" text="Rural Ledger öffnen"/>
+        <text name="rl_ui_title" text="Phobos' Rural Ledger"/>
+        <text name="rl_tab_overview" text="Übersicht"/>
+        <text name="rl_tab_farmers" text="Landwirte"/>
+        <text name="rl_tab_farm_detail" text="Hofdetails"/>
+        <text name="rl_tab_settings_debug" text="Einstellungen / Debug"/>
+        <text name="rl_button_refresh" text="Aktualisieren"/>
+        <text name="rl_button_back" text="Zurück"/>
+        <text name="rl_button_toggle_debug" text="Exakte Debugwerte umschalten"/>
+        <text name="rl_button_refresh_display" text="Anzeigedaten aktualisieren"/>
+
+        <text name="rl_overview_recent_notes" text="Aktuelle Wirtschaftshinweise"/>
+        <text name="rl_overview_empty_alert" text="In diesem Zeitraum gibt es keine öffentlichen Druckmeldungen."/>
+        <text name="rl_overview_period" text="Zeitraum %s / %s"/>
+        <text name="rl_card_local_mood" text="Lokale Lage"/>
+        <text name="rl_card_tracked_farms" text="Erfasste Höfe"/>
+        <text name="rl_card_farms_watching" text="Höfe unter Beobachtung"/>
+        <text name="rl_card_strained_or_worse" text="Angespannt oder schlimmer"/>
+        <text name="rl_card_main_pressure" text="Hauptdruck"/>
+        <text name="rl_card_active_requests" text="Aktive Anfragen"/>
+
+        <text name="rl_farmers_title" text="Erfasste Landwirte"/>
+        <text name="rl_farmers_subtitle" text="Nach sichtbarem Druck sortiert, höchster zuerst."/>
+        <text name="rl_col_farm" text="Hof"/>
+        <text name="rl_col_type" text="Typ"/>
+        <text name="rl_col_fields" text="Felder"/>
+        <text name="rl_col_stress" text="Stress"/>
+        <text name="rl_col_main_pressure" text="Hauptdruck"/>
+        <text name="rl_col_relationship" text="Beziehung"/>
+
+        <text name="rl_detail_public_heading" text="Öffentliche Hofdetails"/>
+        <text name="rl_detail_no_farm_title" text="Kein Hof ausgewählt"/>
+        <text name="rl_detail_no_farm_headline" text="Kein Hof ausgewählt."/>
+        <text name="rl_detail_no_farm_cause" text="Es ist kein erfasster Hof verfügbar."/>
+        <text name="rl_detail_no_farm_meaning" text="Es ist keine öffentliche Aktion verfügbar."/>
+        <text name="rl_detail_primary_pressure" text="Hauptdruck: %s"/>
+        <text name="rl_detail_headline" text="%s ist %s."/>
+        <text name="rl_detail_player_meaning" text="Öffentliche Aufträge sind in diesem Abschnitt noch nicht aktiv."/>
+        <text name="rl_detail_support_debt" text="Schuldendruck ist %s"/>
+        <text name="rl_detail_support_risk" text="Risikopuffer ist %s"/>
+        <text name="rl_detail_line_profile" text="Profil: %s"/>
+        <text name="rl_detail_line_fields" text="Kontrollierte Felder: %d"/>
+        <text name="rl_detail_line_cash" text="Liquidität: %s"/>
+        <text name="rl_detail_line_debt" text="Schuldendruck: %s"/>
+        <text name="rl_detail_line_margin" text="Margentrend: %s"/>
+        <text name="rl_detail_line_risk" text="Risikopuffer: %s"/>
+        <text name="rl_detail_line_storage" text="Lagerdruck: %s"/>
+        <text name="rl_detail_line_machinery" text="Maschinenlage: %s"/>
+        <text name="rl_detail_line_relationship" text="Beziehung: %s"/>
+        <text name="rl_detail_line_debug_cash" text="Debug-Liquidität: %s"/>
+        <text name="rl_detail_line_debug_debt" text="Debug-Schulden: %s"/>
+        <text name="rl_detail_line_debug_stress" text="Debug-Stresswert: %d"/>
+
+        <text name="rl_debug_diagnostics" text="Diagnose"/>
+        <text name="rl_debug_exact_visible" text="Exakte Debugwerte sichtbar"/>
+        <text name="rl_debug_exact_hidden" text="Exakte Debugwerte verborgen"/>
+        <text name="rl_debug_version" text="Mod-Version: %s"/>
+        <text name="rl_debug_schema" text="Schema-Version: %s"/>
+        <text name="rl_debug_seed" text="Seed: %s"/>
+        <text name="rl_debug_period" text="Zeitraum: %s"/>
+        <text name="rl_debug_regional" text="Regionales Profil: %s"/>
+        <text name="rl_debug_profiles" text="Profile: %d"/>
+        <text name="rl_debug_snapshots" text="Kontostände: %d"/>
+        <text name="rl_debug_opportunities" text="Gelegenheiten: %d"/>
+        <text name="rl_debug_events" text="Ereignisse: %d"/>
+        <text name="rl_debug_save_hooks" text="Speicher-/Lade-Hooks: in diesem Abschnitt nicht verbunden"/>
+        <text name="rl_debug_first_cash" text="Erste Hof-Liquidität: %s"/>
+        <text name="rl_debug_first_debt" text="Erste Hof-Schulden: %s"/>
+        <text name="rl_debug_first_stress" text="Erster Hof-Stresswert: %d"/>
+
+        <text name="rl_report_profile_summary" text="%s: %s, %d Felder, Stress %s, %s"/>
+        <text name="rl_report_header" text="Lokaler Wirtschaftsbericht: %d Höfe erfasst, %d auf Beobachtung oder schlechter."/>
+        <text name="rl_report_row" text="%s ist %s: Marge %s, Liquidität %s, %s."/>
+        <text name="rl_overview_alert_row" text="%s: %s, %s"/>
+        <text name="rl_farm_last_note" text="%s / %s"/>
+
+        <text name="rl_pressure_none" text="Kein dominanter Druck"/>
+        <text name="rl_pressure_negative_cash" text="Liquidität ist knapp"/>
+        <text name="rl_pressure_weak_margin" text="Saisonmarge ist schwach"/>
+        <text name="rl_pressure_debt_service" text="Schuldendienst ist hoch"/>
+        <text name="rl_pressure_storage_shortage" text="Lager begrenzt Verkaufsoptionen"/>
+        <text name="rl_pressure_machinery_cost" text="Maschinenkosten sind hoch"/>
+        <text name="rl_pressure_low_diversity" text="Einkommen ist wenig diversifiziert"/>
+        <text name="rl_pressure_mixed" text="Gemischter Druck"/>
+
+        <text name="rl_stress_stable" text="Stabil"/>
+        <text name="rl_stress_watch" text="Beobachtung"/>
+        <text name="rl_stress_strained" text="Angespannt"/>
+        <text name="rl_stress_distressed" text="Gefährdet"/>
+        <text name="rl_stress_insolvent" text="Insolvent"/>
+        <text name="rl_stress_unknown" text="Unbekannt"/>
+
+        <text name="rl_relationship_unknown" text="Unbekannt"/>
+        <text name="rl_relationship_distant" text="Distanziert"/>
+        <text name="rl_relationship_neutral" text="Neutral"/>
+        <text name="rl_relationship_helpful" text="Hilfsbereit"/>
+        <text name="rl_relationship_trusted" text="Vertraut"/>
+
+        <text name="rl_band_unknown" text="Unbekannt"/>
+        <text name="rl_cash_negative" text="Negativ"/>
+        <text name="rl_cash_tight" text="Knapp"/>
+        <text name="rl_cash_adequate" text="Ausreichend"/>
+        <text name="rl_cash_strong" text="Stark"/>
+        <text name="rl_debt_very_heavy" text="Sehr hoch"/>
+        <text name="rl_debt_heavy" text="Hoch"/>
+        <text name="rl_debt_moderate" text="Mäßig"/>
+        <text name="rl_debt_light" text="Gering"/>
+        <text name="rl_margin_losing" text="Verlustreich"/>
+        <text name="rl_margin_thin" text="Dünn"/>
+        <text name="rl_margin_workable" text="Tragfähig"/>
+        <text name="rl_margin_healthy" text="Gesund"/>
+        <text name="rl_risk_low" text="Niedrig"/>
+        <text name="rl_risk_moderate" text="Mäßig"/>
+        <text name="rl_risk_good" text="Gut"/>
+        <text name="rl_storage_severe" text="Stark begrenzt"/>
+        <text name="rl_storage_limited" text="Begrenzt"/>
+        <text name="rl_storage_adequate" text="Ausreichend"/>
+        <text name="rl_storage_flexible" text="Flexibel"/>
+        <text name="rl_machinery_fragile" text="Fragil"/>
+        <text name="rl_machinery_stretched" text="Überlastet"/>
+        <text name="rl_machinery_adequate" text="Ausreichend"/>
+        <text name="rl_machinery_strong" text="Stark"/>
+        <text name="rl_tracked" text="Erfasst"/>
+
+        <text name="rl_mood_no_farms" text="Keine erfassten Höfe"/>
+        <text name="rl_mood_under_pressure" text="Unter Druck"/>
+        <text name="rl_mood_cautious" text="Vorsichtig"/>
+        <text name="rl_mood_mixed_watchful" text="Gemischt, aber wachsam"/>
+        <text name="rl_mood_steady" text="Stabil"/>
+        <text name="rl_no_public_request" text="Keine öffentliche Anfrage"/>
+
+        <text name="rl_profile_family_farm" text="Kleiner Familienhof"/>
+        <text name="rl_profile_contractor" text="Lohnunternehmer"/>
+        <text name="rl_profile_dairy_operator" text="Milchviehbetrieb"/>
+        <text name="rl_profile_grain_grower" text="Getreidebauer"/>
+        <text name="rl_profile_struggling_beginner" text="Anfänger unter Druck"/>
+        <text name="rl_profile_wealthy_landholder" text="Vermögender Landbesitzer"/>
+        <text name="rl_profile_livestock_specialist" text="Viehspezialist"/>
+        <text name="rl_profile_regenerative_farmer" text="Regenerativer Landwirt"/>
+        <text name="rl_profile_unknown" text="Unbekanntes Profil"/>
+
+        <text name="rl_log_screen_opened" text="Rural-Ledger-Bildschirm geöffnet."/>
+        <text name="rl_log_display_refreshed" text="Rural-Ledger-Anzeigemodelle aktualisiert."/>
+        <text name="rl_log_debug_visibility" text="Rural-Ledger-Debugsichtbarkeit ist %s."/>
+        <text name="rl_log_debug_enabled" text="aktiviert"/>
+        <text name="rl_log_debug_disabled" text="deaktiviert"/>
+    </texts>
+</l10n>

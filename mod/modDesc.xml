@@ -1,17 +1,21 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <modDesc descVersion="107" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://validation.gdn.giants-software.com/xml/fs25/modDesc.xsd">
     <author>phobosgekko</author>
-    <version>0.1.3.0</version>
+    <version>0.1.4.0</version>
     <title>
         <en>Phobos' Rural Ledger</en>
+        <de>Phobos' Ländliches Hauptbuch</de>
     </title>
     <description>
         <en>Early staging mod for a living local farm economy in Farming Simulator 25. NPC farms receive hidden ledgers, profiles, debt pressure, land pressure, and player-facing economy reports as development progresses.</en>
+        <de>Frühe Testversion für eine lebendige lokale Landwirtschaftswirtschaft in Farming Simulator 25. NPC-Höfe erhalten im weiteren Verlauf versteckte Konten, Profile, Schuldendruck, Flächendruck und spielernahe Wirtschaftsberichte.</de>
     </description>
     <iconFilename>icon.dds</iconFilename>
+    <l10n filenamePrefix="translations/translation"/>
 
     <extraSourceFiles>
         <sourceFile filename="src/Constants.lua"/>
+        <sourceFile filename="src/I18n.lua"/>
         <sourceFile filename="src/Profiles.lua"/>
         <sourceFile filename="src/Ledgers.lua"/>
         <sourceFile filename="src/Simulation.lua"/>
