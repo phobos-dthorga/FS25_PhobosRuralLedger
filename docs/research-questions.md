@@ -5,13 +5,18 @@ Document uncertainties here before implementing API-sensitive features.
 ## FS25 Economy And Land APIs
 
 - How can a mod inspect field ownership and land ownership safely?
+- How can a mod enumerate existing map landowners/farms and correlate them with
+  farmland IDs and field IDs?
 - Can land sale availability and price be changed by script?
 - Can a mod add contextual annotations to contracts?
+- How can a mod correlate active or completed contracts with landowner,
+  farmland, and field IDs?
 - Can a mod create or alter contracts without breaking multiplayer?
 - What is the safe server-authoritative path for economy state changes?
 - Can the mod observe mission completion and reward data without replacing
   core mission logic?
 - Can the mod attach additional metadata to farms, farmlands, or contracts?
+- Which IDs remain stable across save reloads, map restarts, and map variants?
 
 ## Save And Multiplayer
 
@@ -39,15 +44,22 @@ Document uncertainties here before implementing API-sensitive features.
 
 - Which game systems expose current crop prices and price history?
 - Can a mod read field crop state, growth stage, and harvest readiness safely?
+- Can a mod read soil-composition flags such as weeds, needs ploughing, needs
+  rolling, stones, mulched, and watered state safely?
+- When the official Precision Farming mod is installed, can Rural Ledger read
+  pH, nitrogen, environmental score, and sample freshness without taking a hard
+  dependency?
 - Can storage ownership and capacity be inspected for NPC-like profiles?
 - Are NPC farms represented strongly enough in vanilla data to map ledgers onto
-  them, or does Rural Ledger need its own generated farm registry?
+  them, and what fallback is acceptable when a map has fields but no useful
+  owner identity?
 
 ## Local References Needed
 
 - FS25 Community LUADOC.
 - Proven FS25 mod examples for save/load and GUI.
 - Local game data paths for field, farmland, contracts, and economy systems.
+- Official Precision Farming integration references or proven examples.
 - Farming Simulator 25 log path for test verification.
 
 ## Research Policy

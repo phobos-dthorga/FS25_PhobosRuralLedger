@@ -21,7 +21,8 @@ Planned layers:
 Early Lua modules should stay small and boring:
 
 - `Constants`: mod IDs, save keys, stress states, event types, and tuning keys.
-- `Profiles`: profile archetypes and generated NPC farm identity.
+- `Profiles`: profile archetypes attached to map-derived landowners and
+  fallback identity only when runtime map data is unavailable.
 - `Ledgers`: current ledger state and ledger snapshots.
 - `Simulation`: seasonal/monthly profit, stress, and market indicator updates.
 - `Events`: opportunity selection, reasons, cooldowns, and event history.
@@ -44,6 +45,24 @@ economy outcomes.
 
 Authoritative economy changes belong in shared gameplay services. This should
 make save/load, multiplayer, and testing easier once implementation begins.
+
+## Map-First Landowner Rule
+
+Rural Ledger farms and properties must be anchored to the loaded map's existing
+landowners, farmlands, fields, contracts, and field state wherever FS25 exposes
+that data. Generated profiles are an overlay on real map property data, not the
+primary source of farm existence.
+
+Temporary fallback records are allowed while API paths are being verified, but
+they must be marked as fallback, attach to real field or farmland IDs when
+possible, and avoid land, contract, auction, or ownership mutation until a
+map-derived source exists.
+
+The planned map-aware layer should discover existing landowners/properties on
+load, manual refresh, save reload, or period simulation. It must cache results
+for UI/report use and avoid any unbounded per-frame scans. See
+`map-landowner-integration.md` for the staged implementation plan and runtime
+reference screenshots.
 
 ## UI Model Boundary
 
@@ -80,7 +99,8 @@ Recommended state groups:
 
 - mod save schema version;
 - regional preset and tuning version;
-- NPC farm profiles;
+- map-derived owner/property registry;
+- NPC farm profiles attached to discovered owners/properties;
 - seasonal ledger summaries;
 - active pressure flags;
 - generated land/contract/reputation opportunities;

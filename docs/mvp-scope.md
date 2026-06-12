@@ -11,9 +11,13 @@ from that pressure.
 
 ## Included In MVP
 
-- Assign each NPC farmer a profile and controlled fields.
-- Estimate crop income from field size, crop type, yield quality, and price.
-- Estimate operating costs from crop type, field size, and farm personality.
+- Discover existing map landowners/properties where the FS25 APIs expose them.
+- Assign each discovered landowner a Rural Ledger profile overlay and controlled
+  field list.
+- Estimate crop income from actual field size, crop type, growth state, yield
+  quality, and price.
+- Estimate operating costs from crop type, field size, field condition, and farm
+  personality.
 - Run monthly or seasonal profit/loss updates.
 - Calculate farm stress scores.
 - Generate report-only local economy summaries.
@@ -34,15 +38,21 @@ from that pressure.
 ## First Development Milestones
 
 1. Confirm load order with `FS25_PhobosLib`.
-2. Add constants, profile data, and deterministic calculation modules.
-3. Add save/load schema for profile and ledger state.
-4. Add one debug/report output path.
-5. Add one generated opportunity with a readable cause.
-6. Test load, save, reload, and game log cleanliness.
+2. Add constants, profile data, deterministic calculation modules, and a
+   fallback profile registry.
+3. Prove a read-only map discovery path for landowners, farmlands, fields,
+   contracts, and field state.
+4. Add save/load schema for map-derived profile and ledger state.
+5. Add one debug/report output path.
+6. Add one cause-carrying opportunity tied to a discovered property if the FS25
+   contract path is verified.
+7. Test load, save, reload, and game log cleanliness.
 
 ## MVP Acceptance Questions
 
 - Can a farm be profitable, strained, or distressed for understandable reasons?
+- Is each displayed farm/property tied to the current map, or clearly marked as
+  fallback while API research continues?
 - Does the player receive useful information without being flooded?
 - Can a save be loaded after a tuning change?
 - Does multiplayer authority remain clear?

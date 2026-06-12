@@ -17,6 +17,8 @@ Use this folder as the design packet for Phobos' Rural Ledger.
   versioning, and PhobosLib boundary.
 - `data-model.md` - candidate profile, ledger, opportunity, event, and regional
   data structures.
+- `map-landowner-integration.md` - map-first landowner/property rule,
+  preserved runtime screenshots, discovery targets, and implementation stages.
 - `simulation-model.md` - ledger math, stress scores, farm personalities, and
   event pipeline.
 - `event-causality.md` - rules that keep events explainable rather than random.

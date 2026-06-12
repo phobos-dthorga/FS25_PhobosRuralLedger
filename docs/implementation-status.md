@@ -45,6 +45,15 @@ tables, stretching list profiles, compact farm-list columns, and English/German
 translation files. Runtime proof is still required after packaging, but static
 validation now blocks missing Rural Ledger l10n keys and hardcoded GUI text.
 
+After `v0.1.4.0`, runtime testing confirmed the screen direction is usable:
+rows can be selected, debug mode activates, and the layout is orderly enough to
+continue. A new design rule is now documented: Rural Ledger farms/properties
+must be assessed from the loaded map's existing landowners, farmlands, fields,
+contracts, crop state, soil state, and optional Precision Farming data wherever
+FS25 exposes them. The current generated profiles are therefore a fallback
+implementation detail, not the long-term source of truth. See
+`map-landowner-integration.md`.
+
 ## Persistence Boundary
 
 `Persistence.lua` currently owns table-shaped save state:
@@ -68,11 +77,15 @@ added.
 
 Recommended next code step:
 
-1. Runtime-test the `v0.1.4.0` responsive screen with `FS25_PhobosLib`
-   installed.
-2. Confirm the keybinding, settings entry, tab switching, farm selection,
-   refresh, debug toggle, and German/English l10n behavior in `log.txt`.
-3. Add the first cause-carrying neighbour opportunity from strained or worse
-   farms.
-4. Research and wire FS25 save/load lifecycle hooks only after the read-only
+1. Research and prove a read-only map discovery path for existing landowners,
+   farmlands, field IDs, crop state, growth state, soil flags, contracts, and
+   optional Precision Farming pH/nitrogen data.
+2. Attach Rural Ledger profiles and ledger snapshots to those discovered
+   owner/property records, keeping generated records only as flagged fallback
+   data.
+3. Update the V1 UI models so Overview, Farmers, and Farm Detail can show map
+   source, field IDs, crop mix, field condition, and discovery confidence.
+4. Add the first cause-carrying neighbour opportunity from strained or worse
+   farms only after the map-first owner/property model is stable.
+5. Research and wire FS25 save/load lifecycle hooks only after the read-only
    state and opportunity data remain stable.

@@ -4,6 +4,8 @@
 
 - Keep the repo packageable and CI-validated.
 - Verify FS25 save/load, mission, farmland, contract, and UI API paths.
+- Verify how to enumerate map landowners, farmlands, field IDs, crop state,
+  growth state, soil flags, and optional Precision Farming data.
 - Decide the first persistence format before storing any real save data.
 - Keep all gameplay-affecting logic out of UI code.
 - Add static checks as soon as the first data files appear.
@@ -12,11 +14,17 @@
 
 Do not try to make NPCs physically perform every operation at first.
 
-- Assign each NPC farmer a profile and fields.
-- Estimate crop income from field size, crop type, yield, and price.
-- Estimate costs from crop type and field size.
+- Discover existing landowners/properties from the current map where FS25 APIs
+  expose them.
+- Assign each discovered landowner a Rural Ledger profile overlay and attach it
+  to their real farmlands and field IDs.
+- Estimate crop income from actual field size, crop type, growth state, yield,
+  and price.
+- Estimate costs from crop type, field size, field condition, and optional
+  Precision Farming pH/nitrogen context when available.
 - Run monthly or seasonal profit/loss updates.
-- Trigger contracts, land leases, and land sales from financial condition.
+- Trigger contracts, land leases, and land sales from financial condition only
+  after the related map owner/property and FS25 hook paths are proven.
 - Add read-only UI models for Overview, Farmers, and Farm Detail before custom
   FS25 screen work.
 - Add an economy dashboard or report that consumes those models where possible.

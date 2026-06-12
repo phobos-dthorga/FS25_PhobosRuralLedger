@@ -11,9 +11,10 @@ Subtitle candidates:
 
 ## Core Concept
 
-Give every NPC farmer on the map a hidden business profile. The player should
-feel that neighbouring farms have cash flow, debt, risk habits, and real reasons
-for the decisions they make.
+Give every existing NPC farmer or landowner on the loaded map a hidden business
+profile where FS25 exposes the needed data. The player should feel that
+neighbouring farms have cash flow, debt, risk habits, real properties, and real
+reasons for the decisions they make.
 
 The mod should become the backbone of a living local farm economy where land
 ownership, contracts, leases, prices, auctions, and relationships are connected.
@@ -33,7 +34,8 @@ modest, testable, and reversible.
 - A shadow economy model for NPC farms.
 - A source of contextual contracts, reports, land pressure, and neighbour
   opportunities.
-- A way to make field ownership and local production feel connected.
+- A way to make existing field ownership, crop state, soil state, and local
+  production feel connected.
 - A design base for future Phobos FS25 cross-mod tie-ins.
 
 ## What It Is Not
@@ -47,8 +49,8 @@ modest, testable, and reversible.
 
 - Farmer identity: small family farm, large contractor, dairy operator, grain
   grower, struggling beginner, wealthy landholder.
-- Assets: owned fields, rented fields, storage, livestock, abstracted machinery,
-  and possibly production sites.
+- Assets: map-derived owned fields, rented fields, storage, livestock,
+  abstracted machinery, and possibly production sites.
 - Income: crop sales, livestock sales, contracts, government support, insurance
   payouts, rent, and production-chain income.
 - Costs: seed, fertiliser, lime, fuel, labour, repairs, land rent, loan interest,
@@ -74,6 +76,11 @@ The economy should affect the player in visible, believable ways:
 Dynamic land ownership is the strongest first feature. Land should not simply
 sit for sale forever at a fixed price. Every NPC farmer should have a reason to
 hold, lease, expand, subdivide, or sell.
+
+That ambition depends on a map-first property model. Rural Ledger should assess
+the landowners and fields already present in the world, then layer finance and
+behaviour on top of them. It should not invent disconnected farms as the
+primary design model.
 
 Contracts with context are the second strongest feature. A harvest job is more
 interesting when it is "Miller Farm is short on cash after a poor soybean year"

@@ -9,6 +9,8 @@ player should know, and avoid mixing presentation with gameplay mutation.
 
 - Show the living economy clearly.
 - Let players drill down from map-level pressure to farm-level causes.
+- Ground farms and farm detail in existing map landowners, farmlands, field
+  IDs, crop state, and field condition wherever that data is available.
 - Avoid turning hidden ledgers into full public accounting statements.
 - Keep all gameplay mutation outside UI code.
 - Keep all early screens useful even when deeper systems are still deferred.
@@ -48,11 +50,13 @@ It should not expose full ledgers or exact accounting values.
 
 ### Farmers
 
-The Farmers screen is a sortable list of tracked NPC farms. Suggested columns:
+The Farmers screen is a sortable list of tracked map-derived farms/properties.
+Suggested columns:
 
 - farm;
+- source or confidence, when useful during development;
 - type;
-- fields;
+- fields or farmland IDs;
 - stress;
 - main pressure;
 - opportunity;
@@ -81,9 +85,12 @@ sections:
 - summary: farm name, type, stress state, and primary pressure;
 - financial health: public bands for cash position, debt pressure, revenue,
   costs, and risk buffer;
-- land: controlled field count, approximate land pressure, and likely land
-  action when that system exists;
-- crop plan: current crops, market exposure, and likely future shift;
+- land: controlled field count, farmland IDs, field IDs, approximate land
+  pressure, and likely land action when that system exists;
+- crop plan: current crops, growth state, field condition, market exposure, and
+  likely future shift;
+- field condition: weeds, ploughing, rolling, stones, mulching, watering, and
+  optional Precision Farming pH/nitrogen summaries when available;
 - relationship: status, trust effect, and what improves or harms it;
 - opportunities: active opportunity cards;
 - history: season notes and event memory.
@@ -237,6 +244,9 @@ state -> UiModels.buildFarmDetail(state, farmId) -> GUI adapter renders sections
     stressTrend = "worsening",
     primaryPressure = "Weak season margin",
     visiblePressureBand = "Debt pressure heavy",
+    source = "map",
+    fieldIds = { 170, 171 },
+    cropMix = "Wheat, barley",
     relationshipBand = "neutral",
     activeOpportunityCount = 1,
     nextOpportunityHint = "Harvest support may appear this period",
@@ -260,9 +270,18 @@ state -> UiModels.buildFarmDetail(state, farmId) -> GUI adapter renders sections
         mainCause = "Weak season margin",
         supportingCauses = {
             "Debt service is heavy",
-            "Storage limits selling options"
+            "Storage limits selling options",
+            "Field 170 has low nitrogen"
         },
         playerMeaning = "Urgent contract work may appear this period."
+    },
+    property = {
+        source = "map",
+        farmlands = { 170 },
+        fields = { 170, 171 },
+        cropSummary = "Wheat and barley",
+        fieldCondition = "One field needs rolling",
+        precisionFarming = "pH good, nitrogen low"
     },
     ledgerEstimate = {
         cash = "tight",
@@ -370,3 +389,9 @@ Farmers is list-backed, farm detail/debug output is list-backed, and compact
 farm-table columns hide lower-priority Type/Relationship fields on narrower
 containers. The reusable GUI-loading pattern remains a future `FS25_PhobosLib`
 candidate only after more than one Phobos FS25 mod needs it.
+
+The next model correction is map-first ownership. Current V1 UI data is still
+fallback-generated while the FS25 landowner, farmland, field, contract, and
+Precision Farming API paths are researched. Future UI rows should migrate to
+map-derived owner/property records before Rural Ledger adds land, auction,
+contract, or relationship gameplay effects.

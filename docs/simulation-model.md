@@ -15,9 +15,11 @@ The believable first model needs only five ledgers per NPC:
 The first model can stay coarse. Each farm needs enough data to produce
 believable pressure:
 
-- fields controlled by the farm;
+- fields controlled by the discovered map owner/property record;
+- farmland IDs, field IDs, and contract references where available;
 - enterprise mix, such as grain, dairy, livestock, contracting, or mixed;
-- rough crop mix and expected yield quality;
+- current crop mix, growth stage, field condition, and expected yield quality;
+- optional Precision Farming pH, nitrogen, and environmental-score bands;
 - operating style, such as conservative, expansionist, contractor, or
   specialist;
 - debt level and interest sensitivity;
@@ -58,6 +60,8 @@ Suggested inputs:
 - negative operating cash;
 - debt service above seasonal cash buffer;
 - low crop diversity;
+- real field-condition problems such as weeds, stones, ploughing need, poor pH,
+  or low nitrogen;
 - weak storage;
 - repeated bad gross margins;
 - recent disaster or disease event;

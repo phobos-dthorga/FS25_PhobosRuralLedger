@@ -3,10 +3,40 @@
 This document captures candidate data structures. Names are placeholders until
 the FS25 save/load path is verified.
 
+## Map Property Profile
+
+Map property data is the source of truth for which farms/properties exist.
+Rural Ledger profile and finance data should attach to these records.
+
+```text
+profile_id
+source
+map_id
+owner_id
+owner_display_name
+farmland_ids
+field_ids
+contract_refs
+field_state_summary
+precision_farming_summary
+discovery_confidence
+fallback_reason
+```
+
+`source` should be `map` for records discovered from FS25 map data and
+`fallback` only when the runtime API path cannot yet provide a real owner. A
+fallback record may keep the UI testable, but it should not drive land,
+auction, contract, or ownership changes.
+
+Stable IDs should prefer FS25 map identifiers: owner/farm ID, farmland ID,
+field ID, and contract/mission ID. Generated IDs are acceptable only as local
+wrappers around those sources or as clearly flagged fallback state.
+
 ## Farm Profile
 
 ```text
 farm_id
+profile_id
 display_name
 profile_type
 owned_fields
@@ -21,14 +51,42 @@ co_op_status
 succession_stage
 ```
 
-Profile values should be stable across saves. If generated procedurally, the
-seed and schema version should be saved so tuning changes do not unexpectedly
-rewrite a farm's identity.
+Profile values should be stable across saves and should attach to a map
+property profile. If generated procedurally, the seed, schema version, and
+source map IDs should be saved so tuning changes do not unexpectedly rewrite a
+farm's identity.
+
+## Field State Summary
+
+```text
+field_id
+farmland_id
+area_ha
+crop_type
+growth_state
+is_cultivated
+needs_plowing
+needs_rolling
+has_weeds
+has_stones
+is_mulched
+is_watered
+precision_farming_available
+nitrogen_band
+ph_band
+environmental_score_band
+last_discovered_period
+```
+
+Field state summaries are read-only inputs. They should be rebuilt from the
+current map on bounded refresh points and then cached for ledgers, reports, and
+UI models.
 
 ## Ledger Snapshot
 
 ```text
 farm_id
+profile_id
 period_id
 operating_cash
 total_debt
