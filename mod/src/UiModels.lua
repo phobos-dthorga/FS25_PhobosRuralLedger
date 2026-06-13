@@ -819,6 +819,11 @@ function UiModels.buildDebugSummary(state, options)
     local profiles, snapshots = stateParts(state)
     local discovery = (state or {}).mapDiscovery or {}
     local diagnostics = discovery.diagnostics or {}
+    local saveDiagnostics = {}
+    if PhobosRuralLedger.Savegame ~= nil and PhobosRuralLedger.Savegame.getDiagnostics ~= nil then
+        saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics(g_currentMission)
+    end
+
     local notice = noDataNotice(state)
     local lines = {
         text("rl_debug_version", "Mod version: %s", Constants.VERSION),
@@ -857,6 +862,11 @@ function UiModels.buildDebugSummary(state, options)
                 or text("rl_precision_not_available", "Not available")
         ),
         text("rl_debug_save_hooks", "Save/load hooks: opportunity persistence wired"),
+        text("rl_debug_save_hook_status", "Save hook: %s on %s, attempts %d", tostring(saveDiagnostics.hookStatus or "not attempted"), tostring(saveDiagnostics.hookTarget or "none"), saveDiagnostics.hookAttempts or 0),
+        text("rl_debug_save_availability", "Save availability: %s via %s", tostring(saveDiagnostics.availability or "unknown"), tostring(saveDiagnostics.pathSource or "none")),
+        text("rl_debug_save_path", "Save path: %s", tostring(saveDiagnostics.path or "unavailable")),
+        text("rl_debug_save_last_load", "Last opportunity load: %s", tostring(saveDiagnostics.lastLoad or "not attempted")),
+        text("rl_debug_save_last_save", "Last opportunity save: %s", tostring(saveDiagnostics.lastSave or "not attempted")),
     }
 
     if options.includeExactFarmValues == true and snapshots[1] ~= nil then

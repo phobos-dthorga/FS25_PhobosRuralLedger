@@ -5,7 +5,7 @@ local Constants = PhobosRuralLedger.Constants
 
 Constants.MOD_NAME = "FS25_PhobosRuralLedger"
 Constants.DISPLAY_NAME = "Phobos' Rural Ledger"
-Constants.VERSION = "0.1.6.0"
+Constants.VERSION = "0.1.6.1"
 Constants.SAVE_SCHEMA_VERSION = 1
 Constants.DEFAULT_SEED = "phobos-rural-ledger"
 Constants.DEFAULT_PROFILE_COUNT = 8

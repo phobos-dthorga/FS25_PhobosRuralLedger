@@ -209,20 +209,28 @@ rebuilt from the live map and reconciled after discovery.
 until runtime save/reload proof confirms that FS25 writes the dedicated XML file
 without Phobos-owned warnings or save failures.
 
+Runtime testing of `v0.1.6.0` showed a persistence gate: `FS25_PhobosLib
+v0.1.2.0` and Rural Ledger loaded cleanly, but no
+`FS25_PhobosRuralLedger.xml` file was created and the log had no Rural
+Ledger-owned save write, save failure, or missing-save lines. `v0.1.6.1`
+therefore hardens the local save hook by retrying registration from
+map/mission-ready lifecycle paths, reporting hook/path availability in
+Settings / Debug, logging the exact XML path on load/write, and treating an
+unavailable save path as a Phobos-owned hard miss.
+
 ## Next Implementation Slice
 
 Recommended next code step:
 
-1. Runtime-test `v0.1.6.0` with `FS25_PhobosLib v0.1.2.0` installed.
-2. Select pressured Farmers rows and confirm `Opportunities` enables only when
-   the selected property has candidates.
-3. Open and close the read-only Opportunities dialog and verify it matches the
-   selected property.
-4. Save, exit, reload, and confirm the dedicated opportunity XML reconciles
-   cleanly without duplicate candidates or stale farm IDs.
-5. Confirm the custom XML remains below the 50 KB MVP target on a normal save.
-6. Confirm no Phobos-owned `Error:`, `Warning:`, or `Warning (` lines appear,
+1. Runtime-test `v0.1.6.1` with `FS25_PhobosLib v0.1.2.0` installed.
+2. Open Settings / Debug and confirm the save hook is registered and the save
+   path points at `FS25_PhobosRuralLedger.xml` in the active savegame folder.
+3. Save, exit, reload, and confirm the dedicated opportunity XML is written,
+   loaded, and reconciled cleanly without duplicate candidates or stale farm
+   IDs.
+4. Confirm the custom XML remains below the 50 KB MVP target on a normal save.
+5. Confirm no Phobos-owned `Error:`, `Warning:`, or `Warning (` lines appear,
    and no save failure is attributable to Rural Ledger.
-7. If the save/reload gate is clean, proceed to a small period-advance/history
+6. If the save/reload gate is clean, proceed to a small period-advance/history
    slice or a developer-only Precision Farming probe for exact pH/nitrogen API
    research.

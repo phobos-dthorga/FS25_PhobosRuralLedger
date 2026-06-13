@@ -27,13 +27,34 @@ local Simulation = PhobosRuralLedger.Simulation
 local UiModels = PhobosRuralLedger.UiModels
 local capturedLogs = {}
 
+local function captureLog(level, source, message, ...)
+    capturedLogs[#capturedLogs + 1] = {
+        level = level,
+        source = source,
+        text = string.format(message, ...),
+    }
+    return true
+end
+
 PhobosFS25 = {
     Logging = {
         infoSource = function(source, message, ...)
-            capturedLogs[#capturedLogs + 1] = {
-                source = source,
-                text = string.format(message, ...),
-            }
+            return captureLog("INFO", source, message, ...)
+        end,
+        warnSource = function(source, message, ...)
+            return captureLog("WARN", source, message, ...)
+        end,
+        errorSource = function(source, message, ...)
+            return captureLog("ERROR", source, message, ...)
+        end,
+        infoOnceSource = function(source, message, ...)
+            return captureLog("INFO", source, message, ...)
+        end,
+        warnOnceSource = function(source, message, ...)
+            return captureLog("WARN", source, message, ...)
+        end,
+        errorOnceSource = function(source, message, ...)
+            return captureLog("ERROR", source, message, ...)
         end,
     },
 }
@@ -582,17 +603,85 @@ PhobosFS25.XmlFile = {
 local saved, saveStatus = PhobosRuralLedger.Savegame.write(opportunityState)
 assertEquals(true, saved, "opportunity savegame write should succeed with fake XMLFile helpers")
 assertEquals("saved", saveStatus, "opportunity savegame write should report saved status")
+assertEquals("savegame/FS25_PhobosRuralLedger.xml", savedXmlFile.filename, "savegame write should target the dedicated Rural Ledger XML file")
+local saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
+assertEquals("saved (savegame/FS25_PhobosRuralLedger.xml)", saveDiagnostics.lastSave, "save diagnostics should expose the last saved path")
 local loadedSave, loadStatus = PhobosRuralLedger.Savegame.read()
 assertEquals("loaded", loadStatus, "opportunity savegame read should load the fake XML file")
 assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #loadedSave.opportunities, "savegame read should round-trip opportunities")
 assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #loadedSave.eventHistory, "savegame read should round-trip event history")
 assertEquals(generatedOpportunities[1].farmId, loadedSave.opportunities[1].farmId, "savegame read should preserve opportunity farm identity")
+saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
+assertEquals("loaded (savegame/FS25_PhobosRuralLedger.xml)", saveDiagnostics.lastLoad, "save diagnostics should expose the last loaded path")
 savedXmlFile = nil
 local missingSave, missingStatus = PhobosRuralLedger.Savegame.read()
 assertEquals(nil, missingSave, "missing savegame read should return nil data")
 assertEquals("missing", missingStatus, "missing savegame read should report missing status")
+saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
+assertEquals("missing (savegame/FS25_PhobosRuralLedger.xml)", saveDiagnostics.lastLoad, "save diagnostics should expose missing-save paths")
+
+PhobosFS25.Savegames = nil
+g_currentMission = {
+    missionInfo = {
+        savegameDirectory = "fallbackSave",
+    },
+}
+local fallbackSaved, fallbackStatus = PhobosRuralLedger.Savegame.write(opportunityState)
+assertEquals(true, fallbackSaved, "opportunity savegame write should use missionInfo fallback paths")
+assertEquals("saved", fallbackStatus, "fallback savegame write should report saved status")
+assertEquals("fallbackSave/FS25_PhobosRuralLedger.xml", savedXmlFile.filename, "fallback savegame write should normalize missionInfo paths")
+saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
+assertEquals("missionInfo", saveDiagnostics.pathSource, "save diagnostics should report the local missionInfo fallback source")
+g_currentMission = nil
+
 PhobosFS25.XmlFile = nil
 PhobosFS25.Savegames = nil
+local unavailableSaved, unavailableStatus, unavailableDetails = PhobosRuralLedger.Savegame.write(opportunityState)
+assertEquals(false, unavailableSaved, "savegame write should fail clearly when helpers are unavailable")
+assertEquals("unavailable", unavailableStatus, "unavailable savegame write should report unavailable status")
+assertEquals("xml_api_unavailable", unavailableDetails.reason, "unavailable savegame write should expose the missing helper reason")
+
+PhobosRuralLedger.Savegame._resetDiagnosticsForTests()
+local originalSaveCalls = 0
+local appendedSaveCalls = 0
+local lastHookMission = nil
+FSBaseMission = {
+    saveSavegame = function()
+        originalSaveCalls = originalSaveCalls + 1
+    end,
+}
+Utils = {
+    appendedFunction = function(original, appended)
+        return function(...)
+            original(...)
+            appended(...)
+        end
+    end,
+}
+local previousSaveOpportunityState = PhobosRuralLedger.saveOpportunityState
+PhobosRuralLedger.saveOpportunityState = function(mission)
+    appendedSaveCalls = appendedSaveCalls + 1
+    lastHookMission = mission
+    return true
+end
+local hookRegistered, hookStatus = PhobosRuralLedger.Savegame.ensureHookRegistered()
+assertEquals(true, hookRegistered, "save hook should register when FSBaseMission and Utils are available")
+assertEquals("registered", hookStatus, "save hook should report registered status")
+assertEquals("FSBaseMission.saveSavegame", PhobosRuralLedger.Savegame.hookTarget, "save hook should prefer FSBaseMission")
+local secondHookRegistered, secondHookStatus = PhobosRuralLedger.Savegame.ensureHookRegistered()
+assertEquals(true, secondHookRegistered, "second save hook registration call should remain successful")
+assertEquals("already_registered", secondHookStatus, "second save hook registration should be idempotent")
+FSBaseMission.saveSavegame("missionFromHook")
+assertEquals(1, originalSaveCalls, "save hook should preserve the original save function")
+assertEquals(1, appendedSaveCalls, "save hook should append exactly one Rural Ledger save callback")
+assertEquals("missionFromHook", lastHookMission, "save hook should pass the mission/self argument through")
+local hookDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
+assertEquals("already_registered", hookDiagnostics.hookStatus, "save diagnostics should expose idempotent hook state")
+assertEquals(1, hookDiagnostics.hookAttempts, "save hook should not retry after successful registration")
+PhobosRuralLedger.saveOpportunityState = previousSaveOpportunityState
+FSBaseMission = nil
+Utils = nil
+
 
 local boundedIds = {}
 for index = 1, 20 do
@@ -1069,6 +1158,7 @@ assertEquals(#opportunityDialog.rows, opportunityDialog:getNumberOfItemsInSectio
 opportunityDialog:onClickBack()
 assertTrue(opportunityDialog.closed, "opportunity dialog back action should close the dialog")
 
+capturedLogs = {}
 source("mod/src/PhobosRuralLedger.lua")
 
 assertEquals(
@@ -1119,7 +1209,13 @@ local refreshedState = PhobosRuralLedger.refreshMapBackedState({trigger = "manua
 assertEquals("map", refreshedState.mapDiscovery.source, "manual refresh should rebuild map-backed state")
 assertEquals("manualRefresh", refreshedState.mapDiscovery.trigger, "manual refresh should record its trigger")
 assertEquals(2, #refreshedState.profiles, "manual refresh should create map-sourced profiles")
-assertContains(capturedLogs[1].text, "Map discovery", "manual refresh should log one discovery summary")
+local sawManualRefreshDiscoveryLog = false
+for _, logLine in ipairs(capturedLogs) do
+    if string.find(logLine.text, "Map discovery", 1, true) ~= nil then
+        sawManualRefreshDiscoveryLog = true
+    end
+end
+assertTrue(sawManualRefreshDiscoveryLog, "manual refresh should log one discovery summary")
 local refreshedRows = UiModels.buildFarmList(refreshedState)
 assertEquals("map", refreshedRows[1].source, "refreshed UI rows should remain map-sourced")
 clearFakeMapRuntime()

@@ -112,6 +112,13 @@ and bounded event history only. Map-derived properties, profiles, and ledgers
 are rebuilt from the live map and reconciled against the saved opportunity
 records after discovery.
 
+`v0.1.6.1` keeps that surface but hardens the write path. The save hook is
+registered idempotently, retried from map/mission-ready lifecycle paths, and
+the Settings / Debug page exposes hook status, path source, expected XML path,
+and last load/save result. If the FS25 XML API or active savegame path is
+unavailable, Rural Ledger logs a bounded Phobos-owned warning instead of
+silently skipping persistence.
+
 ## Save Versioning
 
 Every saved root should include a schema version. Migrations should be explicit

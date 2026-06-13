@@ -5,6 +5,15 @@ local Savegame = PhobosRuralLedger.Savegame
 local Constants = PhobosRuralLedger.Constants
 local Opportunities = PhobosRuralLedger.Opportunities
 
+Savegame.hookRegistered = Savegame.hookRegistered == true
+Savegame.hookStatus = Savegame.hookStatus or "not_attempted"
+Savegame.hookTarget = Savegame.hookTarget or nil
+Savegame.hookAttempts = Savegame.hookAttempts or 0
+Savegame.lastAvailability = Savegame.lastAvailability or nil
+Savegame.lastLoadStatus = Savegame.lastLoadStatus or nil
+Savegame.lastSaveStatus = Savegame.lastSaveStatus or nil
+Savegame._loggedMessages = Savegame._loggedMessages or {}
+
 local function xmlApi()
     return PhobosFS25 ~= nil and PhobosFS25.XmlFile or nil
 end
@@ -19,10 +28,97 @@ local function logInfo(message, ...)
     end
 end
 
-local function logWarn(message, ...)
-    if PhobosRuralLedger.logWarn ~= nil then
-        PhobosRuralLedger.logWarn(message, ...)
+local function logInfoOnce(key, message, ...)
+    key = tostring(key or message or "info")
+    if Savegame._loggedMessages[key] == true then
+        return false
     end
+
+    Savegame._loggedMessages[key] = true
+
+    if PhobosFS25 ~= nil
+        and PhobosFS25.Logging ~= nil
+        and PhobosFS25.Logging.infoOnceSource ~= nil
+    then
+        PhobosFS25.Logging.infoOnceSource("PhobosRuralLedger", message, ...)
+    else
+        logInfo(message, ...)
+    end
+
+    return true
+end
+
+local function ensureTrailingSlash(path)
+    if path == nil or path == "" then
+        return nil
+    end
+
+    local last = string.sub(path, -1)
+    if last == "/" or last == "\\" then
+        return path
+    end
+
+    return path .. "/"
+end
+
+local function normalizeXmlFileName(fileName)
+    if fileName == nil or fileName == "" then
+        return nil
+    end
+
+    local normalized = tostring(fileName)
+    if string.sub(normalized, -4) ~= ".xml" then
+        normalized = normalized .. ".xml"
+    end
+
+    return normalized
+end
+
+local function fallbackSavegameXmlPath(fileName, mission)
+    local activeMission = mission or g_currentMission
+    if activeMission == nil or activeMission.missionInfo == nil then
+        return nil
+    end
+
+    local missionInfo = activeMission.missionInfo
+    local directory = ensureTrailingSlash(missionInfo.savegameDirectory)
+    if directory == nil
+        and missionInfo.savegameIndex ~= nil
+        and type(getUserProfileAppPath) == "function"
+    then
+        directory = ensureTrailingSlash(string.format("%ssavegame%d", getUserProfileAppPath(), missionInfo.savegameIndex))
+    end
+
+    local normalized = normalizeXmlFileName(fileName)
+    if directory == nil or normalized == nil then
+        return nil
+    end
+
+    return directory .. normalized
+end
+
+local function copyStatus(status, details)
+    local result = {
+        status = status,
+    }
+
+    for key, value in pairs(details or {}) do
+        result[key] = value
+    end
+
+    return result
+end
+
+local function recordStatus(kind, status, details)
+    local value = copyStatus(status, details)
+
+    if kind == "load" then
+        Savegame.lastLoadStatus = value
+    elseif kind == "save" then
+        Savegame.lastSaveStatus = value
+    end
+
+    return value
 end
 
 local function sortedPairs(map)
@@ -47,29 +143,68 @@ local function sortedPairs(map)
     end
 end
 
-function Savegame.getPath(mission)
+function Savegame.describeAvailability(mission)
+    local xml = xmlApi()
     local savegames = savegamesApi()
-    if savegames == nil or savegames.buildSavegameXmlPath == nil then
-        return nil
+    local path = nil
+    local pathSource = nil
+
+    if savegames ~= nil and savegames.buildSavegameXmlPath ~= nil then
+        path = savegames.buildSavegameXmlPath(Constants.SAVEGAME_FILE_NAME, mission)
+        if path ~= nil then
+            pathSource = "PhobosFS25.Savegames"
+        end
     end
 
-    return savegames.buildSavegameXmlPath(Constants.SAVEGAME_FILE_NAME, mission)
+    if path == nil then
+        path = fallbackSavegameXmlPath(Constants.SAVEGAME_FILE_NAME, mission)
+        if path ~= nil then
+            pathSource = "missionInfo"
+        end
+    end
+
+    local reason = nil
+    if xml == nil then
+        reason = "xml_api_unavailable"
+    elseif path == nil then
+        reason = "savegame_path_unavailable"
+    end
+
+    local availability = {
+        available = xml ~= nil and path ~= nil,
+        path = path,
+        pathSource = pathSource,
+        reason = reason,
+        hasXmlFileApi = xml ~= nil,
+        hasSavegamesApi = savegames ~= nil,
+        hasMission = (mission or g_currentMission) ~= nil,
+    }
+
+    Savegame.lastAvailability = availability
+    return availability
+end
+
+function Savegame.getPath(mission)
+    return Savegame.describeAvailability(mission).path
 end
 
 function Savegame.canUse(mission)
-    return Savegame.getPath(mission) ~= nil and xmlApi() ~= nil
+    return Savegame.describeAvailability(mission).available == true
 end
 
 function Savegame.read(mission)
     local xml = xmlApi()
-    local filename = Savegame.getPath(mission)
+    local availability = Savegame.describeAvailability(mission)
+    local filename = availability.path
     if xml == nil or filename == nil then
-        return nil, "unavailable"
+        recordStatus("load", "unavailable", availability)
+        return nil, "unavailable", availability
     end
 
     local file = xml.loadIfExists("PhobosRuralLedgerSavegame", filename)
     if file == nil then
-        return nil, "missing"
+        recordStatus("load", "missing", availability)
+        return nil, "missing", availability
     end
 
     local root = Constants.SAVE_KEYS.ROOT
@@ -126,20 +261,24 @@ function Savegame.read(mission)
     end, Constants.MAX_EVENT_HISTORY)
 
     xml.delete(file)
-    return data, "loaded"
+    recordStatus("load", "loaded", availability)
+    return data, "loaded", availability
 end
 
 function Savegame.write(state, mission)
     local xml = xmlApi()
-    local filename = Savegame.getPath(mission)
+    local availability = Savegame.describeAvailability(mission)
+    local filename = availability.path
     if xml == nil or filename == nil then
-        return false, "unavailable"
+        recordStatus("save", "unavailable", availability)
+        return false, "unavailable", availability
     end
 
     local root = Constants.SAVE_KEYS.ROOT
     local file = xml.create("PhobosRuralLedgerSavegame", filename, root)
     if file == nil then
-        return false, "create_failed"
+        recordStatus("save", "create_failed", availability)
+        return false, "create_failed", availability
     end
 
     state = state or {}
@@ -198,7 +337,9 @@ function Savegame.write(state, mission)
     end
 
     local saved = xml.saveAndDelete(file)
-    return saved == true, saved == true and "saved" or "save_failed"
+    local status = saved == true and "saved" or "save_failed"
+    recordStatus("save", status, availability)
+    return saved == true, status, availability
 end
 
 function Savegame.onSaveSavegame(mission)
@@ -211,10 +352,94 @@ local function onSaveSavegame(mission)
     Savegame.onSaveSavegame(mission)
 end
 
-if FSBaseMission ~= nil
-    and FSBaseMission.saveSavegame ~= nil
-    and Utils ~= nil
-    and Utils.appendedFunction ~= nil
-then
-    FSBaseMission.saveSavegame = Utils.appendedFunction(FSBaseMission.saveSavegame, onSaveSavegame)
+local function findSaveHookTarget()
+    if FSBaseMission ~= nil and FSBaseMission.saveSavegame ~= nil then
+        return FSBaseMission, "FSBaseMission.saveSavegame"
+    end
+
+    if Mission00 ~= nil and Mission00.saveSavegame ~= nil then
+        return Mission00, "Mission00.saveSavegame"
+    end
+
+    return nil, nil
 end
+
+function Savegame.ensureHookRegistered()
+    if Savegame.hookRegistered == true then
+        Savegame.hookStatus = "already_registered"
+        return true, Savegame.hookStatus
+    end
+
+    Savegame.hookAttempts = (Savegame.hookAttempts or 0) + 1
+
+    if Utils == nil or Utils.appendedFunction == nil then
+        Savegame.hookStatus = "utils_unavailable"
+        logInfoOnce(
+            "save-hook-utils-unavailable",
+            "Rural Ledger save hook is not available yet: Utils.appendedFunction is missing."
+        )
+        return false, Savegame.hookStatus
+    end
+
+    local target, targetName = findSaveHookTarget()
+    if target == nil then
+        Savegame.hookStatus = "target_unavailable"
+        logInfoOnce(
+            "save-hook-target-unavailable",
+            "Rural Ledger save hook is not available yet: saveSavegame target is missing."
+        )
+        return false, Savegame.hookStatus
+    end
+
+    target.saveSavegame = Utils.appendedFunction(target.saveSavegame, onSaveSavegame)
+    Savegame.hookRegistered = true
+    Savegame.hookStatus = "registered"
+    Savegame.hookTarget = targetName
+    logInfoOnce("save-hook-registered", "Rural Ledger save hook registered: %s.", targetName)
+
+    return true, Savegame.hookStatus
+end
+
+local function statusText(status)
+    if status == nil then
+        return "not attempted"
+    end
+
+    local text = tostring(status.status or "unknown")
+    if status.path ~= nil then
+        text = string.format("%s (%s)", text, tostring(status.path))
+    elseif status.reason ~= nil then
+        text = string.format("%s (%s)", text, tostring(status.reason))
+    end
+
+    return text
+end
+
+function Savegame.getDiagnostics(mission)
+    local availability = Savegame.lastAvailability or Savegame.describeAvailability(mission)
+
+    return {
+        hookRegistered = Savegame.hookRegistered == true,
+        hookStatus = Savegame.hookStatus or "not_attempted",
+        hookTarget = Savegame.hookTarget or "none",
+        hookAttempts = Savegame.hookAttempts or 0,
+        path = availability.path or "unavailable",
+        pathSource = availability.pathSource or "none",
+        availability = availability.available == true and "available" or tostring(availability.reason or "unavailable"),
+        lastLoad = statusText(Savegame.lastLoadStatus),
+        lastSave = statusText(Savegame.lastSaveStatus),
+    }
+end
+
+function Savegame._resetDiagnosticsForTests()
+    Savegame.hookRegistered = false
+    Savegame.hookStatus = "not_attempted"
+    Savegame.hookTarget = nil
+    Savegame.hookAttempts = 0
+    Savegame.lastAvailability = nil
+    Savegame.lastLoadStatus = nil
+    Savegame.lastSaveStatus = nil
+    Savegame._loggedMessages = {}
+end
+
+Savegame.ensureHookRegistered()

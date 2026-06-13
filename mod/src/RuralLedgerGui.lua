@@ -32,6 +32,14 @@ local function text(key, fallback)
     return fallback
 end
 
+local function ensureSaveHook()
+    if PhobosRuralLedger.Savegame ~= nil
+        and PhobosRuralLedger.Savegame.ensureHookRegistered ~= nil
+    then
+        PhobosRuralLedger.Savegame.ensureHookRegistered()
+    end
+end
+
 function RuralLedgerGui:loadScreen()
     if self.screenLoaded and self.farmDetailDialogLoaded and self.opportunityDialogLoaded then
         return true
@@ -201,6 +209,7 @@ function RuralLedgerGui.onSettingsOpenClicked()
 end
 
 function RuralLedgerGui:loadMap()
+    ensureSaveHook()
     self:loadScreen()
     if PhobosRuralLedger.tryMapReadyDiscovery ~= nil then
         PhobosRuralLedger.tryMapReadyDiscovery("mapLoad")
@@ -208,6 +217,7 @@ function RuralLedgerGui:loadMap()
 end
 
 function RuralLedgerGui:onStartMission()
+    ensureSaveHook()
     if PhobosRuralLedger.tryMapReadyDiscovery ~= nil then
         PhobosRuralLedger.tryMapReadyDiscovery("missionStart")
     end

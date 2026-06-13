@@ -103,6 +103,11 @@
         <text name="rl_debug_first_skip_reason" text="First skip reason: %s"/>
         <text name="rl_debug_precision_farming" text="Precision Farming: %s"/>
         <text name="rl_debug_save_hooks" text="Save/load hooks: opportunity persistence wired"/>
+        <text name="rl_debug_save_hook_status" text="Save hook: %s on %s, attempts %d"/>
+        <text name="rl_debug_save_availability" text="Save availability: %s via %s"/>
+        <text name="rl_debug_save_path" text="Save path: %s"/>
+        <text name="rl_debug_save_last_load" text="Last opportunity load: %s"/>
+        <text name="rl_debug_save_last_save" text="Last opportunity save: %s"/>
         <text name="rl_debug_first_cash" text="First farm cash: %s"/>
         <text name="rl_debug_first_debt" text="First farm debt: %s"/>
         <text name="rl_debug_first_stress" text="First farm stress score: %d"/>

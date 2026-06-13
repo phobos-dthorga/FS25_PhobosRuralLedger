@@ -15,6 +15,7 @@ PhobosRuralLedger.mapLoadDiscoveryAttempted = PhobosRuralLedger.mapLoadDiscovery
 PhobosRuralLedger.missionStartDiscoveryAttempted = PhobosRuralLedger.missionStartDiscoveryAttempted == true
 PhobosRuralLedger.screenOpenDiscoveryAttempted = PhobosRuralLedger.screenOpenDiscoveryAttempted == true
 PhobosRuralLedger.opportunitySavegameLoaded = PhobosRuralLedger.opportunitySavegameLoaded == true
+PhobosRuralLedger._warnedSavegameStatuses = PhobosRuralLedger._warnedSavegameStatuses or {}
 
 local function copyOptionsWithDefaultMaxLines(options)
     local result = {}
@@ -121,6 +122,25 @@ local function mapDiscoveryIsUsable(discovery)
         and (discovery.discoveredFieldCount or 0) > 0
 end
 
+local function logWarnOnce(key, message, ...)
+    key = tostring(key or message or "warn")
+    if PhobosRuralLedger._warnedSavegameStatuses[key] == true then
+        return false
+    end
+
+    PhobosRuralLedger._warnedSavegameStatuses[key] = true
+    logWarn(message, ...)
+    return true
+end
+
+local function statusReason(status, details)
+    if details ~= nil and details.reason ~= nil then
+        return tostring(details.reason)
+    end
+
+    return tostring(status or "unknown")
+end
+
 local function copyDiscoveryOptions(options, trigger)
     local result = {}
 
@@ -175,15 +195,20 @@ function PhobosRuralLedger.loadOpportunityStateOnce(mission)
         return false
     end
 
-    if Savegame == nil or Savegame.canUse == nil or Savegame.read == nil or not Savegame.canUse(mission) then
+    if Savegame == nil or Savegame.read == nil then
+        logWarnOnce(
+            "savegame-module-unavailable",
+            "Rural Ledger opportunity save unavailable: savegame module is missing."
+        )
         return false
     end
 
-    local data, status = Savegame.read(mission)
+    local data, status, details = Savegame.read(mission)
     if status == "loaded" and PhobosRuralLedger.applyOpportunitySaveData(data) then
         PhobosRuralLedger.opportunitySavegameLoaded = true
         logInfo(
-            "Rural Ledger opportunity save loaded: %d opportunities, %d events, %d cooldowns.",
+            "Rural Ledger opportunity save loaded from %s: %d opportunities, %d events, %d cooldowns.",
+            tostring((details or {}).path or "unknown path"),
             #(data.opportunities or {}),
             #(data.eventHistory or {}),
             countMap(data.cooldowns)
@@ -191,7 +216,22 @@ function PhobosRuralLedger.loadOpportunityStateOnce(mission)
         return true
     elseif status == "missing" then
         PhobosRuralLedger.opportunitySavegameLoaded = true
-        logInfo("Rural Ledger opportunity save not found; starting a fresh read-only opportunity set.")
+        logInfo(
+            "Rural Ledger opportunity save not found at %s; starting a fresh read-only opportunity set.",
+            tostring((details or {}).path or "unknown path")
+        )
+    elseif status == "unavailable" then
+        logWarnOnce(
+            "savegame-load-unavailable-" .. statusReason(status, details),
+            "Rural Ledger opportunity save unavailable while loading: %s.",
+            statusReason(status, details)
+        )
+    else
+        logWarnOnce(
+            "savegame-load-failed-" .. tostring(status),
+            "Rural Ledger opportunity save failed while loading: %s.",
+            tostring(status)
+        )
     end
 
     return false
@@ -211,14 +251,25 @@ function PhobosRuralLedger.saveOpportunityState(mission)
     end
 
     PhobosRuralLedger.reconcileOpportunities({skipHistory = true})
-    local saved, status = Savegame.write(PhobosRuralLedger.state, mission)
+    local saved, status, details = Savegame.write(PhobosRuralLedger.state, mission)
     if saved then
         logInfo(
-            "Rural Ledger opportunity save written: %d opportunities.",
+            "Rural Ledger opportunity save written to %s: %d opportunities.",
+            tostring((details or {}).path or "unknown path"),
             #((PhobosRuralLedger.state or {}).opportunities or {})
         )
+    elseif status == "unavailable" then
+        logWarnOnce(
+            "savegame-write-unavailable-" .. statusReason(status, details),
+            "Rural Ledger opportunity save unavailable while writing: %s.",
+            statusReason(status, details)
+        )
     elseif status ~= "unavailable" then
-        logWarn("Rural Ledger opportunity save failed: %s", tostring(status))
+        logWarnOnce(
+            "savegame-write-failed-" .. tostring(status),
+            "Rural Ledger opportunity save failed: %s.",
+            tostring(status)
+        )
     end
 
     return saved
@@ -255,7 +306,7 @@ function PhobosRuralLedger.refreshMapBackedState(options)
     PhobosRuralLedger.state.eventHistory = previous.eventHistory or PhobosRuralLedger.state.eventHistory
     PhobosRuralLedger.state.cooldowns = previous.cooldowns or PhobosRuralLedger.state.cooldowns
     Simulation.calculatePeriod(PhobosRuralLedger.state)
-    PhobosRuralLedger.loadOpportunityStateOnce()
+    PhobosRuralLedger.loadOpportunityStateOnce(options.mission or g_currentMission)
     PhobosRuralLedger.reconcileOpportunities()
     logMapDiscoverySummary(PhobosRuralLedger.state.mapDiscovery)
 
@@ -288,6 +339,7 @@ function PhobosRuralLedger.tryMapReadyDiscovery(trigger)
     return PhobosRuralLedger.refreshMapBackedState({
         trigger = trigger,
         mapReadyAttempted = true,
+        mission = g_currentMission,
     }), true
 end
 
