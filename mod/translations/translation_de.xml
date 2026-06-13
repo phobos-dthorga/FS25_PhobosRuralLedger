@@ -6,6 +6,7 @@
         <text name="rl_tab_overview" text="Übersicht"/>
         <text name="rl_tab_farmers" text="Landwirte"/>
         <text name="rl_tab_farm_detail" text="Hofdetails"/>
+        <text name="rl_tab_opportunities" text="Gelegenheiten"/>
         <text name="rl_tab_settings_debug" text="Einstellungen / Debug"/>
         <text name="rl_button_refresh" text="Aktualisieren"/>
         <text name="rl_button_back" text="Zurück"/>
@@ -44,6 +45,8 @@
         <text name="rl_detail_primary_pressure" text="Hauptdruck: %s"/>
         <text name="rl_detail_headline" text="%s ist %s."/>
         <text name="rl_detail_player_meaning" text="Öffentliche Aufträge sind in diesem Abschnitt noch nicht aktiv."/>
+        <text name="rl_detail_player_meaning_opportunities" text="%d schreibgeschützte öffentliche Gelegenheiten sind sichtbar."/>
+        <text name="rl_detail_player_meaning_none" text="Für diese Fläche sind keine öffentlichen Gelegenheiten aktiv."/>
         <text name="rl_detail_support_debt" text="Schuldendruck ist %s"/>
         <text name="rl_detail_support_risk" text="Risikopuffer ist %s"/>
         <text name="rl_detail_support_field_condition" text="Feldzustand: %s"/>
@@ -54,6 +57,7 @@
         <text name="rl_detail_line_crop_mix" text="Fruchtmix: %s"/>
         <text name="rl_detail_line_field_condition" text="Feldzustand: %s"/>
         <text name="rl_detail_line_precision" text="Precision Farming: %s"/>
+        <text name="rl_detail_line_active_opportunities" text="Aktive Gelegenheiten: %d"/>
         <text name="rl_detail_line_fields" text="Kontrollierte Felder: %d"/>
         <text name="rl_detail_line_cash" text="Liquidität: %s"/>
         <text name="rl_detail_line_debt" text="Schuldendruck: %s"/>
@@ -98,7 +102,7 @@
         <text name="rl_debug_discovery_errors" text="Lesefehler bei Erkennung: Felder %d, Aufträge %d"/>
         <text name="rl_debug_first_skip_reason" text="Erster Übersprunggrund: %s"/>
         <text name="rl_debug_precision_farming" text="Precision Farming: %s"/>
-        <text name="rl_debug_save_hooks" text="Speicher-/Lade-Hooks: in diesem Abschnitt nicht verbunden"/>
+        <text name="rl_debug_save_hooks" text="Speicher-/Lade-Hooks: Gelegenheitspersistenz verbunden"/>
         <text name="rl_debug_first_cash" text="Erste Hof-Liquidität: %s"/>
         <text name="rl_debug_first_debt" text="Erste Hof-Schulden: %s"/>
         <text name="rl_debug_first_stress" text="Erster Hof-Stresswert: %d"/>
@@ -183,6 +187,29 @@
         <text name="rl_mood_mixed_watchful" text="Gemischt, aber wachsam"/>
         <text name="rl_mood_steady" text="Stabil"/>
         <text name="rl_no_public_request" text="Keine öffentliche Anfrage"/>
+        <text name="rl_public_requests_available" text="%d öffentliche Anfrage(n)"/>
+
+        <text name="rl_opportunity_dialog_title" text="Öffentliche Gelegenheiten"/>
+        <text name="rl_opportunity_dialog_subtitle" text="%s: %d Kandidat(en)"/>
+        <text name="rl_opportunity_public_heading" text="Schreibgeschützte Gelegenheitskandidaten"/>
+        <text name="rl_opportunity_no_selection" text="Wähle zuerst einen Hof mit öffentlichen Gelegenheiten aus."/>
+        <text name="rl_opportunity_none_for_farm" text="Für diese Fläche sind keine öffentlichen Gelegenheiten aktiv."/>
+        <text name="rl_opportunity_row" text="%s: %s %s"/>
+        <text name="rl_opportunity_expires" text="Sichtbar bis %s"/>
+        <text name="rl_opportunity_relationship_none" text="In diesem schreibgeschützten Abschnitt gibt es keinen Beziehungseffekt."/>
+        <text name="rl_opportunity_action_read_only" text="Schreibgeschützter Kandidat; noch keine Spieleraktion verfügbar."/>
+        <text name="rl_opportunity_title_urgent_work" text="Dringende Feldarbeit"/>
+        <text name="rl_opportunity_reason_urgent_work" text="%s zeigt sichtbaren Liquiditätsdruck."/>
+        <text name="rl_opportunity_title_margin_support" text="Margenunterstützung"/>
+        <text name="rl_opportunity_reason_margin_support" text="%s hat eine schwache Saisonmarge."/>
+        <text name="rl_opportunity_title_debt_relief" text="Unterstützung beim Schuldendienst"/>
+        <text name="rl_opportunity_reason_debt_relief" text="%s trägt hohen Schuldendienst."/>
+        <text name="rl_opportunity_title_transport_storage" text="Transport- und Lagerhilfe"/>
+        <text name="rl_opportunity_reason_transport_storage" text="%s hat begrenzte Lagerflexibilität."/>
+        <text name="rl_opportunity_title_machine_support" text="Maschinenunterstützung"/>
+        <text name="rl_opportunity_reason_machine_support" text="%s hat Maschinendruck."/>
+        <text name="rl_opportunity_title_rotation_advice" text="Fruchtfolgehinweis"/>
+        <text name="rl_opportunity_reason_rotation_advice" text="%s hat wenig Einkommensdiversität."/>
 
         <text name="rl_profile_family_farm" text="Kleiner Familienhof"/>
         <text name="rl_profile_contractor" text="Lohnunternehmer"/>

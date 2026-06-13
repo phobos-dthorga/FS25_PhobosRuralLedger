@@ -5,6 +5,7 @@ local UiModels = PhobosRuralLedger.UiModels
 local Constants = PhobosRuralLedger.Constants
 local I18n = PhobosRuralLedger.I18n
 local Ledgers = PhobosRuralLedger.Ledgers
+local Opportunities = PhobosRuralLedger.Opportunities
 
 local PRESSURE_LABELS = {
     none = {"rl_pressure_none", "No dominant pressure"},
@@ -22,6 +23,39 @@ local STRESS_LABELS = {
     strained = {"rl_stress_strained", "Strained"},
     distressed = {"rl_stress_distressed", "Distressed"},
     insolvent = {"rl_stress_insolvent", "Insolvent"},
+}
+
+local OPPORTUNITY_LABELS = {
+    urgent_work = {
+        title = {"rl_opportunity_title_urgent_work", "Urgent field work"},
+        reason = {"rl_opportunity_reason_urgent_work", "%s has visible cash pressure."},
+        action = {"rl_opportunity_action_read_only", "Read-only candidate; no player action is available yet."},
+    },
+    margin_support = {
+        title = {"rl_opportunity_title_margin_support", "Margin support"},
+        reason = {"rl_opportunity_reason_margin_support", "%s has a weak season margin."},
+        action = {"rl_opportunity_action_read_only", "Read-only candidate; no player action is available yet."},
+    },
+    debt_relief = {
+        title = {"rl_opportunity_title_debt_relief", "Debt service support"},
+        reason = {"rl_opportunity_reason_debt_relief", "%s is carrying heavy debt service."},
+        action = {"rl_opportunity_action_read_only", "Read-only candidate; no player action is available yet."},
+    },
+    transport_storage = {
+        title = {"rl_opportunity_title_transport_storage", "Transport and storage help"},
+        reason = {"rl_opportunity_reason_transport_storage", "%s has limited storage flexibility."},
+        action = {"rl_opportunity_action_read_only", "Read-only candidate; no player action is available yet."},
+    },
+    machine_support = {
+        title = {"rl_opportunity_title_machine_support", "Machine support"},
+        reason = {"rl_opportunity_reason_machine_support", "%s has machinery pressure."},
+        action = {"rl_opportunity_action_read_only", "Read-only candidate; no player action is available yet."},
+    },
+    rotation_advice = {
+        title = {"rl_opportunity_title_rotation_advice", "Crop rotation advice"},
+        reason = {"rl_opportunity_reason_rotation_advice", "%s has limited income diversity."},
+        action = {"rl_opportunity_action_read_only", "Read-only candidate; no player action is available yet."},
+    },
 }
 
 local STRESS_RANK = {
@@ -293,6 +327,69 @@ local function stateParts(state)
     return profiles, snapshots, Ledgers.indexSnapshotsByFarmId(snapshots)
 end
 
+local function opportunitiesByFarm(state)
+    local result = {}
+
+    for _, record in ipairs((state or {}).opportunities or {}) do
+        local opportunity = Opportunities ~= nil
+            and Opportunities.normalizeOpportunity ~= nil
+            and Opportunities.normalizeOpportunity(record)
+            or record
+        if opportunity ~= nil and opportunity.farmId ~= nil then
+            local farmId = opportunity.farmId
+            result[farmId] = result[farmId] or {}
+            result[farmId][#result[farmId] + 1] = opportunity
+        end
+    end
+
+    return result
+end
+
+local function opportunityTextEntry(opportunity)
+    return OPPORTUNITY_LABELS[(opportunity or {}).type] or OPPORTUNITY_LABELS.urgent_work
+end
+
+local function buildOpportunityView(opportunity, profile)
+    local entry = opportunityTextEntry(opportunity)
+    local displayName = (profile or {}).displayName or (opportunity or {}).farmId or text("rl_detail_no_farm_title", "No farm selected")
+    local severity = (opportunity or {}).severity or Constants.STRESS_STATES.STRAINED
+
+    return {
+        opportunityId = opportunity.opportunityId,
+        farmId = opportunity.farmId,
+        type = opportunity.type,
+        causeCode = opportunity.causeCode,
+        title = text(entry.title[1], entry.title[2]),
+        reason = text(entry.reason[1], entry.reason[2], displayName),
+        actionText = text(entry.action[1], entry.action[2]),
+        expiresText = text("rl_opportunity_expires", "Visible until %s", tostring(opportunity.expiresPeriod or "-")),
+        relationshipText = text("rl_opportunity_relationship_none", "No relationship effect in this read-only slice."),
+        severity = severity,
+        severityLabel = stressLabel(severity),
+    }
+end
+
+local function opportunityViewsForFarm(state, farmId, profile)
+    local records = {}
+
+    if Opportunities ~= nil and Opportunities.getForFarm ~= nil then
+        records = Opportunities.getForFarm(state, farmId)
+    else
+        for _, record in ipairs((state or {}).opportunities or {}) do
+            if tostring(record.farmId) == tostring(farmId) then
+                records[#records + 1] = record
+            end
+        end
+    end
+
+    local views = {}
+    for _, opportunity in ipairs(records) do
+        views[#views + 1] = buildOpportunityView(opportunity, profile)
+    end
+
+    return views
+end
+
 local function joinList(values, emptyText, maxItems)
     if values == nil or #values == 0 then
         return emptyText or text("rl_band_unknown", "Unknown")
@@ -402,6 +499,7 @@ function UiModels.buildFarmList(state, options)
     options = options or {}
 
     local profiles, _, snapshotsByFarmId = stateParts(state)
+    local opportunities = opportunitiesByFarm(state)
     local rows = {}
 
     for _, profile in ipairs(profiles) do
@@ -431,8 +529,10 @@ function UiModels.buildFarmList(state, options)
             cropSummary = profile.cropSummary or text("rl_band_unknown", "Unknown"),
             fieldConditionSummary = fieldConditionSummary(profile),
             precisionFarmingSummary = precisionFarmingSummary(profile),
-            activeOpportunityCount = 0,
-            nextOpportunityHint = text("rl_no_public_request", "No public request"),
+            activeOpportunityCount = #((opportunities[profile.farmId] or {})),
+            nextOpportunityHint = opportunities[profile.farmId] ~= nil
+                and text("rl_public_requests_available", "%d public request(s)", #(opportunities[profile.farmId] or {}))
+                or text("rl_no_public_request", "No public request"),
             lastNote = text("rl_farm_last_note", "%s / %s", marginBand(snapshot), pressureLabel(snapshot.primaryPressure)),
         }
 
@@ -582,6 +682,7 @@ function UiModels.buildFarmDetail(state, farmId, options)
     end
 
     local snapshot = snapshotsByFarmId[selectedProfile.farmId] or {}
+    local opportunityViews = opportunityViewsForFarm(state, selectedProfile.farmId, selectedProfile)
     local visibleLines = {
         text("rl_detail_line_profile", "Profile: %s", profileLabel(selectedProfile)),
         text("rl_detail_line_source", "Source: %s", sourceConfidenceLabel(selectedProfile)),
@@ -590,6 +691,7 @@ function UiModels.buildFarmDetail(state, farmId, options)
         text("rl_detail_line_crop_mix", "Crop mix: %s", selectedProfile.cropSummary or text("rl_band_unknown", "Unknown")),
         text("rl_detail_line_field_condition", "Field condition: %s", fieldConditionSummary(selectedProfile)),
         text("rl_detail_line_precision", "Precision Farming: %s", precisionFarmingSummary(selectedProfile)),
+        text("rl_detail_line_active_opportunities", "Active opportunities: %d", #opportunityViews),
         text("rl_detail_line_fields", "Fields controlled: %d", countFields(selectedProfile)),
         text("rl_detail_line_cash", "Cash position: %s", cashBand(snapshot)),
         text("rl_detail_line_debt", "Debt pressure: %s", debtBand(snapshot)),
@@ -627,7 +729,9 @@ function UiModels.buildFarmDetail(state, farmId, options)
                 text("rl_detail_support_risk", "Risk buffer is %s", string.lower(riskBufferBand(snapshot))),
                 text("rl_detail_support_field_condition", "Field condition: %s", fieldConditionSummary(selectedProfile)),
             },
-            playerMeaning = text("rl_detail_player_meaning", "Public opportunities are not active in this slice."),
+            playerMeaning = #opportunityViews > 0
+                and text("rl_detail_player_meaning_opportunities", "%d read-only public opportunity candidate(s) are visible.", #opportunityViews)
+                or text("rl_detail_player_meaning_none", "No public opportunities are active for this property."),
         },
         property = {
             source = selectedProfile.source or "fallback",
@@ -646,8 +750,66 @@ function UiModels.buildFarmDetail(state, farmId, options)
             riskBuffer = riskBufferBand(snapshot),
         },
         lines = visibleLines,
-        opportunities = {},
+        opportunities = opportunityViews,
         history = {},
+    }
+end
+
+function UiModels.buildOpportunities(state, farmId, options)
+    options = options or {}
+
+    local profiles = (state or {}).profiles or {}
+    local selectedProfile = nil
+    for _, profile in ipairs(profiles) do
+        if tostring(profile.farmId) == tostring(farmId) then
+            selectedProfile = profile
+            break
+        end
+    end
+
+    if selectedProfile == nil then
+        return {
+            farmId = nil,
+            title = text("rl_opportunity_dialog_title", "Public Opportunities"),
+            subtitle = text("rl_detail_no_farm_title", "No farm selected"),
+            rows = {
+                text("rl_opportunity_no_selection", "Select a farm with public opportunities first."),
+            },
+            opportunities = {},
+        }
+    end
+
+    local views = opportunityViewsForFarm(state, selectedProfile.farmId, selectedProfile)
+    local rows = {}
+
+    if #views == 0 then
+        rows[1] = text("rl_opportunity_none_for_farm", "No public opportunities are active for this property.")
+    else
+        for _, view in ipairs(views) do
+            rows[#rows + 1] = text(
+                "rl_opportunity_row",
+                "%s: %s %s",
+                view.title,
+                view.reason,
+                view.expiresText
+            )
+            rows[#rows + 1] = view.actionText
+            rows[#rows + 1] = view.relationshipText
+        end
+    end
+
+    return {
+        farmId = selectedProfile.farmId,
+        displayName = selectedProfile.displayName or selectedProfile.farmId,
+        title = text("rl_opportunity_dialog_title", "Public Opportunities"),
+        subtitle = text(
+            "rl_opportunity_dialog_subtitle",
+            "%s: %d candidate(s)",
+            selectedProfile.displayName or selectedProfile.farmId,
+            #views
+        ),
+        rows = rows,
+        opportunities = views,
     }
 end
 
@@ -694,7 +856,7 @@ function UiModels.buildDebugSummary(state, options)
                 and text("rl_precision_available", "Available; exact values pending")
                 or text("rl_precision_not_available", "Not available")
         ),
-        text("rl_debug_save_hooks", "Save/load hooks: not wired in this slice"),
+        text("rl_debug_save_hooks", "Save/load hooks: opportunity persistence wired"),
     }
 
     if options.includeExactFarmValues == true and snapshots[1] ~= nil then

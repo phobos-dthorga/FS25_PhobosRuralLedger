@@ -106,6 +106,12 @@ Recommended state groups:
 - generated land/contract/reputation opportunities;
 - cooldowns and event history.
 
+`v0.1.6.0` starts with the smallest runtime save surface: a dedicated
+`FS25_PhobosRuralLedger.xml` file stores read-only opportunities, cooldowns,
+and bounded event history only. Map-derived properties, profiles, and ledgers
+are rebuilt from the live map and reconciled against the saved opportunity
+records after discovery.
+
 ## Save Versioning
 
 Every saved root should include a schema version. Migrations should be explicit

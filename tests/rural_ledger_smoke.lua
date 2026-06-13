@@ -10,14 +10,17 @@ source("mod/src/MapDiscovery.lua")
 source("mod/src/Profiles.lua")
 source("mod/src/Ledgers.lua")
 source("mod/src/Simulation.lua")
+source("mod/src/Opportunities.lua")
 source("mod/src/UiModels.lua")
 source("mod/src/Reports.lua")
 source("mod/src/Persistence.lua")
+source("mod/src/Savegame.lua")
 
 local Constants = PhobosRuralLedger.Constants
 local I18n = PhobosRuralLedger.I18n
 local Ledgers = PhobosRuralLedger.Ledgers
 local MapDiscovery = PhobosRuralLedger.MapDiscovery
+local Opportunities = PhobosRuralLedger.Opportunities
 local Persistence = PhobosRuralLedger.Persistence
 local Reports = PhobosRuralLedger.Reports
 local Simulation = PhobosRuralLedger.Simulation
@@ -423,6 +426,174 @@ end
 assertTrue(sawFieldIds, "map farm detail should expose field IDs")
 assertTrue(sawPrecisionFarming, "map farm detail should expose Precision Farming status")
 
+local opportunityState = {
+    periodId = "season_0001",
+    mapDiscovery = {source = "map"},
+    profiles = {},
+    ledgerSnapshots = {},
+    opportunities = {},
+    eventHistory = {},
+    cooldowns = {},
+}
+for index = 1, 14 do
+    local farmId = string.format("opp_farm_%02d", index)
+    opportunityState.profiles[index] = {
+        farmId = farmId,
+        displayName = string.format("Opportunity Farm %02d", index),
+        profileType = "grain_grower",
+        ownedFields = {index},
+        fieldIds = {index},
+        farmlandIds = {index},
+        source = "map",
+        discoveryConfidence = "high",
+        cropSummary = "wheat",
+        fieldConditionCodes = {"tracked"},
+        storageRating = 2,
+        machineryRating = 2,
+        relationshipScore = 3,
+    }
+    opportunityState.ledgerSnapshots[index] = {
+        farmId = farmId,
+        operatingCash = -25000 - index,
+        totalDebt = 140000,
+        grossRevenue = 80000,
+        seasonProfit = -12000,
+        riskBuffer = 2000,
+        stressScore = 70 + index,
+        stressState = index == 1 and Constants.STRESS_STATES.INSOLVENT or Constants.STRESS_STATES.STRAINED,
+        primaryPressure = Constants.PRESSURE_TYPES.NEGATIVE_CASH,
+    }
+end
+local generatedOpportunities = Opportunities.reconcile(opportunityState)
+assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #generatedOpportunities, "opportunity generation should respect the global cap")
+assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #opportunityState.eventHistory, "new opportunities should write bounded event history")
+assertEquals("opp_farm_01", generatedOpportunities[1].farmId, "highest severity farm should receive the first opportunity")
+assertEquals("season_0002", generatedOpportunities[1].expiresPeriod, "opportunities should expire in the next period")
+local repeatedOpportunities = Opportunities.reconcile(opportunityState)
+assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #repeatedOpportunities, "reconcile should retain existing opportunities without duplicates")
+assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #opportunityState.eventHistory, "reconcile should not add duplicate history for retained opportunities")
+
+local fallbackOpportunityState = {
+    periodId = "season_0001",
+    mapDiscovery = {source = "fallback"},
+    profiles = opportunityState.profiles,
+    ledgerSnapshots = opportunityState.ledgerSnapshots,
+    opportunities = {},
+    eventHistory = {},
+    cooldowns = {},
+}
+Opportunities.reconcile(fallbackOpportunityState)
+assertEquals(0, #fallbackOpportunityState.opportunities, "fallback profiles should not generate public opportunities by default")
+
+local opportunityRows = UiModels.buildFarmList(opportunityState)
+assertTrue(opportunityRows[1].activeOpportunityCount > 0, "farm rows should expose selected-property opportunity counts")
+local opportunityDetail = UiModels.buildFarmDetail(opportunityState, "opp_farm_01")
+assertTrue(#opportunityDetail.opportunities > 0, "farm detail should include read-only opportunity views")
+assertContains(opportunityDetail.explanation.playerMeaning, "read-only", "farm detail should explain read-only opportunities")
+local opportunityModel = UiModels.buildOpportunities(opportunityState, "opp_farm_01")
+assertEquals("opp_farm_01", opportunityModel.farmId, "opportunity dialog model should match the selected farm")
+assertTrue(#opportunityModel.rows >= 3, "opportunity dialog model should include candidate rows")
+local missingOpportunityModel = UiModels.buildOpportunities(opportunityState, "missing")
+assertEquals(nil, missingOpportunityModel.farmId, "missing opportunity model should not fall back to another farm")
+
+local savedXmlFile = nil
+local function markNode(file, key)
+    local nodeKey = string.match(key, "^(.-)#") or key
+    file.nodes[nodeKey] = true
+end
+
+PhobosFS25.Savegames = {
+    buildSavegameXmlPath = function(fileName)
+        return "savegame/" .. tostring(fileName)
+    end,
+}
+PhobosFS25.XmlFile = {
+    create = function(label, filename, rootKey)
+        savedXmlFile = {
+            label = label,
+            filename = filename,
+            rootKey = rootKey,
+            values = {},
+            nodes = {},
+            saved = false,
+            deleted = false,
+        }
+        savedXmlFile.nodes[rootKey] = true
+        return savedXmlFile
+    end,
+    loadIfExists = function()
+        return savedXmlFile
+    end,
+    hasProperty = function(file, key)
+        return file ~= nil and file.nodes[key] == true
+    end,
+    getString = function(file, key, defaultValue)
+        local value = file ~= nil and file.values[key] or nil
+        return value ~= nil and tostring(value) or defaultValue
+    end,
+    getInt = function(file, key, defaultValue)
+        local value = file ~= nil and tonumber(file.values[key]) or nil
+        return value ~= nil and math.floor(value) or defaultValue
+    end,
+    getBool = function(file, key, defaultValue)
+        local value = file ~= nil and file.values[key] or nil
+        if value == nil then
+            return defaultValue
+        end
+        return value == true or value == "true"
+    end,
+    setString = function(file, key, value)
+        file.values[key] = tostring(value)
+        markNode(file, key)
+        return true
+    end,
+    setInt = function(file, key, value)
+        file.values[key] = tonumber(value)
+        markNode(file, key)
+        return true
+    end,
+    setBool = function(file, key, value)
+        file.values[key] = value == true and "true" or "false"
+        markNode(file, key)
+        return true
+    end,
+    forEachIndexed = function(file, keyPattern, callback, maxIterations)
+        local count = 0
+        for index = 0, (maxIterations or 10000) - 1 do
+            local key = string.format(keyPattern, index)
+            if file.nodes[key] ~= true then
+                break
+            end
+            callback(file, key, index)
+            count = count + 1
+        end
+        return count
+    end,
+    saveAndDelete = function(file)
+        file.saved = true
+        file.deleted = true
+        return true
+    end,
+    delete = function(file)
+        file.deleted = true
+        return true
+    end,
+}
+local saved, saveStatus = PhobosRuralLedger.Savegame.write(opportunityState)
+assertEquals(true, saved, "opportunity savegame write should succeed with fake XMLFile helpers")
+assertEquals("saved", saveStatus, "opportunity savegame write should report saved status")
+local loadedSave, loadStatus = PhobosRuralLedger.Savegame.read()
+assertEquals("loaded", loadStatus, "opportunity savegame read should load the fake XML file")
+assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #loadedSave.opportunities, "savegame read should round-trip opportunities")
+assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #loadedSave.eventHistory, "savegame read should round-trip event history")
+assertEquals(generatedOpportunities[1].farmId, loadedSave.opportunities[1].farmId, "savegame read should preserve opportunity farm identity")
+savedXmlFile = nil
+local missingSave, missingStatus = PhobosRuralLedger.Savegame.read()
+assertEquals(nil, missingSave, "missing savegame read should return nil data")
+assertEquals("missing", missingStatus, "missing savegame read should report missing status")
+PhobosFS25.XmlFile = nil
+PhobosFS25.Savegames = nil
+
 local boundedIds = {}
 for index = 1, 20 do
     boundedIds[index] = index
@@ -656,6 +827,7 @@ function Class(classObject, superClass)
 end
 
 source("mod/src/RuralLedgerFarmDetailDialog.lua")
+source("mod/src/RuralLedgerOpportunityDialog.lua")
 source("mod/src/RuralLedgerScreen.lua")
 
 local profileLoadCalls = {}
@@ -678,17 +850,20 @@ PhobosRuralLedger.Gui.modDirectory = "mod/"
 PhobosRuralLedger.Gui.screenLoaded = false
 PhobosRuralLedger.Gui.profilesLoaded = false
 PhobosRuralLedger.Gui.farmDetailDialogLoaded = false
+PhobosRuralLedger.Gui.opportunityDialogLoaded = false
 PhobosRuralLedger.Gui.screen = nil
 assertTrue(PhobosRuralLedger.Gui:loadScreen(), "GUI loader should load profiles and screen XML")
 assertEquals(1, #profileLoadCalls, "GUI profiles should load before the screen XML")
 assertEquals("mod/gui/guiProfiles.xml", profileLoadCalls[1], "GUI loader should load the dedicated Rural Ledger profile file")
-assertEquals(2, #guiLoadCalls, "dialog and screen XML should load once on first GUI load")
+assertEquals(3, #guiLoadCalls, "dialogs and screen XML should load once on first GUI load")
 assertEquals("mod/gui/RuralLedgerFarmDetailDialog.xml", guiLoadCalls[1].path, "farm detail dialog should load before the main screen")
 assertEquals(Constants.FARM_DETAIL_DIALOG_NAME, guiLoadCalls[1].name, "farm detail dialog should use the public dialog name")
-assertEquals("mod/gui/RuralLedgerScreen.xml", guiLoadCalls[2].path, "screen XML should load after the dialog")
+assertEquals("mod/gui/RuralLedgerOpportunityDialog.xml", guiLoadCalls[2].path, "opportunity dialog should load before the main screen")
+assertEquals(Constants.OPPORTUNITY_DIALOG_NAME, guiLoadCalls[2].name, "opportunity dialog should use the public dialog name")
+assertEquals("mod/gui/RuralLedgerScreen.xml", guiLoadCalls[3].path, "screen XML should load after the dialogs")
 assertTrue(PhobosRuralLedger.Gui:loadScreen(), "second GUI load should reuse the cached screen")
 assertEquals(1, #profileLoadCalls, "GUI profiles should not load repeatedly")
-assertEquals(2, #guiLoadCalls, "dialog and screen XML should not load repeatedly")
+assertEquals(3, #guiLoadCalls, "dialogs and screen XML should not load repeatedly")
 g_gui = nil
 
 local screen = PhobosRuralLedger.RuralLedgerScreen.new()
@@ -701,6 +876,7 @@ screen.overviewTab = makeElement()
 screen.farmersTab = makeElement()
 screen.debugTab = makeElement()
 screen.farmDetailFooterButton = makeElement()
+screen.opportunityFooterButton = makeElement()
 screen.farmHeaderFarm = makeElement()
 screen.farmHeaderType = makeElement()
 screen.farmHeaderFields = makeElement()
@@ -756,15 +932,18 @@ assertTrue(farmCell.attributes.farmNameCompact.visible, "compact layout should s
 
 screen.isReloading = false
 assertTrue(screen.farmDetailFooterButton.disabled, "farm detail footer action should start disabled without a selected farm")
+assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should start disabled without a selected farm")
 assertTrue(screen.farmTable.onDoubleClickCallback ~= nil, "farm table should expose the SmoothList double-click callback")
 assertEquals(nil, screen.farmTable.onDoubleClick, "farm table should not depend on a speculative double-click callback")
 screen:onListSelectionChanged(screen.farmTable, 1, 0)
 assertEquals(nil, screen.selectedFarmId, "farm selection should ignore non-row zero indices")
 assertTrue(screen.farmDetailFooterButton.disabled, "farm detail footer action should remain disabled after non-row selection")
+assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should remain disabled after non-row selection")
 screen:onListSelectionChanged(screen.farmTable, 1, 2)
 assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "farm selection should update selected farm")
 assertEquals(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.FARMERS, screen.activeSection, "farm selection should keep Farmers as the active top tab")
 assertTrue(not screen.farmDetailFooterButton.disabled, "farm detail footer action should enable after selecting a farm")
+assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should stay disabled when selected farm has no opportunities")
 
 local shownDialogs = {}
 g_gui = {
@@ -773,8 +952,12 @@ g_gui = {
             name = name,
             target = {
                 receivedDetail = nil,
+                receivedOpportunities = nil,
                 setFarmDetail = function(self, detail)
                     self.receivedDetail = detail
+                end,
+                setOpportunities = function(self, model)
+                    self.receivedOpportunities = model
                 end,
             },
         }
@@ -786,6 +969,28 @@ assertEquals(1, #shownDialogs, "farm detail footer action should open one dialog
 assertEquals(Constants.FARM_DETAIL_DIALOG_NAME, shownDialogs[1].name, "farm detail footer action should use the registered dialog")
 assertEquals(farmRowsA[2].farmId, shownDialogs[1].target.receivedDetail.farmId, "dialog should receive the selected farm detail model")
 
+stateA.opportunities = {
+    Opportunities.normalizeOpportunity({
+        farmId = farmRowsA[2].farmId,
+        type = "urgent_work",
+        causeCode = Constants.PRESSURE_TYPES.NEGATIVE_CASH,
+        sourcePeriod = "season_0001",
+        expiresPeriod = "season_0002",
+        severity = Constants.STRESS_STATES.STRAINED,
+    }),
+}
+screen:refreshModels()
+screen:updateDisplay()
+assertTrue(not screen.opportunityFooterButton.disabled, "opportunity footer action should enable when selected farm has candidates")
+screen:onClickOpportunities()
+assertEquals(2, #shownDialogs, "opportunity footer action should open one dialog")
+assertEquals(Constants.OPPORTUNITY_DIALOG_NAME, shownDialogs[2].name, "opportunity footer action should use the registered dialog")
+assertEquals(farmRowsA[2].farmId, shownDialogs[2].target.receivedOpportunities.farmId, "opportunity dialog should receive the selected farm model")
+stateA.opportunities = {}
+screen:refreshModels()
+screen:updateDisplay()
+assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should disable again when candidates disappear")
+
 local function farmTableElement(index)
     return {
         sectionIndex = 1,
@@ -794,33 +999,33 @@ local function farmTableElement(index)
 end
 
 screen:onListDoubleClick(screen.farmTable, 1, 0)
-assertEquals(1, #shownDialogs, "farm table double-click should ignore non-row zero indices")
+assertEquals(2, #shownDialogs, "farm table double-click should ignore non-row zero indices")
 assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "ignored double-click should keep the previous valid selection")
 screen:onListDoubleClick(screen.farmTable, 1, 3)
-assertEquals(2, #shownDialogs, "farm table double-click should open one dialog per activation")
+assertEquals(3, #shownDialogs, "farm table double-click should open one dialog per activation")
 assertEquals(farmRowsA[3].farmId, screen.selectedFarmId, "farm table double-click should select the clicked farm")
-assertEquals(farmRowsA[3].farmId, shownDialogs[2].target.receivedDetail.farmId, "double-click dialog should receive the clicked farm detail model")
+assertEquals(farmRowsA[3].farmId, shownDialogs[3].target.receivedDetail.farmId, "double-click dialog should receive the clicked farm detail model")
 
 screen.selectedFarmId = farmRowsA[2].farmId
 screen.farmTable.onDoubleClickCallback(screen.farmTable, 1, 4, farmTableElement(4), true)
-assertEquals(3, #shownDialogs, "SmoothList double-click callback should open the detail dialog")
+assertEquals(4, #shownDialogs, "SmoothList double-click callback should open the detail dialog")
 assertEquals(farmRowsA[4].farmId, screen.selectedFarmId, "SmoothList double-click callback should select the clicked row")
-assertEquals(farmRowsA[4].farmId, shownDialogs[3].target.receivedDetail.farmId, "SmoothList callback dialog should receive the clicked farm detail")
+assertEquals(farmRowsA[4].farmId, shownDialogs[4].target.receivedDetail.farmId, "SmoothList callback dialog should receive the clicked farm detail")
 
 screen.selectedFarmId = farmRowsA[2].farmId
 screen.farmTable.onDoubleClickCallback({callbackTarget = true}, screen.farmTable, 1, 5, farmTableElement(5), true)
-assertEquals(4, #shownDialogs, "target-prefixed SmoothList callback should open the detail dialog")
+assertEquals(5, #shownDialogs, "target-prefixed SmoothList callback should open the detail dialog")
 assertEquals(farmRowsA[5].farmId, screen.selectedFarmId, "target-prefixed SmoothList callback should select the clicked row")
-assertEquals(farmRowsA[5].farmId, shownDialogs[4].target.receivedDetail.farmId, "target-prefixed callback dialog should receive the clicked farm detail")
+assertEquals(farmRowsA[5].farmId, shownDialogs[5].target.receivedDetail.farmId, "target-prefixed callback dialog should receive the clicked farm detail")
 
 screen.selectedFarmId = farmRowsA[2].farmId
 screen.farmTable.onDoubleClickCallback({callbackTarget = true}, 1, 6, farmTableElement(6), true)
-assertEquals(5, #shownDialogs, "element-backed SmoothList callback should open the detail dialog")
+assertEquals(6, #shownDialogs, "element-backed SmoothList callback should open the detail dialog")
 assertEquals(farmRowsA[6].farmId, screen.selectedFarmId, "element-backed SmoothList callback should select the clicked row")
-assertEquals(farmRowsA[6].farmId, shownDialogs[5].target.receivedDetail.farmId, "element-backed callback dialog should receive the clicked farm detail")
+assertEquals(farmRowsA[6].farmId, shownDialogs[6].target.receivedDetail.farmId, "element-backed callback dialog should receive the clicked farm detail")
 
 screen.farmTable.onDoubleClickCallback(screen.farmTable, 1, 0, {sectionIndex = 1, indexInSection = 0, isHeader = true}, true)
-assertEquals(5, #shownDialogs, "SmoothList double-click should ignore header cells")
+assertEquals(6, #shownDialogs, "SmoothList double-click should ignore header cells")
 assertEquals(farmRowsA[6].farmId, screen.selectedFarmId, "ignored header double-click should keep the previous valid selection")
 g_gui = nil
 
@@ -829,11 +1034,13 @@ screen:refreshModels()
 screen:updateDisplay()
 assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "refresh should preserve a still-valid farm selection")
 assertTrue(not screen.farmDetailFooterButton.disabled, "refresh should keep the detail footer action enabled for a valid selection")
+assertTrue(screen.opportunityFooterButton.disabled, "refresh should keep the opportunity footer disabled without candidates")
 screen.selectedFarmId = "missing_farm"
 screen:refreshModels()
 screen:updateDisplay()
 assertEquals(nil, screen.selectedFarmId, "refresh should clear a missing farm selection")
 assertTrue(screen.farmDetailFooterButton.disabled, "refresh should disable the detail footer action when selection disappears")
+assertTrue(screen.opportunityFooterButton.disabled, "refresh should disable the opportunity footer action when selection disappears")
 
 local dialog = PhobosRuralLedger.FarmDetailDialog.new()
 dialog.detailTitle = makeElement()
@@ -849,6 +1056,18 @@ assertTrue(#dialog.detailRows > 0, "farm detail dialog should expose public deta
 assertEquals(#dialog.detailRows, dialog:getNumberOfItemsInSection(dialog.detailList, 1), "farm detail dialog list count should match detail rows")
 dialog:onClickBack()
 assertTrue(dialog.closed, "farm detail dialog back action should close the dialog")
+
+local opportunityDialog = PhobosRuralLedger.OpportunityDialog.new()
+opportunityDialog.opportunityTitle = makeElement()
+opportunityDialog.opportunitySubtitle = makeElement()
+opportunityDialog.opportunityList = makeList()
+opportunityDialog:onGuiSetupFinished()
+opportunityDialog:setOpportunities(UiModels.buildOpportunities(opportunityState, "opp_farm_01"))
+assertTrue(opportunityDialog.opportunityTitle.text ~= "", "opportunity dialog should render a title")
+assertTrue(#opportunityDialog.rows > 0, "opportunity dialog should expose read-only rows")
+assertEquals(#opportunityDialog.rows, opportunityDialog:getNumberOfItemsInSection(opportunityDialog.opportunityList, 1), "opportunity dialog list count should match rows")
+opportunityDialog:onClickBack()
+assertTrue(opportunityDialog.closed, "opportunity dialog back action should close the dialog")
 
 source("mod/src/PhobosRuralLedger.lua")
 

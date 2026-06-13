@@ -6,12 +6,55 @@ local Constants = PhobosRuralLedger.Constants
 local Profiles = PhobosRuralLedger.Profiles
 local Ledgers = PhobosRuralLedger.Ledgers
 local MapDiscovery = PhobosRuralLedger.MapDiscovery
+local Opportunities = PhobosRuralLedger.Opportunities
 
 local function copyArray(values)
     local result = {}
 
     for index, value in ipairs(values or {}) do
         result[index] = value
+    end
+
+    return result
+end
+
+local function copyMap(values)
+    local result = {}
+
+    for key, value in pairs(values or {}) do
+        result[key] = value
+    end
+
+    return result
+end
+
+local function normalizeOpportunities(values)
+    local result = {}
+
+    for _, value in ipairs(values or {}) do
+        local record = Opportunities ~= nil
+            and Opportunities.normalizeOpportunity ~= nil
+            and Opportunities.normalizeOpportunity(value)
+            or value
+        if record ~= nil then
+            result[#result + 1] = record
+        end
+    end
+
+    return result
+end
+
+local function normalizeEventHistory(values)
+    local result = {}
+
+    for _, value in ipairs(values or {}) do
+        local record = Opportunities ~= nil
+            and Opportunities.normalizeHistory ~= nil
+            and Opportunities.normalizeHistory(value)
+            or value
+        if record ~= nil then
+            result[#result + 1] = record
+        end
     end
 
     return result
@@ -88,9 +131,9 @@ function Persistence.exportState(state)
         mapDiscovery = source.mapDiscovery,
         profiles = copyArray(source.profiles),
         ledgerSnapshots = copyArray(source.ledgerSnapshots),
-        opportunities = copyArray(source.opportunities),
-        eventHistory = copyArray(source.eventHistory),
-        cooldowns = source.cooldowns or {},
+        opportunities = normalizeOpportunities(source.opportunities),
+        eventHistory = normalizeEventHistory(source.eventHistory),
+        cooldowns = copyMap(source.cooldowns),
     }
 end
 
@@ -165,9 +208,9 @@ function Persistence.importState(data, options)
         mapDiscovery = mapDiscovery,
         profiles = profiles,
         ledgerSnapshots = snapshots,
-        opportunities = migrated.opportunities or {},
-        eventHistory = migrated.eventHistory or {},
-        cooldowns = migrated.cooldowns or {},
+        opportunities = normalizeOpportunities(migrated.opportunities),
+        eventHistory = normalizeEventHistory(migrated.eventHistory),
+        cooldowns = copyMap(migrated.cooldowns),
     }
 end
 

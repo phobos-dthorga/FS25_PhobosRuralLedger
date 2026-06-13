@@ -121,6 +121,12 @@ cooldown_key
 relationship_effect
 ```
 
+`v0.1.6.0` persists the compact public subset: `opportunity_id`,
+`farm_id`, `type`, `reason`, `cause_code`, `source_period`,
+`expires_period`, `player_visible`, `severity`, and `cooldown_key`.
+Profiles and ledger snapshots are rebuilt from the live map and then the saved
+opportunities are reconciled to current farm IDs.
+
 Example opportunity types:
 
 - urgent contract;

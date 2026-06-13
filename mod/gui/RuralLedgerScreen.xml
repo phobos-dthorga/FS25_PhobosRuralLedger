@@ -97,6 +97,9 @@
     </GuiElement>
 
     <BoxLayout profile="fs25_buttonBox" id="buttonsPanel">
+        <Button profile="rlFooterButton" text="$l10n_rl_tab_opportunities" onClick="onClickOpportunities" id="opportunityFooterButton" disabled="true">
+            <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
+        </Button>
         <Button profile="rlFooterButton" text="$l10n_rl_tab_farm_detail" onClick="onClickFarmDetail" id="farmDetailFooterButton" disabled="true">
             <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
         </Button>

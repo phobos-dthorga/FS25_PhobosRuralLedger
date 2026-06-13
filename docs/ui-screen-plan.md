@@ -417,8 +417,8 @@ SmoothList double-click callback path.
 correct, but double-click needed to resolve the clicked row from the full
 SmoothList callback arguments and ignore index `0` header/non-row events.
 
-The next model correction is map-first ownership. Current V1 UI data is still
-fallback-generated while the FS25 landowner, farmland, field, contract, and
-Precision Farming API paths are researched. Future UI rows should migrate to
-map-derived owner/property records before Rural Ledger adds land, auction,
-contract, or relationship gameplay effects.
+`v0.1.6.0` adds the next context-aware footer action: selecting a pressured
+property enables `Opportunities`, which opens a read-only dialog of generated
+public candidates. The dialog uses saved cause/expiry data and remains
+informational only. There is no accept button, contract creation, land mutation,
+relationship mutation, or economy API call in this screen slice.

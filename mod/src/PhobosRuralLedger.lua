@@ -5,6 +5,8 @@ local Persistence = PhobosRuralLedger.Persistence
 local Reports = PhobosRuralLedger.Reports
 local Simulation = PhobosRuralLedger.Simulation
 local MapDiscovery = PhobosRuralLedger.MapDiscovery
+local Opportunities = PhobosRuralLedger.Opportunities
+local Savegame = PhobosRuralLedger.Savegame
 
 PhobosRuralLedger.MOD_NAME = Constants.MOD_NAME
 PhobosRuralLedger.DISPLAY_NAME = Constants.DISPLAY_NAME
@@ -12,6 +14,7 @@ PhobosRuralLedger.VERSION = Constants.VERSION
 PhobosRuralLedger.mapLoadDiscoveryAttempted = PhobosRuralLedger.mapLoadDiscoveryAttempted == true
 PhobosRuralLedger.missionStartDiscoveryAttempted = PhobosRuralLedger.missionStartDiscoveryAttempted == true
 PhobosRuralLedger.screenOpenDiscoveryAttempted = PhobosRuralLedger.screenOpenDiscoveryAttempted == true
+PhobosRuralLedger.opportunitySavegameLoaded = PhobosRuralLedger.opportunitySavegameLoaded == true
 
 local function copyOptionsWithDefaultMaxLines(options)
     local result = {}
@@ -31,6 +34,16 @@ local function formatMessage(message, ...)
     end
 
     return string.format(tostring(message), ...)
+end
+
+local function countMap(values)
+    local count = 0
+
+    for _ in pairs(values or {}) do
+        count = count + 1
+    end
+
+    return count
 end
 
 local function logInfo(message, ...)
@@ -143,6 +156,74 @@ function PhobosRuralLedger.hasUsableMapDiscovery()
     return mapDiscoveryIsUsable((PhobosRuralLedger.state or {}).mapDiscovery)
 end
 
+function PhobosRuralLedger.applyOpportunitySaveData(data)
+    if data == nil or PhobosRuralLedger.state == nil then
+        return false
+    end
+
+    PhobosRuralLedger.state.opportunities = data.opportunities or {}
+    PhobosRuralLedger.state.eventHistory = data.eventHistory or {}
+    PhobosRuralLedger.state.cooldowns = data.cooldowns or {}
+    PhobosRuralLedger.state.loadedOpportunityPeriodId = data.periodId
+    PhobosRuralLedger.state.loadedOpportunityModVersion = data.modVersion
+
+    return true
+end
+
+function PhobosRuralLedger.loadOpportunityStateOnce(mission)
+    if PhobosRuralLedger.opportunitySavegameLoaded == true then
+        return false
+    end
+
+    if Savegame == nil or Savegame.canUse == nil or Savegame.read == nil or not Savegame.canUse(mission) then
+        return false
+    end
+
+    local data, status = Savegame.read(mission)
+    if status == "loaded" and PhobosRuralLedger.applyOpportunitySaveData(data) then
+        PhobosRuralLedger.opportunitySavegameLoaded = true
+        logInfo(
+            "Rural Ledger opportunity save loaded: %d opportunities, %d events, %d cooldowns.",
+            #(data.opportunities or {}),
+            #(data.eventHistory or {}),
+            countMap(data.cooldowns)
+        )
+        return true
+    elseif status == "missing" then
+        PhobosRuralLedger.opportunitySavegameLoaded = true
+        logInfo("Rural Ledger opportunity save not found; starting a fresh read-only opportunity set.")
+    end
+
+    return false
+end
+
+function PhobosRuralLedger.reconcileOpportunities(options)
+    if Opportunities ~= nil and Opportunities.reconcile ~= nil then
+        return Opportunities.reconcile(PhobosRuralLedger.state, options)
+    end
+
+    return {}
+end
+
+function PhobosRuralLedger.saveOpportunityState(mission)
+    if Savegame == nil or Savegame.write == nil or PhobosRuralLedger.state == nil then
+        return false
+    end
+
+    PhobosRuralLedger.reconcileOpportunities({skipHistory = true})
+    local saved, status = Savegame.write(PhobosRuralLedger.state, mission)
+    if saved then
+        logInfo(
+            "Rural Ledger opportunity save written: %d opportunities.",
+            #((PhobosRuralLedger.state or {}).opportunities or {})
+        )
+    elseif status ~= "unavailable" then
+        logWarn("Rural Ledger opportunity save failed: %s", tostring(status))
+    end
+
+    return saved
+end
+
 function PhobosRuralLedger.refreshMapBackedState(options)
     options = options or {}
 
@@ -174,6 +255,8 @@ function PhobosRuralLedger.refreshMapBackedState(options)
     PhobosRuralLedger.state.eventHistory = previous.eventHistory or PhobosRuralLedger.state.eventHistory
     PhobosRuralLedger.state.cooldowns = previous.cooldowns or PhobosRuralLedger.state.cooldowns
     Simulation.calculatePeriod(PhobosRuralLedger.state)
+    PhobosRuralLedger.loadOpportunityStateOnce()
+    PhobosRuralLedger.reconcileOpportunities()
     logMapDiscoverySummary(PhobosRuralLedger.state.mapDiscovery)
 
     return PhobosRuralLedger.state
@@ -241,6 +324,7 @@ function PhobosRuralLedger.bootstrap()
     })
     logMapDiscoverySummary(PhobosRuralLedger.state.mapDiscovery)
     Simulation.calculatePeriod(PhobosRuralLedger.state)
+    PhobosRuralLedger.reconcileOpportunities()
     PhobosRuralLedger.reportLines = PhobosRuralLedger.logEconomyReport()
 end
 

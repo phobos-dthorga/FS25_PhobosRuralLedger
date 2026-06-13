@@ -36,6 +36,7 @@ REQUIRED_L10N_KEYS = ("input_PHOBOS_RURAL_LEDGER_MENU",)
 REQUIRED_GUI_FILES = (
     "gui/RuralLedgerScreen.xml",
     "gui/RuralLedgerFarmDetailDialog.xml",
+    "gui/RuralLedgerOpportunityDialog.xml",
     "gui/guiProfiles.xml",
 )
 FORBIDDEN_GUI_PROFILE_NAMES = {

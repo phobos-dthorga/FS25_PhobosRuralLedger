@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <modDesc descVersion="107" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://validation.gdn.giants-software.com/xml/fs25/modDesc.xsd">
     <author>phobosgekko</author>
-    <version>0.1.5.8</version>
+    <version>0.1.6.0</version>
     <title>
         <en>Phobos' Rural Ledger</en>
         <de>Phobos' Ländliches Hauptbuch</de>
@@ -20,12 +20,15 @@
         <sourceFile filename="src/Profiles.lua"/>
         <sourceFile filename="src/Ledgers.lua"/>
         <sourceFile filename="src/Simulation.lua"/>
+        <sourceFile filename="src/Opportunities.lua"/>
         <sourceFile filename="src/UiModels.lua"/>
         <sourceFile filename="src/Reports.lua"/>
         <sourceFile filename="src/Persistence.lua"/>
+        <sourceFile filename="src/Savegame.lua"/>
         <sourceFile filename="src/PhobosRuralLedger.lua"/>
         <sourceFile filename="src/RuralLedgerScreen.lua"/>
         <sourceFile filename="src/RuralLedgerFarmDetailDialog.lua"/>
+        <sourceFile filename="src/RuralLedgerOpportunityDialog.lua"/>
         <sourceFile filename="src/RuralLedgerGui.lua"/>
     </extraSourceFiles>
 

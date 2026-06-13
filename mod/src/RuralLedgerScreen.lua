@@ -25,6 +25,7 @@ function RuralLedgerScreen.new(target, customMt)
     self.cachedOverview = nil
     self.cachedFarmRows = {}
     self.cachedFarmDetail = nil
+    self.cachedOpportunities = nil
     self.cachedDebug = nil
     self.overviewRows = {}
     self.debugRows = {}
@@ -310,6 +311,21 @@ function RuralLedgerScreen:onClickFarmDetail()
     self:openFarmDetailDialog()
 end
 
+function RuralLedgerScreen:onClickOpportunities()
+    if self.selectedFarmId == nil then
+        self:updateFooterButtons()
+        return
+    end
+
+    self:refreshOpportunities()
+    if #(((self.cachedOpportunities or {}).opportunities) or {}) == 0 then
+        self:updateFooterButtons()
+        return
+    end
+
+    self:openOpportunityDialog()
+end
+
 function RuralLedgerScreen:onClickDebug()
     self:setSection(RuralLedgerScreen.SECTIONS.DEBUG)
 end
@@ -346,11 +362,15 @@ function RuralLedgerScreen:onListSelectionChanged(list, section, index)
     local row = rowAtListIndex(self.cachedFarmRows, index)
     if row == nil then
         self.selectedFarmId = nil
+        self:refreshFarmDetail()
+        self:refreshOpportunities()
         self:updateFooterButtons()
         return
     end
 
     self.selectedFarmId = row.farmId
+    self:refreshFarmDetail()
+    self:refreshOpportunities()
     self:setSection(RuralLedgerScreen.SECTIONS.FARMERS)
 end
 
@@ -365,6 +385,8 @@ function RuralLedgerScreen:onListDoubleClick(list, ...)
     end
 
     self.selectedFarmId = row.farmId
+    self:refreshFarmDetail()
+    self:refreshOpportunities()
     self:setSection(RuralLedgerScreen.SECTIONS.FARMERS)
     self:onClickFarmDetail()
 end
@@ -384,6 +406,7 @@ function RuralLedgerScreen:refreshModels()
         self.selectedFarmId = nil
     end
     self:refreshFarmDetail()
+    self:refreshOpportunities()
     self.cachedDebug = PhobosRuralLedger.UiModels.buildDebugSummary(state, {
         includeExactFarmValues = self.debugVisible,
     })
@@ -397,6 +420,14 @@ function RuralLedgerScreen:refreshFarmDetail()
         {includeDebug = self.debugVisible}
     )
     self.detailRows = (self.cachedFarmDetail or {}).lines or {}
+end
+
+function RuralLedgerScreen:refreshOpportunities()
+    self.cachedOpportunities = PhobosRuralLedger.UiModels.buildOpportunities(
+        PhobosRuralLedger.getState(),
+        self.selectedFarmId,
+        {includeDebug = self.debugVisible}
+    )
 end
 
 function RuralLedgerScreen:adaptLayout()
@@ -499,8 +530,11 @@ end
 function RuralLedgerScreen:updateFooterButtons()
     local canOpenDetail = self.activeSection == RuralLedgerScreen.SECTIONS.FARMERS
         and self.selectedFarmId ~= nil
+    local canOpenOpportunities = canOpenDetail
+        and #(((self.cachedOpportunities or {}).opportunities) or {}) > 0
 
     setButtonDisabled(self.farmDetailFooterButton, not canOpenDetail)
+    setButtonDisabled(self.opportunityFooterButton, not canOpenOpportunities)
 end
 
 function RuralLedgerScreen:openFarmDetailDialog()
@@ -513,6 +547,19 @@ function RuralLedgerScreen:openFarmDetailDialog()
 
     if target ~= nil and target.setFarmDetail ~= nil then
         target:setFarmDetail(self.cachedFarmDetail)
+    end
+end
+
+function RuralLedgerScreen:openOpportunityDialog()
+    if g_gui == nil or g_gui.showDialog == nil or Constants == nil then
+        return
+    end
+
+    local dialog = g_gui:showDialog(Constants.OPPORTUNITY_DIALOG_NAME)
+    local target = dialog ~= nil and dialog.target or nil
+
+    if target ~= nil and target.setOpportunities ~= nil then
+        target:setOpportunities(self.cachedOpportunities)
     end
 end
 

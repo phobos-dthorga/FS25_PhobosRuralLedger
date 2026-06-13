@@ -33,8 +33,14 @@ Implemented:
 - dedicated Rural Ledger GUI profile loading through `gui/guiProfiles.xml`;
 - oversized owner/NPC discovery bucket splitting into farmland-backed property
   records;
-- Farm Detail as a selected-property drill-down inside the Farmers screen, not
-  as a top-level overview tab.
+- Farm Detail as a selected-property footer action/dialog, not as a top-level
+  overview tab;
+- read-only public opportunity candidates generated from map-backed strained
+  or worse properties;
+- context-aware `Opportunities` footer action and read-only opportunities
+  dialog;
+- compact dedicated save XML persistence for opportunities, cooldowns, and
+  bounded event history.
 
 ## Runtime Evidence
 
@@ -171,6 +177,15 @@ row from the full SmoothList callback shape rather than from stale selected
 state. Feature work stays gated until this row-to-dialog identity fix is
 runtime-proven.
 
+Runtime testing of `v0.1.5.8` confirmed the double-click identity fix, so
+`v0.1.6.0` adds the first read-only opportunity slice. Opportunities are
+generated only from map-backed properties that are strained, distressed, or
+insolvent, capped at 12 active candidates, and exposed through Overview counts,
+Farm Detail summaries, and a context-aware footer dialog. The save/load hook is
+limited to a compact `FS25_PhobosRuralLedger.xml` file for opportunities,
+cooldowns, and bounded event history; profiles and ledger snapshots remain
+rebuilt from the live map and reconciled after discovery.
+
 ## Persistence Boundary
 
 `Persistence.lua` currently owns table-shaped save state:
@@ -188,33 +203,26 @@ runtime-proven.
 - event history;
 - cooldowns.
 
-This is deliberately not wired to FS25 save/load hooks yet. The hook path must
-be verified against FS25 references before any runtime save integration is
-added.
+`v0.1.6.0` wires a narrow local save hook for opportunity state only. It uses
+`PhobosFS25.Savegames` for the current savegame XML path and
+`PhobosFS25.XmlFile` for nil-safe XML reads/writes. The hook remains provisional
+until runtime save/reload proof confirms that FS25 writes the dedicated XML file
+without Phobos-owned warnings or save failures.
 
 ## Next Implementation Slice
 
 Recommended next code step:
 
-1. Runtime-test the `v0.1.5.8` double-click identity hotfix on the same
-   disposable save with `FS25_PhobosLib` installed, and optionally with
-   `FS25_precisionFarming`.
-2. Confirm no Phobos-owned `Error:`, `Warning:`, or `Warning (` lines appear,
-   especially no Rural Ledger-owned `Could not retrieve GUI profile 'button'`.
-3. Verify top tabs are overview-level only, Farmers row selection only enables
-   the footer `Farm Detail` action, and pressing that action opens/closes the
-   read-only dialog cleanly.
-4. Verify clicking or double-clicking several Farmers rows opens the same
-   read-only Farm Detail dialog with matching property name, field IDs, and
-   farmland IDs for each selected row.
-5. Verify button, tab, settings/debug, Refresh, and footer interactions do not
-   produce visible distortion.
-6. Verify the tested map still shows multiple map-backed property records rather
-   than one broad owner record, while still reporting the same usable field and
-   farmland counts.
-7. Add the first read-only cause-carrying neighbour opportunity from strained
-   or worse farms only after the `v0.1.5.8` double-click runtime pass is clean.
-8. Research exact Precision Farming pH/nitrogen read paths only after this
-   runtime pass is clean.
-9. Research and wire FS25 save/load lifecycle hooks only after the read-only
-   state and opportunity data remain stable.
+1. Runtime-test `v0.1.6.0` with `FS25_PhobosLib v0.1.2.0` installed.
+2. Select pressured Farmers rows and confirm `Opportunities` enables only when
+   the selected property has candidates.
+3. Open and close the read-only Opportunities dialog and verify it matches the
+   selected property.
+4. Save, exit, reload, and confirm the dedicated opportunity XML reconciles
+   cleanly without duplicate candidates or stale farm IDs.
+5. Confirm the custom XML remains below the 50 KB MVP target on a normal save.
+6. Confirm no Phobos-owned `Error:`, `Warning:`, or `Warning (` lines appear,
+   and no save failure is attributable to Rural Ledger.
+7. If the save/reload gate is clean, proceed to a small period-advance/history
+   slice or a developer-only Precision Farming probe for exact pH/nitrogen API
+   research.

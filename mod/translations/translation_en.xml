@@ -6,6 +6,7 @@
         <text name="rl_tab_overview" text="Overview"/>
         <text name="rl_tab_farmers" text="Farmers"/>
         <text name="rl_tab_farm_detail" text="Farm Detail"/>
+        <text name="rl_tab_opportunities" text="Opportunities"/>
         <text name="rl_tab_settings_debug" text="Settings / Debug"/>
         <text name="rl_button_refresh" text="Refresh"/>
         <text name="rl_button_back" text="Back"/>
@@ -44,6 +45,8 @@
         <text name="rl_detail_primary_pressure" text="Primary pressure: %s"/>
         <text name="rl_detail_headline" text="%s is %s."/>
         <text name="rl_detail_player_meaning" text="Public opportunities are not active in this slice."/>
+        <text name="rl_detail_player_meaning_opportunities" text="%d read-only public opportunity candidate(s) are visible."/>
+        <text name="rl_detail_player_meaning_none" text="No public opportunities are active for this property."/>
         <text name="rl_detail_support_debt" text="Debt pressure is %s"/>
         <text name="rl_detail_support_risk" text="Risk buffer is %s"/>
         <text name="rl_detail_support_field_condition" text="Field condition: %s"/>
@@ -54,6 +57,7 @@
         <text name="rl_detail_line_crop_mix" text="Crop mix: %s"/>
         <text name="rl_detail_line_field_condition" text="Field condition: %s"/>
         <text name="rl_detail_line_precision" text="Precision Farming: %s"/>
+        <text name="rl_detail_line_active_opportunities" text="Active opportunities: %d"/>
         <text name="rl_detail_line_fields" text="Fields controlled: %d"/>
         <text name="rl_detail_line_cash" text="Cash position: %s"/>
         <text name="rl_detail_line_debt" text="Debt pressure: %s"/>
@@ -98,7 +102,7 @@
         <text name="rl_debug_discovery_errors" text="Discovery read errors: fields %d, missions %d"/>
         <text name="rl_debug_first_skip_reason" text="First skip reason: %s"/>
         <text name="rl_debug_precision_farming" text="Precision Farming: %s"/>
-        <text name="rl_debug_save_hooks" text="Save/load hooks: not wired in this slice"/>
+        <text name="rl_debug_save_hooks" text="Save/load hooks: opportunity persistence wired"/>
         <text name="rl_debug_first_cash" text="First farm cash: %s"/>
         <text name="rl_debug_first_debt" text="First farm debt: %s"/>
         <text name="rl_debug_first_stress" text="First farm stress score: %d"/>
@@ -183,6 +187,29 @@
         <text name="rl_mood_mixed_watchful" text="Mixed but watchful"/>
         <text name="rl_mood_steady" text="Steady"/>
         <text name="rl_no_public_request" text="No public request"/>
+        <text name="rl_public_requests_available" text="%d public request(s)"/>
+
+        <text name="rl_opportunity_dialog_title" text="Public Opportunities"/>
+        <text name="rl_opportunity_dialog_subtitle" text="%s: %d candidate(s)"/>
+        <text name="rl_opportunity_public_heading" text="Read-only opportunity candidates"/>
+        <text name="rl_opportunity_no_selection" text="Select a farm with public opportunities first."/>
+        <text name="rl_opportunity_none_for_farm" text="No public opportunities are active for this property."/>
+        <text name="rl_opportunity_row" text="%s: %s %s"/>
+        <text name="rl_opportunity_expires" text="Visible until %s"/>
+        <text name="rl_opportunity_relationship_none" text="No relationship effect in this read-only slice."/>
+        <text name="rl_opportunity_action_read_only" text="Read-only candidate; no player action is available yet."/>
+        <text name="rl_opportunity_title_urgent_work" text="Urgent field work"/>
+        <text name="rl_opportunity_reason_urgent_work" text="%s has visible cash pressure."/>
+        <text name="rl_opportunity_title_margin_support" text="Margin support"/>
+        <text name="rl_opportunity_reason_margin_support" text="%s has a weak season margin."/>
+        <text name="rl_opportunity_title_debt_relief" text="Debt service support"/>
+        <text name="rl_opportunity_reason_debt_relief" text="%s is carrying heavy debt service."/>
+        <text name="rl_opportunity_title_transport_storage" text="Transport and storage help"/>
+        <text name="rl_opportunity_reason_transport_storage" text="%s has limited storage flexibility."/>
+        <text name="rl_opportunity_title_machine_support" text="Machine support"/>
+        <text name="rl_opportunity_reason_machine_support" text="%s has machinery pressure."/>
+        <text name="rl_opportunity_title_rotation_advice" text="Crop rotation advice"/>
+        <text name="rl_opportunity_reason_rotation_advice" text="%s has limited income diversity."/>
 
         <text name="rl_profile_family_farm" text="Small Family Farm"/>
         <text name="rl_profile_contractor" text="Contractor"/>
