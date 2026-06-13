@@ -413,6 +413,9 @@ need to move the pointer to the footer every time.
 `v0.1.5.7` tightens row-to-dialog identity: a detail model is only produced for
 the exact selected farm/profile, and the Farmers table uses the documented
 SmoothList double-click callback path.
+`v0.1.5.8` narrows that further after runtime testing: the footer action stayed
+correct, but double-click needed to resolve the clicked row from the full
+SmoothList callback arguments and ignore index `0` header/non-row events.
 
 The next model correction is map-first ownership. Current V1 UI data is still
 fallback-generated while the FS25 landowner, farmland, field, contract, and

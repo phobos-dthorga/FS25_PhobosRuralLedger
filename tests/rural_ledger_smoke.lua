@@ -759,7 +759,8 @@ assertTrue(screen.farmDetailFooterButton.disabled, "farm detail footer action sh
 assertTrue(screen.farmTable.onDoubleClickCallback ~= nil, "farm table should expose the SmoothList double-click callback")
 assertEquals(nil, screen.farmTable.onDoubleClick, "farm table should not depend on a speculative double-click callback")
 screen:onListSelectionChanged(screen.farmTable, 1, 0)
-assertEquals(farmRowsA[1].farmId, screen.selectedFarmId, "farm selection should tolerate zero-based callback indices")
+assertEquals(nil, screen.selectedFarmId, "farm selection should ignore non-row zero indices")
+assertTrue(screen.farmDetailFooterButton.disabled, "farm detail footer action should remain disabled after non-row selection")
 screen:onListSelectionChanged(screen.farmTable, 1, 2)
 assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "farm selection should update selected farm")
 assertEquals(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.FARMERS, screen.activeSection, "farm selection should keep Farmers as the active top tab")
@@ -784,14 +785,43 @@ screen:onClickFarmDetail()
 assertEquals(1, #shownDialogs, "farm detail footer action should open one dialog")
 assertEquals(Constants.FARM_DETAIL_DIALOG_NAME, shownDialogs[1].name, "farm detail footer action should use the registered dialog")
 assertEquals(farmRowsA[2].farmId, shownDialogs[1].target.receivedDetail.farmId, "dialog should receive the selected farm detail model")
+
+local function farmTableElement(index)
+    return {
+        sectionIndex = 1,
+        indexInSection = index,
+    }
+end
+
 screen:onListDoubleClick(screen.farmTable, 1, 0)
-assertEquals(2, #shownDialogs, "farm table double-click should open the same detail dialog")
-assertEquals(farmRowsA[1].farmId, screen.selectedFarmId, "farm table double-click should tolerate zero-based callback indices")
-assertEquals(farmRowsA[1].farmId, shownDialogs[2].target.receivedDetail.farmId, "zero-based double-click dialog should receive the clicked farm detail model")
+assertEquals(1, #shownDialogs, "farm table double-click should ignore non-row zero indices")
+assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "ignored double-click should keep the previous valid selection")
 screen:onListDoubleClick(screen.farmTable, 1, 3)
-assertEquals(3, #shownDialogs, "farm table double-click should open one dialog per activation")
+assertEquals(2, #shownDialogs, "farm table double-click should open one dialog per activation")
 assertEquals(farmRowsA[3].farmId, screen.selectedFarmId, "farm table double-click should select the clicked farm")
-assertEquals(farmRowsA[3].farmId, shownDialogs[3].target.receivedDetail.farmId, "double-click dialog should receive the clicked farm detail model")
+assertEquals(farmRowsA[3].farmId, shownDialogs[2].target.receivedDetail.farmId, "double-click dialog should receive the clicked farm detail model")
+
+screen.selectedFarmId = farmRowsA[2].farmId
+screen.farmTable.onDoubleClickCallback(screen.farmTable, 1, 4, farmTableElement(4), true)
+assertEquals(3, #shownDialogs, "SmoothList double-click callback should open the detail dialog")
+assertEquals(farmRowsA[4].farmId, screen.selectedFarmId, "SmoothList double-click callback should select the clicked row")
+assertEquals(farmRowsA[4].farmId, shownDialogs[3].target.receivedDetail.farmId, "SmoothList callback dialog should receive the clicked farm detail")
+
+screen.selectedFarmId = farmRowsA[2].farmId
+screen.farmTable.onDoubleClickCallback({callbackTarget = true}, screen.farmTable, 1, 5, farmTableElement(5), true)
+assertEquals(4, #shownDialogs, "target-prefixed SmoothList callback should open the detail dialog")
+assertEquals(farmRowsA[5].farmId, screen.selectedFarmId, "target-prefixed SmoothList callback should select the clicked row")
+assertEquals(farmRowsA[5].farmId, shownDialogs[4].target.receivedDetail.farmId, "target-prefixed callback dialog should receive the clicked farm detail")
+
+screen.selectedFarmId = farmRowsA[2].farmId
+screen.farmTable.onDoubleClickCallback({callbackTarget = true}, 1, 6, farmTableElement(6), true)
+assertEquals(5, #shownDialogs, "element-backed SmoothList callback should open the detail dialog")
+assertEquals(farmRowsA[6].farmId, screen.selectedFarmId, "element-backed SmoothList callback should select the clicked row")
+assertEquals(farmRowsA[6].farmId, shownDialogs[5].target.receivedDetail.farmId, "element-backed callback dialog should receive the clicked farm detail")
+
+screen.farmTable.onDoubleClickCallback(screen.farmTable, 1, 0, {sectionIndex = 1, indexInSection = 0, isHeader = true}, true)
+assertEquals(5, #shownDialogs, "SmoothList double-click should ignore header cells")
+assertEquals(farmRowsA[6].farmId, screen.selectedFarmId, "ignored header double-click should keep the previous valid selection")
 g_gui = nil
 
 screen.selectedFarmId = farmRowsA[2].farmId

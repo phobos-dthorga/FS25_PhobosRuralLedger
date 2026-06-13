@@ -125,11 +125,96 @@ end
 local function rowAtListIndex(rows, index)
     local numericIndex = tonumber(index)
 
-    if rows == nil or numericIndex == nil then
+    if rows == nil or numericIndex == nil or numericIndex < 1 then
         return nil
     end
 
-    return rows[numericIndex] or rows[numericIndex + 1]
+    return rows[numericIndex]
+end
+
+local function listElementIndex(element)
+    if type(element) ~= "table" then
+        return nil
+    end
+
+    return tonumber(element.indexInSection or element.index or element.listIndex)
+end
+
+local function listElementSection(element)
+    if type(element) ~= "table" then
+        return nil
+    end
+
+    return tonumber(element.sectionIndex or element.section or element.listSection)
+end
+
+local function listElementIsInvalid(element)
+    if type(element) ~= "table" then
+        return false
+    end
+
+    return element.isEmptyCell == true
+        or element.isHeader == true
+        or element.disabled == true
+end
+
+local function resolveListCallback(list, ...)
+    local args = {...}
+    local section = nil
+    local index = nil
+    local element = nil
+
+    for _, value in ipairs(args) do
+        if value ~= list and type(value) == "table" and listElementIndex(value) ~= nil then
+            element = value
+            section = listElementSection(value) or section
+            index = listElementIndex(value)
+            break
+        end
+    end
+
+    if index == nil then
+        for position, value in ipairs(args) do
+            if value == list then
+                section = tonumber(args[position + 1]) or section
+                index = tonumber(args[position + 2]) or index
+                break
+            end
+        end
+    end
+
+    if index == nil then
+        local numericArgs = {}
+
+        for _, value in ipairs(args) do
+            if type(value) ~= "boolean" then
+                local numericValue = tonumber(value)
+
+                if numericValue ~= nil then
+                    numericArgs[#numericArgs + 1] = numericValue
+                end
+            end
+        end
+
+        if #numericArgs >= 2 then
+            section = section or numericArgs[1]
+            index = numericArgs[2]
+        elseif #numericArgs == 1 then
+            index = numericArgs[1]
+        end
+    end
+
+    return section, index, element
+end
+
+local function rowFromListCallback(rows, list, ...)
+    local _, index, element = resolveListCallback(list, ...)
+
+    if listElementIsInvalid(element) then
+        return nil
+    end
+
+    return rowAtListIndex(rows, index)
 end
 
 local function pixelWidth(element)
@@ -191,8 +276,8 @@ function RuralLedgerScreen:setupList(list, tracksSelection)
     end
 
     if tracksSelection == true then
-        list.onDoubleClickCallback = function(_, section, index)
-            self:onListDoubleClick(list, section, index)
+        list.onDoubleClickCallback = function(...)
+            self:onListDoubleClick(list, ...)
         end
     end
 end
@@ -269,16 +354,19 @@ function RuralLedgerScreen:onListSelectionChanged(list, section, index)
     self:setSection(RuralLedgerScreen.SECTIONS.FARMERS)
 end
 
-function RuralLedgerScreen:onListDoubleClick(list, section, index)
+function RuralLedgerScreen:onListDoubleClick(list, ...)
     if self.isReloading or list ~= self.farmTable then
         return
     end
 
-    self:onListSelectionChanged(list, section, index)
-
-    if self.selectedFarmId ~= nil then
-        self:onClickFarmDetail()
+    local row = rowFromListCallback(self.cachedFarmRows, list, ...)
+    if row == nil then
+        return
     end
+
+    self.selectedFarmId = row.farmId
+    self:setSection(RuralLedgerScreen.SECTIONS.FARMERS)
+    self:onClickFarmDetail()
 end
 
 function RuralLedgerScreen:refreshModels()

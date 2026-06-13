@@ -162,11 +162,14 @@ the runtime gate for the context-footer/dialog flow remains open.
 Runtime testing of `v0.1.5.6` confirmed the Rural Ledger-owned log path is
 clean and mission-start discovery remains map-backed, but exposed one functional
 gate: the selected Farmers row could open a mismatched Farm Detail model.
-`v0.1.5.7` fixes that by requiring strict farm/profile identity in
-`UiModels.buildFarmDetail`, tolerating the first zero-based SmoothList callback
-index edge case, and using the documented `onDoubleClickCallback` path rather
-than speculative list callback names. Feature work stays gated until this
-row-to-dialog identity fix is runtime-proven.
+`v0.1.5.7` fixed the footer action by requiring strict farm/profile identity in
+`UiModels.buildFarmDetail`, but runtime testing showed the double-click shortcut
+could still open a mismatched detail dialog while the footer button remained
+correct. `v0.1.5.8` treats that as a dedicated gate: index `0` is no longer
+treated as the first farm row, and the double-click handler resolves the clicked
+row from the full SmoothList callback shape rather than from stale selected
+state. Feature work stays gated until this row-to-dialog identity fix is
+runtime-proven.
 
 ## Persistence Boundary
 
@@ -193,7 +196,7 @@ added.
 
 Recommended next code step:
 
-1. Runtime-test the `v0.1.5.7` context-footer/double-click identity hotfix on the same
+1. Runtime-test the `v0.1.5.8` double-click identity hotfix on the same
    disposable save with `FS25_PhobosLib` installed, and optionally with
    `FS25_precisionFarming`.
 2. Confirm no Phobos-owned `Error:`, `Warning:`, or `Warning (` lines appear,
@@ -209,9 +212,9 @@ Recommended next code step:
 6. Verify the tested map still shows multiple map-backed property records rather
    than one broad owner record, while still reporting the same usable field and
    farmland counts.
-7. Research exact Precision Farming pH/nitrogen read paths only after this
+7. Add the first read-only cause-carrying neighbour opportunity from strained
+   or worse farms only after the `v0.1.5.8` double-click runtime pass is clean.
+8. Research exact Precision Farming pH/nitrogen read paths only after this
    runtime pass is clean.
-8. Add the first read-only cause-carrying neighbour opportunity from strained
-   or worse farms only after the map-first owner/property model is stable.
 9. Research and wire FS25 save/load lifecycle hooks only after the read-only
    state and opportunity data remain stable.
