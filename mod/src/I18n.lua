@@ -3,12 +3,8 @@ PhobosRuralLedger.I18n = PhobosRuralLedger.I18n or {}
 
 local I18n = PhobosRuralLedger.I18n
 
-local function hasFormatArgs(...)
-    return select("#", ...) > 0
-end
-
 local function formatText(text, ...)
-    if not hasFormatArgs(...) then
+    if select("#", ...) == 0 then
         return tostring(text or "")
     end
 
@@ -21,6 +17,10 @@ local function formatText(text, ...)
 end
 
 function I18n.get(key, fallback, ...)
+    if PhobosFS25 ~= nil and PhobosFS25.I18n ~= nil and PhobosFS25.I18n.get ~= nil then
+        return PhobosFS25.I18n.get("FS25_PhobosRuralLedger", key, fallback, ...)
+    end
+
     local value = fallback or key
 
     if g_i18n ~= nil and g_i18n.getText ~= nil then
