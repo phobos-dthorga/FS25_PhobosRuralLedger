@@ -863,6 +863,7 @@ function UiModels.buildDebugSummary(state, options)
         ),
         text("rl_debug_save_hooks", "Save/load hooks: opportunity persistence wired"),
         text("rl_debug_save_hook_status", "Save hook: %s on %s, attempts %d", tostring(saveDiagnostics.hookStatus or "not attempted"), tostring(saveDiagnostics.hookTarget or "none"), saveDiagnostics.hookAttempts or 0),
+        text("rl_debug_save_xml_adapter", "Save XML adapter: %s", tostring(saveDiagnostics.xmlAdapterSource or "unavailable")),
         text("rl_debug_save_availability", "Save availability: %s via %s", tostring(saveDiagnostics.availability or "unknown"), tostring(saveDiagnostics.pathSource or "none")),
         text("rl_debug_save_path", "Save path: %s", tostring(saveDiagnostics.path or "unavailable")),
         text("rl_debug_save_last_load", "Last opportunity load: %s", tostring(saveDiagnostics.lastLoad or "not attempted")),

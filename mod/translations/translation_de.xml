@@ -104,6 +104,7 @@
         <text name="rl_debug_precision_farming" text="Precision Farming: %s"/>
         <text name="rl_debug_save_hooks" text="Speicher-/Lade-Hooks: Gelegenheitspersistenz verbunden"/>
         <text name="rl_debug_save_hook_status" text="Speicher-Hook: %s auf %s, Versuche %d"/>
+        <text name="rl_debug_save_xml_adapter" text="Speicher-XML-Adapter: %s"/>
         <text name="rl_debug_save_availability" text="Speicherverfügbarkeit: %s über %s"/>
         <text name="rl_debug_save_path" text="Speicherpfad: %s"/>
         <text name="rl_debug_save_last_load" text="Letztes Laden der Gelegenheiten: %s"/>

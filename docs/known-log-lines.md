@@ -20,10 +20,19 @@ Removal condition: Runtime log from a disposable save has no Rural Ledger-owned 
 ```text
 Line: Error: Game save failed. Error: 7
 Owner: External unless it appears only after Rural Ledger save hook execution
-Status: Runtime acceptance blocker if it appears during the dedicated opportunity save/reload proof.
-Cause: Previously observed in mixed-mod logs without a Phobos-owned stack. Runtime testing of v0.1.6.0 also showed no Rural Ledger save-attempt lines and no dedicated XML file, so v0.1.6.1 adds explicit hook/path/write diagnostics before this line can be classified safely.
-Target: v0.1.6.1 runtime verification
-Removal condition: Disposable save/reload test writes `FS25_PhobosRuralLedger.xml`, reloads it cleanly, and has no Phobos-owned save warnings/errors or unexplained save failure lines.
+Status: Runtime acceptance noise unless Rural Ledger logs a save failure directly.
+Cause: The user reports this FS25 line is omnipresent in mixed-mod saves. For Rural Ledger, classify persistence by Phobos-owned lines such as `Rural Ledger opportunity save written`, `Rural Ledger opportunity save loaded`, or explicit Rural Ledger save warnings.
+Target: v0.1.6.2 runtime verification
+Removal condition: Disposable save/reload test writes `FS25_PhobosRuralLedger.xml`, reloads it cleanly, and has no Phobos-owned save warnings/errors.
+```
+
+```text
+Line: [PhobosRuralLedger][WARN] Rural Ledger opportunity save unavailable while writing: xml_api_unavailable.
+Owner: PhobosRuralLedger
+Status: v0.1.6.1 blocker; should be removed by v0.1.6.2.
+Cause: Rural Ledger could not see `PhobosFS25.XmlFile` at runtime even though the installed PhobosLib zip contains the helper. v0.1.6.2 falls back to global FS25 `XMLFile`.
+Target: v0.1.6.2 runtime verification
+Removal condition: Saving with v0.1.6.2 logs `Rural Ledger opportunity save written to ...FS25_PhobosRuralLedger.xml` and no longer logs `xml_api_unavailable`.
 ```
 
 ## Entry Template

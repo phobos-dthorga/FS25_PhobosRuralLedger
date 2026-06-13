@@ -528,6 +528,11 @@ PhobosFS25.Savegames = {
         return "savegame/" .. tostring(fileName)
     end,
 }
+XMLFile = {
+    create = function()
+        error("PhobosFS25.XmlFile should be preferred over direct XMLFile fallback")
+    end,
+}
 PhobosFS25.XmlFile = {
     create = function(label, filename, rootKey)
         savedXmlFile = {
@@ -606,6 +611,7 @@ assertEquals("saved", saveStatus, "opportunity savegame write should report save
 assertEquals("savegame/FS25_PhobosRuralLedger.xml", savedXmlFile.filename, "savegame write should target the dedicated Rural Ledger XML file")
 local saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
 assertEquals("saved (savegame/FS25_PhobosRuralLedger.xml)", saveDiagnostics.lastSave, "save diagnostics should expose the last saved path")
+assertEquals("PhobosFS25.XmlFile", saveDiagnostics.xmlAdapterSource, "PhobosLib XML adapter should be preferred when present")
 local loadedSave, loadStatus = PhobosRuralLedger.Savegame.read()
 assertEquals("loaded", loadStatus, "opportunity savegame read should load the fake XML file")
 assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #loadedSave.opportunities, "savegame read should round-trip opportunities")
@@ -636,10 +642,91 @@ g_currentMission = nil
 
 PhobosFS25.XmlFile = nil
 PhobosFS25.Savegames = nil
+XMLFile = nil
 local unavailableSaved, unavailableStatus, unavailableDetails = PhobosRuralLedger.Savegame.write(opportunityState)
 assertEquals(false, unavailableSaved, "savegame write should fail clearly when helpers are unavailable")
 assertEquals("unavailable", unavailableStatus, "unavailable savegame write should report unavailable status")
 assertEquals("xml_api_unavailable", unavailableDetails.reason, "unavailable savegame write should expose the missing helper reason")
+
+PhobosRuralLedger.Savegame._resetDiagnosticsForTests()
+savedXmlFile = nil
+PhobosFS25.XmlFile = nil
+PhobosFS25.Savegames = {
+    buildSavegameXmlPath = function(fileName)
+        return "directXml/" .. tostring(fileName)
+    end,
+}
+XMLFile = {
+    create = function(label, filename, rootKey)
+        savedXmlFile = {
+            label = label,
+            filename = filename,
+            rootKey = rootKey,
+            values = {},
+            nodes = {},
+            saved = false,
+            deleted = false,
+            hasProperty = function(self, key)
+                return self.nodes[key] == true
+            end,
+            getString = function(self, key, defaultValue)
+                local value = self.values[key]
+                return value ~= nil and tostring(value) or defaultValue
+            end,
+            getInt = function(self, key, defaultValue)
+                local value = tonumber(self.values[key])
+                return value ~= nil and math.floor(value) or defaultValue
+            end,
+            getBool = function(self, key, defaultValue)
+                local value = self.values[key]
+                if value == nil then
+                    return defaultValue
+                end
+                return value == true or value == "true"
+            end,
+            setString = function(self, key, value)
+                self.values[key] = tostring(value)
+                markNode(self, key)
+                return true
+            end,
+            setInt = function(self, key, value)
+                self.values[key] = tonumber(value)
+                markNode(self, key)
+                return true
+            end,
+            setBool = function(self, key, value)
+                self.values[key] = value == true and "true" or "false"
+                markNode(self, key)
+                return true
+            end,
+            save = function(self)
+                self.saved = true
+                return true
+            end,
+            delete = function(self)
+                self.deleted = true
+                return true
+            end,
+        }
+        savedXmlFile.nodes[rootKey] = true
+        return savedXmlFile
+    end,
+    loadIfExists = function()
+        return savedXmlFile
+    end,
+}
+local directSaved, directStatus = PhobosRuralLedger.Savegame.write(opportunityState)
+assertEquals(true, directSaved, "direct XMLFile fallback should save opportunity state")
+assertEquals("saved", directStatus, "direct XMLFile fallback should report saved status")
+assertEquals("directXml/FS25_PhobosRuralLedger.xml", savedXmlFile.filename, "direct XMLFile fallback should target the dedicated XML file")
+saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
+assertEquals("XMLFile", saveDiagnostics.xmlAdapterSource, "save diagnostics should expose the direct XMLFile fallback adapter")
+local directLoaded, directLoadStatus = PhobosRuralLedger.Savegame.read()
+assertEquals("loaded", directLoadStatus, "direct XMLFile fallback should load opportunity state")
+assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #directLoaded.opportunities, "direct XMLFile fallback should round-trip opportunities")
+assertEquals(generatedOpportunities[1].farmId, directLoaded.opportunities[1].farmId, "direct XMLFile fallback should preserve opportunity farm identity")
+PhobosFS25.Savegames = nil
+XMLFile = nil
 
 PhobosRuralLedger.Savegame._resetDiagnosticsForTests()
 local originalSaveCalls = 0

@@ -119,6 +119,12 @@ and last load/save result. If the FS25 XML API or active savegame path is
 unavailable, Rural Ledger logs a bounded Phobos-owned warning instead of
 silently skipping persistence.
 
+`v0.1.6.2` adds a narrow local XML adapter fallback. `PhobosFS25.XmlFile`
+remains the preferred wrapper, but if PhobosLib's global table is not visible
+in-game, Rural Ledger writes the same dedicated XML file through the global FS25
+`XMLFile` API. This fallback is intentionally local to Rural Ledger persistence
+until the shared-library visibility issue is understood.
+
 ## Save Versioning
 
 Every saved root should include a schema version. Migrations should be explicit

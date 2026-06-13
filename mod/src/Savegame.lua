@@ -14,8 +14,29 @@ Savegame.lastLoadStatus = Savegame.lastLoadStatus or nil
 Savegame.lastSaveStatus = Savegame.lastSaveStatus or nil
 Savegame._loggedMessages = Savegame._loggedMessages or {}
 
+local function formatMessage(message, ...)
+    if select("#", ...) == 0 then
+        return tostring(message)
+    end
+
+    local ok, formatted = pcall(string.format, tostring(message), ...)
+    if ok then
+        return formatted
+    end
+
+    return tostring(message)
+end
+
 local function xmlApi()
-    return PhobosFS25 ~= nil and PhobosFS25.XmlFile or nil
+    if PhobosFS25 ~= nil and PhobosFS25.XmlFile ~= nil then
+        return PhobosFS25.XmlFile, "PhobosFS25.XmlFile"
+    end
+
+    if XMLFile ~= nil then
+        return Savegame.DirectXmlFile, "XMLFile"
+    end
+
+    return nil, nil
 end
 
 local function savegamesApi()
@@ -25,6 +46,8 @@ end
 local function logInfo(message, ...)
     if PhobosRuralLedger.logInfo ~= nil then
         PhobosRuralLedger.logInfo(message, ...)
+    elseif print ~= nil then
+        print(string.format("[PhobosRuralLedger][INFO] %s", formatMessage(message, ...)))
     end
 end
 
@@ -46,6 +69,177 @@ local function logInfoOnce(key, message, ...)
     end
 
     return true
+end
+
+local function callXmlMethod(xmlFile, methodName, ...)
+    if xmlFile == nil or xmlFile[methodName] == nil then
+        return false, nil
+    end
+
+    local ok, value = pcall(xmlFile[methodName], xmlFile, ...)
+    return ok, value
+end
+
+local function coerceBool(value, defaultValue)
+    if value == nil then
+        return defaultValue
+    end
+
+    if type(value) == "boolean" then
+        return value
+    end
+
+    if type(value) == "number" then
+        return value ~= 0
+    end
+
+    local normalized = string.lower(tostring(value))
+    if normalized == "true" or normalized == "1" or normalized == "yes" then
+        return true
+    end
+    if normalized == "false" or normalized == "0" or normalized == "no" then
+        return false
+    end
+
+    return defaultValue
+end
+
+Savegame.DirectXmlFile = Savegame.DirectXmlFile or {}
+
+function Savegame.DirectXmlFile.loadIfExists(label, filename, schema)
+    if XMLFile == nil or XMLFile.loadIfExists == nil or filename == nil then
+        return nil
+    end
+
+    return XMLFile.loadIfExists(label or "PhobosRuralLedgerXmlFile", filename, schema)
+end
+
+function Savegame.DirectXmlFile.create(label, filename, rootKey, schema)
+    if XMLFile == nil or XMLFile.create == nil or filename == nil or rootKey == nil then
+        return nil
+    end
+
+    return XMLFile.create(label or "PhobosRuralLedgerXmlFile", filename, rootKey, schema)
+end
+
+function Savegame.DirectXmlFile.hasProperty(xmlFile, key)
+    local ok, value = callXmlMethod(xmlFile, "hasProperty", key)
+    return ok and value == true
+end
+
+function Savegame.DirectXmlFile.getString(xmlFile, key, defaultValue)
+    local ok, value = callXmlMethod(xmlFile, "getString", key, defaultValue)
+    if ok and value ~= nil then
+        return value
+    end
+
+    ok, value = callXmlMethod(xmlFile, "getValue", key, defaultValue)
+    if ok and value ~= nil then
+        return tostring(value)
+    end
+
+    return defaultValue
+end
+
+function Savegame.DirectXmlFile.getInt(xmlFile, key, defaultValue)
+    local ok, value = callXmlMethod(xmlFile, "getInt", key, defaultValue)
+    if ok and value ~= nil then
+        return value
+    end
+
+    ok, value = callXmlMethod(xmlFile, "getValue", key, defaultValue)
+    value = ok and value or nil
+    value = tonumber(value)
+
+    return value ~= nil and math.floor(value) or defaultValue
+end
+
+function Savegame.DirectXmlFile.getBool(xmlFile, key, defaultValue)
+    local ok, value = callXmlMethod(xmlFile, "getBool", key, defaultValue)
+    if ok and value ~= nil then
+        return value == true
+    end
+
+    ok, value = callXmlMethod(xmlFile, "getValue", key, defaultValue)
+    return coerceBool(ok and value or nil, defaultValue)
+end
+
+function Savegame.DirectXmlFile.setString(xmlFile, key, value)
+    if value == nil then
+        return false
+    end
+
+    local ok = callXmlMethod(xmlFile, "setString", key, tostring(value))
+    if ok then
+        return true
+    end
+
+    ok = callXmlMethod(xmlFile, "setValue", key, tostring(value))
+    return ok
+end
+
+function Savegame.DirectXmlFile.setInt(xmlFile, key, value)
+    if value == nil then
+        return false
+    end
+
+    local ok = callXmlMethod(xmlFile, "setInt", key, value)
+    if ok then
+        return true
+    end
+
+    ok = callXmlMethod(xmlFile, "setValue", key, value)
+    return ok
+end
+
+function Savegame.DirectXmlFile.setBool(xmlFile, key, value)
+    if value == nil then
+        return false
+    end
+
+    local ok = callXmlMethod(xmlFile, "setBool", key, value == true)
+    if ok then
+        return true
+    end
+
+    ok = callXmlMethod(xmlFile, "setValue", key, value == true)
+    return ok
+end
+
+function Savegame.DirectXmlFile.forEachIndexed(xmlFile, keyPattern, callback, maxIterations)
+    if xmlFile == nil or keyPattern == nil or callback == nil then
+        return 0
+    end
+
+    local count = 0
+    local limit = maxIterations or 10000
+
+    for index = 0, limit - 1 do
+        local key = string.format(keyPattern, index)
+        if not Savegame.DirectXmlFile.hasProperty(xmlFile, key) then
+            break
+        end
+
+        callback(xmlFile, key, index)
+        count = count + 1
+    end
+
+    return count
+end
+
+function Savegame.DirectXmlFile.saveAndDelete(xmlFile)
+    if xmlFile == nil then
+        return false
+    end
+
+    local ok, saved = callXmlMethod(xmlFile, "save")
+    callXmlMethod(xmlFile, "delete")
+    return ok and saved ~= false
+end
+
+function Savegame.DirectXmlFile.delete(xmlFile)
+    local ok = callXmlMethod(xmlFile, "delete")
+    return ok
 end
 
 local function ensureTrailingSlash(path)
@@ -144,7 +338,7 @@ local function sortedPairs(map)
 end
 
 function Savegame.describeAvailability(mission)
-    local xml = xmlApi()
+    local xml, xmlSource = xmlApi()
     local savegames = savegamesApi()
     local path = nil
     local pathSource = nil
@@ -176,6 +370,7 @@ function Savegame.describeAvailability(mission)
         pathSource = pathSource,
         reason = reason,
         hasXmlFileApi = xml ~= nil,
+        xmlAdapterSource = xmlSource or "unavailable",
         hasSavegamesApi = savegames ~= nil,
         hasMission = (mission or g_currentMission) ~= nil,
     }
@@ -367,6 +562,11 @@ end
 function Savegame.ensureHookRegistered()
     if Savegame.hookRegistered == true then
         Savegame.hookStatus = "already_registered"
+        logInfoOnce(
+            "save-hook-already-registered",
+            "Rural Ledger save hook already registered: %s.",
+            tostring(Savegame.hookTarget or "unknown")
+        )
         return true, Savegame.hookStatus
     end
 
@@ -426,6 +626,7 @@ function Savegame.getDiagnostics(mission)
         path = availability.path or "unavailable",
         pathSource = availability.pathSource or "none",
         availability = availability.available == true and "available" or tostring(availability.reason or "unavailable"),
+        xmlAdapterSource = availability.xmlAdapterSource or "unavailable",
         lastLoad = statusText(Savegame.lastLoadStatus),
         lastSave = statusText(Savegame.lastSaveStatus),
     }

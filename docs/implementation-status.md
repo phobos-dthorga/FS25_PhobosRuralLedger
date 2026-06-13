@@ -218,13 +218,23 @@ map/mission-ready lifecycle paths, reporting hook/path availability in
 Settings / Debug, logging the exact XML path on load/write, and treating an
 unavailable save path as a Phobos-owned hard miss.
 
+Runtime testing of `v0.1.6.1` proved that the save hook fires, but load/write
+still reported `xml_api_unavailable`. The installed `FS25_PhobosLib v0.1.2.0`
+zip contains `src/XmlFile.lua` and declares it in `modDesc.xml`, yet Rural
+Ledger used its fallback logger and could not see `PhobosFS25.XmlFile` at
+runtime. `v0.1.6.2` keeps PhobosLib as the preferred adapter, then falls back
+to the global FS25 `XMLFile` API for this dedicated save file and records the
+active XML adapter in Settings / Debug.
+
 ## Next Implementation Slice
 
 Recommended next code step:
 
-1. Runtime-test `v0.1.6.1` with `FS25_PhobosLib v0.1.2.0` installed.
+1. Runtime-test `v0.1.6.2` with `FS25_PhobosLib v0.1.2.0` installed.
 2. Open Settings / Debug and confirm the save hook is registered and the save
    path points at `FS25_PhobosRuralLedger.xml` in the active savegame folder.
+   The XML adapter should show `PhobosFS25.XmlFile` or `XMLFile`, not
+   `unavailable`.
 3. Save, exit, reload, and confirm the dedicated opportunity XML is written,
    loaded, and reconciled cleanly without duplicate candidates or stale farm
    IDs.

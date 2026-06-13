@@ -104,6 +104,7 @@
         <text name="rl_debug_precision_farming" text="Precision Farming: %s"/>
         <text name="rl_debug_save_hooks" text="Save/load hooks: opportunity persistence wired"/>
         <text name="rl_debug_save_hook_status" text="Save hook: %s on %s, attempts %d"/>
+        <text name="rl_debug_save_xml_adapter" text="Save XML adapter: %s"/>
         <text name="rl_debug_save_availability" text="Save availability: %s via %s"/>
         <text name="rl_debug_save_path" text="Save path: %s"/>
         <text name="rl_debug_save_last_load" text="Last opportunity load: %s"/>
