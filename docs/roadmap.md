@@ -25,8 +25,8 @@ Do not try to make NPCs physically perform every operation at first.
 - Run monthly or seasonal profit/loss updates.
 - Trigger contracts, land leases, and land sales from financial condition only
   after the related map owner/property and FS25 hook paths are proven.
-- Add read-only UI models for Overview, Farmers, and Farm Detail before custom
-  FS25 screen work.
+- Add read-only UI models for Overview, Farmers, and selected-property Farm
+  Detail drill-downs before custom FS25 screen work.
 - Add an economy dashboard or report that consumes those models where possible.
 
 Version 1 should be useful even if it only reports pressure and creates limited

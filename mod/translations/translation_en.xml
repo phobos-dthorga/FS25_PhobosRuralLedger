@@ -12,6 +12,7 @@
         <text name="rl_button_toggle_debug" text="Toggle exact debug values"/>
         <text name="rl_button_refresh_display" text="Refresh display data"/>
         <text name="rl_no_map_data_notice" text="No map data available yet. Save/load the game or press Refresh after the map finishes loading."/>
+        <text name="rl_list_more" text=", ... (+%d more)"/>
 
         <text name="rl_overview_recent_notes" text="Recent economy notes"/>
         <text name="rl_overview_empty_alert" text="No public pressure alerts this period."/>
@@ -80,6 +81,7 @@
         <text name="rl_debug_discovery_source" text="Discovery source: %s"/>
         <text name="rl_debug_discovery_confidence" text="Discovery confidence: %s"/>
         <text name="rl_debug_discovery_trigger" text="Discovery trigger: %s"/>
+        <text name="rl_debug_property_grouping" text="Property grouping: %s"/>
         <text name="rl_debug_map_ready_attempted" text="Map-ready discovery attempted: %s"/>
         <text name="rl_debug_discovery_properties" text="Discovered properties: %d"/>
         <text name="rl_debug_discovery_fields" text="Discovered fields: %d"/>
@@ -88,6 +90,8 @@
         <text name="rl_debug_manager_fields" text="Field manager: %s, raw fields: %d"/>
         <text name="rl_debug_manager_farmlands" text="Farmland manager: %s, raw farmlands: %d"/>
         <text name="rl_debug_manager_missions" text="Mission manager: %s, raw missions: %d"/>
+        <text name="rl_debug_owner_buckets" text="Owner buckets: %d, split buckets: %d"/>
+        <text name="rl_debug_largest_owner_bucket" text="Largest owner bucket: %d fields, %d farmlands"/>
         <text name="rl_debug_usable_fields" text="Usable fields: %d"/>
         <text name="rl_debug_skipped_fields" text="Skipped fields: %d"/>
         <text name="rl_debug_skipped_missions" text="Skipped missions: %d"/>

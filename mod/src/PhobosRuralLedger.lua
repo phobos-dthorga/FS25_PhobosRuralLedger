@@ -72,13 +72,16 @@ local function logMapDiscoverySummary(discovery)
     local diagnostics = discovery.diagnostics or {}
 
     logInfo(
-        "Map discovery (%s): %d properties, %d fields, %d farmlands, %d contracts, confidence=%s, managers=%s/%s/%s/%s, raw=%d/%d/%d, usable=%d, skipped=%d/%d, errors=%d/%d, precisionFarming=%s%s%s.",
+        "Map discovery (%s): %d properties, %d fields, %d farmlands, %d contracts, confidence=%s, grouping=%s, ownerBuckets=%d/%d, managers=%s/%s/%s/%s, raw=%d/%d/%d, usable=%d, skipped=%d/%d, errors=%d/%d, precisionFarming=%s%s%s.",
         tostring(discovery.trigger or diagnostics.trigger or "unknown"),
         discovery.discoveredPropertyCount or 0,
         discovery.discoveredFieldCount or 0,
         discovery.discoveredFarmlandCount or 0,
         discovery.discoveredContractCount or 0,
         tostring(discovery.confidence or "unavailable"),
+        tostring(diagnostics.propertyGroupingMode or "none"),
+        diagnostics.ownerBucketCount or 0,
+        diagnostics.splitOwnerBucketCount or 0,
         diagnostics.fieldManagerAvailable == true and "field" or "no-field",
         diagnostics.farmlandManagerAvailable == true and "farmland" or "no-farmland",
         diagnostics.missionManagerAvailable == true and "mission" or "no-mission",

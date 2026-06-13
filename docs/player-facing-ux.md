@@ -35,8 +35,9 @@ the simulation and decide what to do next.
 
 ## Screen Principle
 
-Overview tells the player what matters. Farm Detail tells them why.
-Opportunities tell them what they can do. History proves the world remembers.
+Overview tells the player what matters. Farmers lists the map-backed
+properties. Farm Detail tells them why after they select one. Opportunities
+tell them what they can do. History proves the world remembers.
 
 Exact accounting values should stay hidden unless debug visibility is enabled.
 Public screens should prefer bands such as cash position, debt pressure, margin

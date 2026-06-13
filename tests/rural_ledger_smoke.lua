@@ -153,6 +153,10 @@ for _, line in ipairs(publicDetail.lines) do
     assertTrue(string.find(line, "Debug") == nil, "public farm detail must not expose debug exact values")
 end
 
+local missingDetail = UiModels.buildFarmDetail(stateA, "missing_farm")
+assertEquals(nil, missingDetail.farmId, "farm detail should not fall back to another farm when selection is missing")
+assertEquals("No farm selected", missingDetail.displayName, "missing farm detail should expose the no-selection model")
+
 local debugDetail = UiModels.buildFarmDetail(stateA, farmRowsA[1].farmId, {includeDebug = true})
 local sawDebugCash = false
 for _, line in ipairs(debugDetail.lines) do
@@ -333,6 +337,9 @@ assertEquals(1, mapDiscovery.diagnostics.rawMissionCount, "fake runtime diagnost
 assertEquals(3, mapDiscovery.diagnostics.usableFieldCount, "fake runtime diagnostics should count usable fields")
 assertEquals(1, mapDiscovery.diagnostics.skippedFieldCount, "fake runtime diagnostics should count skipped malformed fields")
 assertContains(mapDiscovery.diagnostics.firstSkippedFieldReason, "fieldId", "fake runtime diagnostics should explain skipped fields")
+assertEquals("owner", mapDiscovery.diagnostics.propertyGroupingMode, "small owner buckets should stay owner-grouped")
+assertEquals(2, mapDiscovery.diagnostics.ownerBucketCount, "fake runtime should count owner and NPC buckets")
+assertEquals(0, mapDiscovery.diagnostics.splitOwnerBucketCount, "small owner buckets should not split")
 
 local previousMissions = g_missionManager.missions
 g_missionManager.missions = {
@@ -381,6 +388,12 @@ assertEquals(
     mapStateA.ledgerSnapshots[1].farmId,
     "ledger snapshot should use map-derived profile id"
 )
+local mapProfileIds = {}
+for _, profileEntry in ipairs(mapStateA.profiles) do
+    assertTrue(profileEntry.farmId ~= nil, "map profiles should expose a farm id")
+    assertTrue(not mapProfileIds[profileEntry.farmId], "map profile farm ids should be unique")
+    mapProfileIds[profileEntry.farmId] = true
+end
 assertEquals(
     mapStateA.ledgerSnapshots[1].operatingCash,
     mapStateB.ledgerSnapshots[1].operatingCash,
@@ -410,6 +423,50 @@ end
 assertTrue(sawFieldIds, "map farm detail should expose field IDs")
 assertTrue(sawPrecisionFarming, "map farm detail should expose Precision Farming status")
 
+local boundedIds = {}
+for index = 1, 20 do
+    boundedIds[index] = index
+end
+local boundedState = {
+    profiles = {
+        {
+            farmId = "bounded",
+            displayName = "Bounded Farm",
+            profileType = "grain_grower",
+            ownedFields = boundedIds,
+            fieldIds = boundedIds,
+            farmlandIds = boundedIds,
+            source = "map",
+            discoveryConfidence = "high",
+            cropSummary = "wheat",
+            fieldConditionCodes = {"tracked"},
+            precisionFarmingStatus = "available_pending",
+        },
+    },
+    ledgerSnapshots = {
+        {
+            farmId = "bounded",
+            operatingCash = 100000,
+            totalDebt = 20000,
+            grossRevenue = 120000,
+            seasonProfit = 12000,
+            riskBuffer = 20000,
+            stressState = Constants.STRESS_STATES.STABLE,
+            primaryPressure = Constants.PRESSURE_TYPES.NONE,
+        },
+    },
+}
+local boundedRows = UiModels.buildFarmList(boundedState)
+assertContains(boundedRows[1].fieldIdsText, "(+12 more)", "farm rows should bound long field ID lists")
+local boundedDetail = UiModels.buildFarmDetail(boundedState, "bounded")
+local sawBoundedDetailIds = false
+for _, line in ipairs(boundedDetail.lines) do
+    if string.find(line, "Field IDs") ~= nil and string.find(line, "(+8 more)", 1, true) ~= nil then
+        sawBoundedDetailIds = true
+    end
+end
+assertTrue(sawBoundedDetailIds, "farm detail should bound long field ID lists")
+
 local mapDebug = UiModels.buildDebugSummary(mapStateA, {})
 local sawDiscoveryDebug = false
 for _, line in ipairs(mapDebug.lines) do
@@ -419,6 +476,98 @@ for _, line in ipairs(mapDebug.lines) do
 end
 assertTrue(sawDiscoveryDebug, "debug summary should expose discovery diagnostics")
 
+clearFakeMapRuntime()
+
+local function installOversizedOwnerRuntime()
+    local farmlands = {}
+    local fields = {}
+
+    for index = 1, 30 do
+        local farmland = {id = index}
+        farmlands[index] = farmland
+        fields[index] = {
+            fieldId = index,
+            farmland = farmland,
+            fieldArea = 4.5,
+            getName = function()
+                return "Field " .. tostring(index)
+            end,
+            getCenterOfFieldWorldPosition = function()
+                return index * 2, index * 3
+            end,
+            getFieldState = function()
+                return {
+                    isValid = true,
+                    fruitTypeIndex = 1,
+                    growthState = 4,
+                    weedState = 0,
+                    stoneLevel = 0,
+                    groundType = 1,
+                    sprayLevel = 1,
+                    limeLevel = 1,
+                    rollerLevel = 1,
+                    plowLevel = 1,
+                    waterLevel = 0,
+                    farmlandId = index,
+                    ownerFarmId = 7,
+                }
+            end,
+        }
+    end
+
+    g_currentMission = {
+        missionInfo = {
+            mapId = "oversized_owner_map",
+        },
+    }
+    g_modIsLoaded = {}
+    g_fieldManager = {
+        fields = fields,
+    }
+    g_farmlandManager = {
+        getFarmlands = function()
+            return farmlands
+        end,
+        getFarmlandOwner = function()
+            return 7
+        end,
+    }
+    g_farmManager = {
+        getFarmById = function()
+            return {name = "Grandpa"}
+        end,
+    }
+    g_missionManager = {
+        missions = {},
+    }
+    g_fruitTypeManager = {
+        getFruitTypeByIndex = function()
+            return {name = "wheat"}
+        end,
+    }
+end
+
+installOversizedOwnerRuntime()
+local oversizedDiscovery = MapDiscovery.discover({trigger = "manualRefresh", mapReadyAttempted = true})
+assertEquals(30, oversizedDiscovery.discoveredPropertyCount, "oversized owner buckets should split into farmland-backed properties")
+assertEquals("ownerSplitByFarmland", oversizedDiscovery.diagnostics.propertyGroupingMode, "oversized discovery should record split grouping")
+assertEquals(1, oversizedDiscovery.diagnostics.ownerBucketCount, "oversized discovery should count the broad owner bucket")
+assertEquals(1, oversizedDiscovery.diagnostics.splitOwnerBucketCount, "oversized discovery should count the split owner bucket")
+assertEquals(30, oversizedDiscovery.diagnostics.largestOwnerFieldCount, "oversized diagnostics should expose largest owner field count")
+assertEquals(30, oversizedDiscovery.diagnostics.largestOwnerFarmlandCount, "oversized diagnostics should expose largest owner farmland count")
+assertContains(oversizedDiscovery.properties[1].displayName, "Farmland", "split property names should include farmland identity")
+local oversizedState = Persistence.createInitialState({seed = "oversized_selection", mapDiscovery = oversizedDiscovery})
+Simulation.calculatePeriod(oversizedState)
+local oversizedRows = UiModels.buildFarmList(oversizedState)
+assertEquals(30, #oversizedRows, "oversized split state should expose one farm row per split property")
+local firstOversizedDetail = UiModels.buildFarmDetail(oversizedState, oversizedRows[1].farmId)
+local secondOversizedDetail = UiModels.buildFarmDetail(oversizedState, oversizedRows[2].farmId)
+assertEquals(oversizedRows[1].farmId, firstOversizedDetail.farmId, "first split row should open matching detail")
+assertEquals(oversizedRows[2].farmId, secondOversizedDetail.farmId, "second split row should open matching detail")
+assertTrue(
+    firstOversizedDetail.displayName ~= secondOversizedDetail.displayName,
+    "split farm details should not collapse to the same display record"
+)
 clearFakeMapRuntime()
 
 local function makeElement()
@@ -479,6 +628,23 @@ ScreenElement = {
     onOpen = function() end,
 }
 
+MessageDialog = {
+    new = function(target, customMt)
+        local self = target or {}
+        if customMt ~= nil then
+            setmetatable(self, customMt)
+        end
+
+        self.closed = false
+        return self
+    end,
+    onGuiSetupFinished = function() end,
+    onOpen = function() end,
+    close = function(self)
+        self.closed = true
+    end,
+}
+
 function Class(classObject, superClass)
     classObject.superClass = function()
         return superClass
@@ -489,19 +655,52 @@ function Class(classObject, superClass)
     }
 end
 
+source("mod/src/RuralLedgerFarmDetailDialog.lua")
 source("mod/src/RuralLedgerScreen.lua")
+
+local profileLoadCalls = {}
+local guiLoadCalls = {}
+g_gui = {
+    loadProfiles = function(_, path)
+        profileLoadCalls[#profileLoadCalls + 1] = path
+    end,
+    loadGui = function(_, path, name, screenObject)
+        guiLoadCalls[#guiLoadCalls + 1] = {
+            path = path,
+            name = name,
+            screen = screenObject,
+        }
+        return true
+    end,
+}
+source("mod/src/RuralLedgerGui.lua")
+PhobosRuralLedger.Gui.modDirectory = "mod/"
+PhobosRuralLedger.Gui.screenLoaded = false
+PhobosRuralLedger.Gui.profilesLoaded = false
+PhobosRuralLedger.Gui.farmDetailDialogLoaded = false
+PhobosRuralLedger.Gui.screen = nil
+assertTrue(PhobosRuralLedger.Gui:loadScreen(), "GUI loader should load profiles and screen XML")
+assertEquals(1, #profileLoadCalls, "GUI profiles should load before the screen XML")
+assertEquals("mod/gui/guiProfiles.xml", profileLoadCalls[1], "GUI loader should load the dedicated Rural Ledger profile file")
+assertEquals(2, #guiLoadCalls, "dialog and screen XML should load once on first GUI load")
+assertEquals("mod/gui/RuralLedgerFarmDetailDialog.xml", guiLoadCalls[1].path, "farm detail dialog should load before the main screen")
+assertEquals(Constants.FARM_DETAIL_DIALOG_NAME, guiLoadCalls[1].name, "farm detail dialog should use the public dialog name")
+assertEquals("mod/gui/RuralLedgerScreen.xml", guiLoadCalls[2].path, "screen XML should load after the dialog")
+assertTrue(PhobosRuralLedger.Gui:loadScreen(), "second GUI load should reuse the cached screen")
+assertEquals(1, #profileLoadCalls, "GUI profiles should not load repeatedly")
+assertEquals(2, #guiLoadCalls, "dialog and screen XML should not load repeatedly")
+g_gui = nil
 
 local screen = PhobosRuralLedger.RuralLedgerScreen.new()
 screen.screenContainer = {absSize = {1300}}
 screen.farmersPanel = {absSize = {1300}}
 screen.overviewPanel = makeElement()
 screen.farmersPanel.setVisible = makeElement().setVisible
-screen.detailPanel = makeElement()
 screen.debugPanel = makeElement()
 screen.overviewTab = makeElement()
 screen.farmersTab = makeElement()
-screen.detailTab = makeElement()
 screen.debugTab = makeElement()
+screen.farmDetailFooterButton = makeElement()
 screen.farmHeaderFarm = makeElement()
 screen.farmHeaderType = makeElement()
 screen.farmHeaderFields = makeElement()
@@ -514,18 +713,12 @@ screen.farmHeaderStressCompact = makeElement()
 screen.farmHeaderPressureCompact = makeElement()
 screen.overviewTitle = makeElement()
 screen.overviewSubtitle = makeElement()
-screen.detailTitle = makeElement()
-screen.detailSubtitle = makeElement()
-screen.detailHeadline = makeElement()
-screen.detailCause = makeElement()
-screen.detailMeaning = makeElement()
 screen.debugTitle = makeElement()
 screen.debugModeText = makeElement()
 screen.overviewNoDataNotice = makeElement()
 screen.debugNoDataNotice = makeElement()
 screen.overviewList = makeList()
 screen.farmTable = makeList()
-screen.detailList = makeList()
 screen.debugList = makeList()
 
 function PhobosRuralLedger.getState()
@@ -533,6 +726,7 @@ function PhobosRuralLedger.getState()
 end
 
 screen:onGuiSetupFinished()
+assertEquals(nil, PhobosRuralLedger.RuralLedgerScreen.SECTIONS.DETAIL, "farm detail should not be a top-level section")
 assertTrue(screen.farmTable.dataSource == screen, "farm table should use the screen as data source")
 assertEquals(#farmRowsA, screen:getNumberOfItemsInSection(screen.farmTable, 1), "farm table item count should match cached rows")
 
@@ -561,9 +755,70 @@ assertTrue(not farmCell.attributes.farmRelation.visible, "compact layout should 
 assertTrue(farmCell.attributes.farmNameCompact.visible, "compact layout should show compact farm column")
 
 screen.isReloading = false
+assertTrue(screen.farmDetailFooterButton.disabled, "farm detail footer action should start disabled without a selected farm")
+assertTrue(screen.farmTable.onDoubleClickCallback ~= nil, "farm table should expose the SmoothList double-click callback")
+assertEquals(nil, screen.farmTable.onDoubleClick, "farm table should not depend on a speculative double-click callback")
+screen:onListSelectionChanged(screen.farmTable, 1, 0)
+assertEquals(farmRowsA[1].farmId, screen.selectedFarmId, "farm selection should tolerate zero-based callback indices")
 screen:onListSelectionChanged(screen.farmTable, 1, 2)
 assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "farm selection should update selected farm")
-assertEquals(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.DETAIL, screen.activeSection, "farm selection should switch to detail")
+assertEquals(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.FARMERS, screen.activeSection, "farm selection should keep Farmers as the active top tab")
+assertTrue(not screen.farmDetailFooterButton.disabled, "farm detail footer action should enable after selecting a farm")
+
+local shownDialogs = {}
+g_gui = {
+    showDialog = function(_, name)
+        shownDialogs[#shownDialogs + 1] = {
+            name = name,
+            target = {
+                receivedDetail = nil,
+                setFarmDetail = function(self, detail)
+                    self.receivedDetail = detail
+                end,
+            },
+        }
+        return shownDialogs[#shownDialogs]
+    end,
+}
+screen:onClickFarmDetail()
+assertEquals(1, #shownDialogs, "farm detail footer action should open one dialog")
+assertEquals(Constants.FARM_DETAIL_DIALOG_NAME, shownDialogs[1].name, "farm detail footer action should use the registered dialog")
+assertEquals(farmRowsA[2].farmId, shownDialogs[1].target.receivedDetail.farmId, "dialog should receive the selected farm detail model")
+screen:onListDoubleClick(screen.farmTable, 1, 0)
+assertEquals(2, #shownDialogs, "farm table double-click should open the same detail dialog")
+assertEquals(farmRowsA[1].farmId, screen.selectedFarmId, "farm table double-click should tolerate zero-based callback indices")
+assertEquals(farmRowsA[1].farmId, shownDialogs[2].target.receivedDetail.farmId, "zero-based double-click dialog should receive the clicked farm detail model")
+screen:onListDoubleClick(screen.farmTable, 1, 3)
+assertEquals(3, #shownDialogs, "farm table double-click should open one dialog per activation")
+assertEquals(farmRowsA[3].farmId, screen.selectedFarmId, "farm table double-click should select the clicked farm")
+assertEquals(farmRowsA[3].farmId, shownDialogs[3].target.receivedDetail.farmId, "double-click dialog should receive the clicked farm detail model")
+g_gui = nil
+
+screen.selectedFarmId = farmRowsA[2].farmId
+screen:refreshModels()
+screen:updateDisplay()
+assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "refresh should preserve a still-valid farm selection")
+assertTrue(not screen.farmDetailFooterButton.disabled, "refresh should keep the detail footer action enabled for a valid selection")
+screen.selectedFarmId = "missing_farm"
+screen:refreshModels()
+screen:updateDisplay()
+assertEquals(nil, screen.selectedFarmId, "refresh should clear a missing farm selection")
+assertTrue(screen.farmDetailFooterButton.disabled, "refresh should disable the detail footer action when selection disappears")
+
+local dialog = PhobosRuralLedger.FarmDetailDialog.new()
+dialog.detailTitle = makeElement()
+dialog.detailSubtitle = makeElement()
+dialog.detailHeadline = makeElement()
+dialog.detailCause = makeElement()
+dialog.detailMeaning = makeElement()
+dialog.detailList = makeList()
+dialog:onGuiSetupFinished()
+dialog:setFarmDetail(UiModels.buildFarmDetail(stateA, farmRowsA[1].farmId))
+assertTrue(dialog.detailTitle.text ~= "", "farm detail dialog should render a selected farm title")
+assertTrue(#dialog.detailRows > 0, "farm detail dialog should expose public detail rows")
+assertEquals(#dialog.detailRows, dialog:getNumberOfItemsInSection(dialog.detailList, 1), "farm detail dialog list count should match detail rows")
+dialog:onClickBack()
+assertTrue(dialog.closed, "farm detail dialog back action should close the dialog")
 
 source("mod/src/PhobosRuralLedger.lua")
 

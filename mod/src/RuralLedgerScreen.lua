@@ -3,11 +3,11 @@ PhobosRuralLedger.RuralLedgerScreen = PhobosRuralLedger.RuralLedgerScreen or {}
 
 local RuralLedgerScreen = PhobosRuralLedger.RuralLedgerScreen
 local RuralLedgerScreen_mt = Class(RuralLedgerScreen, ScreenElement)
+local Constants = PhobosRuralLedger.Constants
 
 RuralLedgerScreen.SECTIONS = {
     OVERVIEW = "overview",
     FARMERS = "farmers",
-    DETAIL = "detail",
     DEBUG = "debug",
 }
 
@@ -27,7 +27,6 @@ function RuralLedgerScreen.new(target, customMt)
     self.cachedFarmDetail = nil
     self.cachedDebug = nil
     self.overviewRows = {}
-    self.detailRows = {}
     self.debugRows = {}
 
     return self
@@ -72,6 +71,21 @@ local function setButtonSelected(button, selected)
     end
 end
 
+local function setButtonDisabled(button, disabled)
+    if button == nil then
+        return
+    end
+
+    local value = disabled == true
+    button.disabled = value
+
+    if button.setDisabled ~= nil then
+        button:setDisabled(value)
+    elseif button.setIsDisabled ~= nil then
+        button:setIsDisabled(value)
+    end
+end
+
 local function reloadList(list)
     if list ~= nil and list.reloadData ~= nil then
         list:reloadData()
@@ -94,12 +108,28 @@ local function setCellVisible(cell, name, visible)
     setVisible(cellAttribute(cell, name), visible)
 end
 
-local function firstFarmId(rows)
-    if rows ~= nil and rows[1] ~= nil then
-        return rows[1].farmId
+local function containsFarmId(rows, farmId)
+    if rows == nil or farmId == nil then
+        return false
     end
 
-    return nil
+    for _, row in ipairs(rows) do
+        if row.farmId == farmId then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function rowAtListIndex(rows, index)
+    local numericIndex = tonumber(index)
+
+    if rows == nil or numericIndex == nil then
+        return nil
+    end
+
+    return rows[numericIndex] or rows[numericIndex + 1]
 end
 
 local function pixelWidth(element)
@@ -144,7 +174,6 @@ end
 function RuralLedgerScreen:setupLists()
     self:setupList(self.overviewList, false)
     self:setupList(self.farmTable, true)
-    self:setupList(self.detailList, false)
     self:setupList(self.debugList, false)
 end
 
@@ -162,8 +191,8 @@ function RuralLedgerScreen:setupList(list, tracksSelection)
     end
 
     if tracksSelection == true then
-        list.onSelectionChanged = function(_, section, index)
-            self:onListSelectionChanged(list, section, index)
+        list.onDoubleClickCallback = function(_, section, index)
+            self:onListDoubleClick(list, section, index)
         end
     end
 end
@@ -183,9 +212,17 @@ function RuralLedgerScreen:onClickFarmers()
 end
 
 function RuralLedgerScreen:onClickDetail()
-    self.selectedFarmId = self.selectedFarmId or firstFarmId(self.cachedFarmRows)
+    self:onClickFarmDetail()
+end
+
+function RuralLedgerScreen:onClickFarmDetail()
+    if self.selectedFarmId == nil then
+        self:updateFooterButtons()
+        return
+    end
+
     self:refreshFarmDetail()
-    self:setSection(RuralLedgerScreen.SECTIONS.DETAIL)
+    self:openFarmDetailDialog()
 end
 
 function RuralLedgerScreen:onClickDebug()
@@ -221,14 +258,27 @@ function RuralLedgerScreen:onListSelectionChanged(list, section, index)
         return
     end
 
-    local row = self.cachedFarmRows[index]
+    local row = rowAtListIndex(self.cachedFarmRows, index)
     if row == nil then
+        self.selectedFarmId = nil
+        self:updateFooterButtons()
         return
     end
 
     self.selectedFarmId = row.farmId
-    self:refreshFarmDetail()
-    self:setSection(RuralLedgerScreen.SECTIONS.DETAIL)
+    self:setSection(RuralLedgerScreen.SECTIONS.FARMERS)
+end
+
+function RuralLedgerScreen:onListDoubleClick(list, section, index)
+    if self.isReloading or list ~= self.farmTable then
+        return
+    end
+
+    self:onListSelectionChanged(list, section, index)
+
+    if self.selectedFarmId ~= nil then
+        self:onClickFarmDetail()
+    end
 end
 
 function RuralLedgerScreen:refreshModels()
@@ -242,7 +292,9 @@ function RuralLedgerScreen:refreshModels()
     self.cachedFarmRows = PhobosRuralLedger.UiModels.buildFarmList(state, {
         includeDebug = self.debugVisible,
     })
-    self.selectedFarmId = self.selectedFarmId or firstFarmId(self.cachedFarmRows)
+    if not containsFarmId(self.cachedFarmRows, self.selectedFarmId) then
+        self.selectedFarmId = nil
+    end
     self:refreshFarmDetail()
     self.cachedDebug = PhobosRuralLedger.UiModels.buildDebugSummary(state, {
         includeExactFarmValues = self.debugVisible,
@@ -299,7 +351,6 @@ function RuralLedgerScreen:buildListRows()
     end
 
     self.overviewRows = overviewRows
-    self.detailRows = (self.cachedFarmDetail or {}).lines or {}
     self.debugRows = (self.cachedDebug or {}).lines or {}
 end
 
@@ -311,8 +362,8 @@ end
 function RuralLedgerScreen:updateDisplay()
     self:updateTabState()
     self:updateOverview()
-    self:updateFarmDetail()
     self:updateDebug()
+    self:updateFooterButtons()
     self:reloadVisibleLists()
 end
 
@@ -321,12 +372,10 @@ function RuralLedgerScreen:updateTabState()
 
     setVisible(self.overviewPanel, active == RuralLedgerScreen.SECTIONS.OVERVIEW)
     setVisible(self.farmersPanel, active == RuralLedgerScreen.SECTIONS.FARMERS)
-    setVisible(self.detailPanel, active == RuralLedgerScreen.SECTIONS.DETAIL)
     setVisible(self.debugPanel, active == RuralLedgerScreen.SECTIONS.DEBUG)
 
     setButtonSelected(self.overviewTab, active == RuralLedgerScreen.SECTIONS.OVERVIEW)
     setButtonSelected(self.farmersTab, active == RuralLedgerScreen.SECTIONS.FARMERS)
-    setButtonSelected(self.detailTab, active == RuralLedgerScreen.SECTIONS.DETAIL)
     setButtonSelected(self.debugTab, active == RuralLedgerScreen.SECTIONS.DEBUG)
 end
 
@@ -345,22 +394,6 @@ function RuralLedgerScreen:updateOverview()
     setVisible(self.overviewNoDataNotice, notice.visible == true)
 end
 
-function RuralLedgerScreen:updateFarmDetail()
-    local detail = self.cachedFarmDetail or {}
-    local status = detail.status or {}
-    local explanation = detail.explanation or {}
-
-    setText(self.detailTitle, detail.displayName or i18n("rl_detail_no_farm_title", "No farm selected"))
-    setText(self.detailSubtitle, detail.profileLabel or "")
-    setText(self.detailHeadline, status.headline or "")
-    setText(self.detailCause, i18n(
-        "rl_detail_primary_pressure",
-        "Primary pressure: %s",
-        tostring(explanation.mainCause or i18n("rl_stress_unknown", "Unknown"))
-    ))
-    setText(self.detailMeaning, explanation.playerMeaning or "")
-end
-
 function RuralLedgerScreen:updateDebug()
     local debugModel = self.cachedDebug or {}
     local notice = debugModel.noDataNotice or {}
@@ -375,11 +408,30 @@ function RuralLedgerScreen:updateDebug()
     setVisible(self.debugNoDataNotice, notice.visible == true)
 end
 
+function RuralLedgerScreen:updateFooterButtons()
+    local canOpenDetail = self.activeSection == RuralLedgerScreen.SECTIONS.FARMERS
+        and self.selectedFarmId ~= nil
+
+    setButtonDisabled(self.farmDetailFooterButton, not canOpenDetail)
+end
+
+function RuralLedgerScreen:openFarmDetailDialog()
+    if g_gui == nil or g_gui.showDialog == nil or Constants == nil then
+        return
+    end
+
+    local dialog = g_gui:showDialog(Constants.FARM_DETAIL_DIALOG_NAME)
+    local target = dialog ~= nil and dialog.target or nil
+
+    if target ~= nil and target.setFarmDetail ~= nil then
+        target:setFarmDetail(self.cachedFarmDetail)
+    end
+end
+
 function RuralLedgerScreen:reloadVisibleLists()
     self.isReloading = true
     reloadList(self.overviewList)
     reloadList(self.farmTable)
-    reloadList(self.detailList)
     reloadList(self.debugList)
     self.isReloading = false
 end
@@ -393,8 +445,6 @@ function RuralLedgerScreen:getNumberOfItemsInSection(list, section)
         return #self.overviewRows
     elseif list == self.farmTable then
         return #self.cachedFarmRows
-    elseif list == self.detailList then
-        return #self.detailRows
     elseif list == self.debugList then
         return #self.debugRows
     end
@@ -407,8 +457,6 @@ function RuralLedgerScreen:populateCellForItemInSection(list, section, index, ce
         self:populateOverviewCell(index, cell)
     elseif list == self.farmTable then
         self:populateFarmCell(index, cell)
-    elseif list == self.detailList then
-        self:populateTextCell(self.detailRows[index], cell)
     elseif list == self.debugList then
         self:populateTextCell(self.debugRows[index], cell)
     end

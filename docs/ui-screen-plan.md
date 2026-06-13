@@ -17,19 +17,28 @@ player should know, and avoid mixing presentation with gameplay mutation.
 
 ## Design Principle
 
-Overview tells the player what matters. Farm Detail tells them why.
+Overview tells the player what matters. Farmers lists the map-backed
+properties. Farm Detail tells them why after the player selects one.
 Opportunities tell them what they can do. History proves the world remembers.
 
 ## Screen Roadmap
 
 | Phase | Screens | Purpose |
 | --- | --- | --- |
-| Version 1 | Overview, Farmers, Farm Detail, Settings / Debug | Read-only economy visibility, farm pressure list/detail, and diagnostics. |
+| Version 1 | Overview, Farmers with Farm Detail drill-down, Settings / Debug | Read-only economy visibility, farm pressure list/detail, and diagnostics. |
 | Version 2 | Market Board, Land & Auctions, Relationships, Farm Detail tabs | Playable local-economy surfaces after opportunity, land, and relationship hooks exist. |
 | Version 3 | Regional Outlook, Co-op Board, Supply Chains, Disaster & Insurance, Annual Report | Regional economy office views and annual report layers before hard integrations. |
 
 Do not add empty UI promises. A screen should appear only when the state behind
 it exists or the screen is clearly marked as a debug/development surface.
+
+Top tabs are reserved for overview-level destinations. Row-specific drill-downs
+should be exposed through context-aware footer actions: selecting a row enables
+the relevant bottom command, and pressing that command opens the read-only
+detail surface. Double-clicking a row may invoke the same command as a
+convenience, but it must not be the only way to drill down. In V1, Farm Detail
+is therefore a Farmers context action, not a top-level tab or an inline
+sub-panel.
 
 ## Version 1 Screens
 
@@ -77,10 +86,14 @@ Suggested sorts:
 - relationship;
 - opportunity expiry.
 
-### Farm Detail
+### Farm Detail Drill-Down
 
-Farm Detail explains why a single farm is doing well or struggling. Suggested
-sections:
+Farm Detail explains why a single farm is doing well or struggling. It appears
+only after selecting a Farmers row and pressing the footer `Farm Detail`
+action, or by double-clicking a row as a shortcut to that same action. Farmers
+stays selected in the top navigation, and returning from the dialog restores
+the list unchanged.
+Suggested sections:
 
 - summary: farm name, type, stress state, and primary pressure;
 - financial health: public bands for cash position, debt pressure, revenue,
@@ -370,8 +383,8 @@ per-frame paths.
    of assembling every display line directly from raw state.
 3. Add a developer/debug report screen path, even if it begins as bounded log
    output or a simple message surface.
-4. Add a simple visual Rural Ledger screen with Overview, Farmers, and Farm
-   Detail only.
+4. Add a simple visual Rural Ledger screen with Overview, Farmers, and selected
+   Farm Detail drill-down only.
 5. Add opportunity cards using saved cause and expiry data.
 6. Add Version 2 tabs only after gameplay hooks are real.
 7. Add Version 3 regional screens as report layers before hard integrations.
@@ -389,6 +402,17 @@ Farmers is list-backed, farm detail/debug output is list-backed, and compact
 farm-table columns hide lower-priority Type/Relationship fields on narrower
 containers. The reusable GUI-loading pattern remains a future `FS25_PhobosLib`
 candidate only after more than one Phobos FS25 mod needs it.
+
+`v0.1.5.4` removed Farm Detail from the overview-level top tabs. Runtime UI
+review then clarified that selected-property drill-downs should behave like
+context-aware bottom commands, not inline sub-panels. `v0.1.5.5` keeps the
+read-only data model, keeps Farmers as the primary table, enables a footer
+`Farm Detail` action after row selection, and opens detail in a dialog.
+`v0.1.5.6` adds a double-click shortcut for that same dialog so players do not
+need to move the pointer to the footer every time.
+`v0.1.5.7` tightens row-to-dialog identity: a detail model is only produced for
+the exact selected farm/profile, and the Farmers table uses the documented
+SmoothList double-click callback path.
 
 The next model correction is map-first ownership. Current V1 UI data is still
 fallback-generated while the FS25 landowner, farmland, field, contract, and

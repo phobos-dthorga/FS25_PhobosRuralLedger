@@ -29,7 +29,12 @@ Implemented:
 - one bounded screen-open retry when discovery is still empty;
 - manual refresh of the read-only map-backed state and display models;
 - prominent localized no-data notices when a map-ready discovery attempt still
-  finds no usable field data.
+  finds no usable field data;
+- dedicated Rural Ledger GUI profile loading through `gui/guiProfiles.xml`;
+- oversized owner/NPC discovery bucket splitting into farmland-backed property
+  records;
+- Farm Detail as a selected-property drill-down inside the Farmers screen, not
+  as a top-level overview tab.
 
 ## Runtime Evidence
 
@@ -103,6 +108,66 @@ skipped into bounded diagnostics instead of crashing FS25. Precision Farming
 availability is still detected through the guarded PhobosLib integration helper,
 but exact pH and nitrogen values remain pending until a safe API is proven.
 
+Runtime testing of `v0.1.5.2` then confirmed the trusted discovery timing:
+manual Refresh produced a clean map-backed line with 200 usable fields, 240
+farmlands, 41 contracts, zero skipped records, zero discovery errors, and
+Precision Farming availability. The same session exposed two remaining
+Phobos-owned blockers. The screen load emitted repeated `Could not retrieve GUI
+profile 'button'` warnings that matched visible button/tab/footer distortion
+after clicking Rural Ledger controls. Discovery also collapsed the whole tested
+map into one property, so Farm Detail showed a single `GRANDPA` record with 200
+controlled fields.
+
+`v0.1.5.3` targets those blockers. Rural Ledger GUI profiles now live in
+`gui/guiProfiles.xml` and are loaded before `RuralLedgerScreen.xml`, matching
+the pattern used by the reference UI mods. Button profiles no longer inherit
+from the fragile `buttonOK` path for custom screen controls. Map discovery now
+keeps small owner/NPC buckets grouped but splits broad owner buckets by
+farmland when they exceed 24 fields or 8 farmlands, producing property-scale
+records such as `Owner - Farmland 170`. Long field/farmland ID lines are
+bounded in the UI with a `(+N more)` suffix.
+
+Runtime testing of `v0.1.5.3` confirmed the property grouping direction: the
+Farmers table now shows many map-backed records such as `ANIMAL_DEALER -
+Farmland 56`, `FARMER - Farmland 34`, and `FORESTER - Farmland 100` instead of
+one giant owner record. The same test refined the UI hierarchy: top tabs are
+reserved for overview-level destinations. The first implementation interpreted
+selected-property drill-downs as an inline Farmers sub-panel; later UI review
+clarified that the intended pattern is a context-aware footer action. The log
+still contained repeated generic `Could not retrieve GUI profile 'button'`
+warnings before the Rural Ledger profile/screen load messages, so ownership
+must be rechecked before feature work resumes.
+
+`v0.1.5.4` implemented the first navigation correction. The top tabs are
+Overview, Farmers, and Settings / Debug, and Farm Detail is no longer a
+top-level destination. Runtime screenshots then clarified the desired
+interaction model: selecting a Farmers row should not open an inline detail
+panel. It should only make context-aware footer actions available, matching the
+pattern used by table-heavy reference mods such as TSStockCheck.
+
+`v0.1.5.5` implements that clarified footer-action model. Selecting a Farmers
+row now keeps the list as the primary surface and enables the bottom `Farm
+Detail` action. Pressing that action opens a read-only Farm Detail dialog fed
+by the existing `UiModels.buildFarmDetail` model. Static validation blocks both
+a top-level `detailTab` and the removed inline Farmers detail panel from
+returning.
+
+`v0.1.5.6` adds the matching fast path: double-clicking a Farmers row selects
+that property and opens the same read-only Farm Detail dialog as the footer
+action. The footer remains the discoverable path; double-click is only a
+convenience. The latest inspected log showed `FS25_PhobosRuralLedger` version
+`0.1.5.5` available, but the game exited before loading the mod into a save, so
+the runtime gate for the context-footer/dialog flow remains open.
+
+Runtime testing of `v0.1.5.6` confirmed the Rural Ledger-owned log path is
+clean and mission-start discovery remains map-backed, but exposed one functional
+gate: the selected Farmers row could open a mismatched Farm Detail model.
+`v0.1.5.7` fixes that by requiring strict farm/profile identity in
+`UiModels.buildFarmDetail`, tolerating the first zero-based SmoothList callback
+index edge case, and using the documented `onDoubleClickCallback` path rather
+than speculative list callback names. Feature work stays gated until this
+row-to-dialog identity fix is runtime-proven.
+
 ## Persistence Boundary
 
 `Persistence.lua` currently owns table-shaped save state:
@@ -128,17 +193,25 @@ added.
 
 Recommended next code step:
 
-1. Runtime-test the `v0.1.5.2` discovery hotfix on the same disposable save
-   with `FS25_PhobosLib` installed, and optionally with `FS25_precisionFarming`.
-2. Confirm the log shows bounded discovery lines for `bootstrap`, `mapLoad`,
-   `missionStart`, `screenOpenRetry` only if needed, and `manualRefresh` only
-   when pressed, with no Phobos-owned errors or warnings.
-3. Verify Overview, Farmers, Farm Detail, and Settings / Debug show map source,
-   field IDs, crop mix, field condition, discovery confidence, and no-data
-   notice behavior when managers genuinely remain empty.
-4. Research exact Precision Farming pH/nitrogen read paths only after the
-   vanilla map discovery runtime pass is clean.
-5. Add the first cause-carrying neighbour opportunity from strained or worse
-   farms only after the map-first owner/property model is stable.
-6. Research and wire FS25 save/load lifecycle hooks only after the read-only
+1. Runtime-test the `v0.1.5.7` context-footer/double-click identity hotfix on the same
+   disposable save with `FS25_PhobosLib` installed, and optionally with
+   `FS25_precisionFarming`.
+2. Confirm no Phobos-owned `Error:`, `Warning:`, or `Warning (` lines appear,
+   especially no Rural Ledger-owned `Could not retrieve GUI profile 'button'`.
+3. Verify top tabs are overview-level only, Farmers row selection only enables
+   the footer `Farm Detail` action, and pressing that action opens/closes the
+   read-only dialog cleanly.
+4. Verify clicking or double-clicking several Farmers rows opens the same
+   read-only Farm Detail dialog with matching property name, field IDs, and
+   farmland IDs for each selected row.
+5. Verify button, tab, settings/debug, Refresh, and footer interactions do not
+   produce visible distortion.
+6. Verify the tested map still shows multiple map-backed property records rather
+   than one broad owner record, while still reporting the same usable field and
+   farmland counts.
+7. Research exact Precision Farming pH/nitrogen read paths only after this
+   runtime pass is clean.
+8. Add the first read-only cause-carrying neighbour opportunity from strained
+   or worse farms only after the map-first owner/property model is stable.
+9. Research and wire FS25 save/load lifecycle hooks only after the read-only
    state and opportunity data remain stable.

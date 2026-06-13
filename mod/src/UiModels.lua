@@ -293,17 +293,24 @@ local function stateParts(state)
     return profiles, snapshots, Ledgers.indexSnapshotsByFarmId(snapshots)
 end
 
-local function joinList(values, emptyText)
+local function joinList(values, emptyText, maxItems)
     if values == nil or #values == 0 then
         return emptyText or text("rl_band_unknown", "Unknown")
     end
 
     local parts = {}
-    for index, value in ipairs(values) do
+    local limit = math.min(#values, maxItems or #values)
+    for index = 1, limit do
+        local value = values[index]
         parts[index] = tostring(value)
     end
 
-    return table.concat(parts, ", ")
+    local joined = table.concat(parts, ", ")
+    if maxItems ~= nil and #values > maxItems then
+        joined = joined .. text("rl_list_more", ", ... (+%d more)", #values - maxItems)
+    end
+
+    return joined
 end
 
 local function fieldConditionSummary(profile)
@@ -331,6 +338,7 @@ end
 
 local function discoverySummary(state)
     local discovery = (state or {}).mapDiscovery or {}
+    local diagnostics = discovery.diagnostics or {}
 
     return {
         source = sourceLabel(discovery.source),
@@ -341,6 +349,7 @@ local function discoverySummary(state)
             sourceLabel(discovery.source),
             confidenceLabel(discovery.confidence)
         ),
+        groupingMode = diagnostics.propertyGroupingMode or "none",
         discoveredProperties = discovery.discoveredPropertyCount or 0,
         discoveredFields = discovery.discoveredFieldCount or 0,
         discoveredFarmlands = discovery.discoveredFarmlandCount or 0,
@@ -417,8 +426,8 @@ function UiModels.buildFarmList(state, options)
             discoveryConfidence = profile.discoveryConfidence or "fallback",
             discoveryConfidenceLabel = confidenceLabel(profile.discoveryConfidence),
             sourceConfidenceLabel = sourceConfidenceLabel(profile),
-            fieldIdsText = joinList(profile.fieldIds or profile.ownedFields, text("rl_band_unknown", "Unknown")),
-            farmlandIdsText = joinList(profile.farmlandIds, text("rl_band_unknown", "Unknown")),
+            fieldIdsText = joinList(profile.fieldIds or profile.ownedFields, text("rl_band_unknown", "Unknown"), 8),
+            farmlandIdsText = joinList(profile.farmlandIds, text("rl_band_unknown", "Unknown"), 8),
             cropSummary = profile.cropSummary or text("rl_band_unknown", "Unknown"),
             fieldConditionSummary = fieldConditionSummary(profile),
             precisionFarmingSummary = precisionFarmingSummary(profile),
@@ -532,9 +541,21 @@ function UiModels.buildFarmDetail(state, farmId, options)
     local profiles, _, snapshotsByFarmId = stateParts(state)
     local selectedProfile = nil
 
-    for _, profile in ipairs(profiles) do
-        if selectedProfile == nil or profile.farmId == farmId then
-            selectedProfile = profile
+    if farmId ~= nil then
+        for _, profile in ipairs(profiles) do
+            if profile.farmId == farmId then
+                selectedProfile = profile
+                break
+            end
+        end
+    end
+
+    if selectedProfile == nil and farmId ~= nil then
+        for _, profile in ipairs(profiles) do
+            if tostring(profile.farmId or "") == tostring(farmId or "") then
+                selectedProfile = profile
+                break
+            end
         end
     end
 
@@ -564,8 +585,8 @@ function UiModels.buildFarmDetail(state, farmId, options)
     local visibleLines = {
         text("rl_detail_line_profile", "Profile: %s", profileLabel(selectedProfile)),
         text("rl_detail_line_source", "Source: %s", sourceConfidenceLabel(selectedProfile)),
-        text("rl_detail_line_farmlands", "Farmlands: %s", joinList(selectedProfile.farmlandIds, text("rl_band_unknown", "Unknown"))),
-        text("rl_detail_line_field_ids", "Field IDs: %s", joinList(selectedProfile.fieldIds or selectedProfile.ownedFields, text("rl_band_unknown", "Unknown"))),
+        text("rl_detail_line_farmlands", "Farmlands: %s", joinList(selectedProfile.farmlandIds, text("rl_band_unknown", "Unknown"), 12)),
+        text("rl_detail_line_field_ids", "Field IDs: %s", joinList(selectedProfile.fieldIds or selectedProfile.ownedFields, text("rl_band_unknown", "Unknown"), 12)),
         text("rl_detail_line_crop_mix", "Crop mix: %s", selectedProfile.cropSummary or text("rl_band_unknown", "Unknown")),
         text("rl_detail_line_field_condition", "Field condition: %s", fieldConditionSummary(selectedProfile)),
         text("rl_detail_line_precision", "Precision Farming: %s", precisionFarmingSummary(selectedProfile)),
@@ -650,6 +671,7 @@ function UiModels.buildDebugSummary(state, options)
         text("rl_debug_discovery_source", "Discovery source: %s", sourceLabel(discovery.source)),
         text("rl_debug_discovery_confidence", "Discovery confidence: %s", confidenceLabel(discovery.confidence)),
         text("rl_debug_discovery_trigger", "Discovery trigger: %s", tostring(discovery.trigger or diagnostics.trigger or "unknown")),
+        text("rl_debug_property_grouping", "Property grouping: %s", tostring(diagnostics.propertyGroupingMode or "none")),
         text("rl_debug_map_ready_attempted", "Map-ready discovery attempted: %s", boolText(discovery.mapReadyAttempted)),
         text("rl_debug_discovery_properties", "Discovered properties: %d", discovery.discoveredPropertyCount or 0),
         text("rl_debug_discovery_fields", "Discovered fields: %d", discovery.discoveredFieldCount or 0),
@@ -658,6 +680,8 @@ function UiModels.buildDebugSummary(state, options)
         text("rl_debug_manager_fields", "Field manager: %s, raw fields: %d", boolText(diagnostics.fieldManagerAvailable), diagnostics.rawFieldCount or 0),
         text("rl_debug_manager_farmlands", "Farmland manager: %s, raw farmlands: %d", boolText(diagnostics.farmlandManagerAvailable), diagnostics.rawFarmlandCount or 0),
         text("rl_debug_manager_missions", "Mission manager: %s, raw missions: %d", boolText(diagnostics.missionManagerAvailable), diagnostics.rawMissionCount or 0),
+        text("rl_debug_owner_buckets", "Owner buckets: %d, split buckets: %d", diagnostics.ownerBucketCount or 0, diagnostics.splitOwnerBucketCount or 0),
+        text("rl_debug_largest_owner_bucket", "Largest owner bucket: %d fields, %d farmlands", diagnostics.largestOwnerFieldCount or 0, diagnostics.largestOwnerFarmlandCount or 0),
         text("rl_debug_usable_fields", "Usable fields: %d", diagnostics.usableFieldCount or discovery.discoveredFieldCount or 0),
         text("rl_debug_skipped_fields", "Skipped fields: %d", diagnostics.skippedFieldCount or 0),
         text("rl_debug_skipped_missions", "Skipped missions: %d", diagnostics.skippedMissionCount or 0),

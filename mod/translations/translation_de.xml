@@ -12,6 +12,7 @@
         <text name="rl_button_toggle_debug" text="Exakte Debugwerte umschalten"/>
         <text name="rl_button_refresh_display" text="Anzeigedaten aktualisieren"/>
         <text name="rl_no_map_data_notice" text="Noch keine Kartendaten verfügbar. Speichere/lade das Spiel oder drücke Aktualisieren, nachdem die Karte vollständig geladen ist."/>
+        <text name="rl_list_more" text=", ... (+%d weitere)"/>
 
         <text name="rl_overview_recent_notes" text="Aktuelle Wirtschaftshinweise"/>
         <text name="rl_overview_empty_alert" text="In diesem Zeitraum gibt es keine öffentlichen Druckmeldungen."/>
@@ -80,6 +81,7 @@
         <text name="rl_debug_discovery_source" text="Erkennungsquelle: %s"/>
         <text name="rl_debug_discovery_confidence" text="Erkennungsvertrauen: %s"/>
         <text name="rl_debug_discovery_trigger" text="Erkennungsauslöser: %s"/>
+        <text name="rl_debug_property_grouping" text="Flächengruppierung: %s"/>
         <text name="rl_debug_map_ready_attempted" text="Kartenbereite Erkennung versucht: %s"/>
         <text name="rl_debug_discovery_properties" text="Erkannte Betriebe/Flächen: %d"/>
         <text name="rl_debug_discovery_fields" text="Erkannte Felder: %d"/>
@@ -88,6 +90,8 @@
         <text name="rl_debug_manager_fields" text="Feld-Manager: %s, Rohfelder: %d"/>
         <text name="rl_debug_manager_farmlands" text="Flurstück-Manager: %s, Rohflurstücke: %d"/>
         <text name="rl_debug_manager_missions" text="Auftrags-Manager: %s, Rohaufträge: %d"/>
+        <text name="rl_debug_owner_buckets" text="Eigentümergruppen: %d, geteilte Gruppen: %d"/>
+        <text name="rl_debug_largest_owner_bucket" text="Größte Eigentümergruppe: %d Felder, %d Flurstücke"/>
         <text name="rl_debug_usable_fields" text="Nutzbare Felder: %d"/>
         <text name="rl_debug_skipped_fields" text="Übersprungene Felder: %d"/>
         <text name="rl_debug_skipped_missions" text="Übersprungene Aufträge: %d"/>

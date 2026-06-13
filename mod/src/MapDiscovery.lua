@@ -4,6 +4,8 @@ PhobosRuralLedger.MapDiscovery = PhobosRuralLedger.MapDiscovery or {}
 local MapDiscovery = PhobosRuralLedger.MapDiscovery
 
 local PRECISION_FARMING_MOD = "FS25_precisionFarming"
+local MAX_FIELDS_PER_OWNER_PROPERTY = 24
+local MAX_FARMLANDS_PER_OWNER_PROPERTY = 8
 
 local function call(value, methodName, ...)
     if value == nil then
@@ -509,7 +511,7 @@ local function discoverMissions(missionSource)
     return missions, missionByFieldId, diagnostics
 end
 
-local function propertyKey(field)
+local function ownerBucketKey(field)
     if field.ownerFarmId ~= nil then
         return "owner:" .. tostring(field.ownerFarmId), "high"
     end
@@ -518,15 +520,75 @@ local function propertyKey(field)
         return "npc:" .. tostring(field.npcName), "medium"
     end
 
-    if field.farmlandId ~= nil then
-        return "farmland:" .. tostring(field.farmlandId), "medium"
-    end
-
-    return "field:" .. tostring(field.fieldId or "?"), "low"
+    return nil, nil
 end
 
-local function createProperty(key, confidence, field)
+local function buildOwnerBuckets(fieldRecords)
+    local buckets = {}
+
+    for _, field in ipairs(fieldRecords or {}) do
+        local key, confidence = ownerBucketKey(field)
+        if key ~= nil then
+            local bucket = buckets[key]
+            if bucket == nil then
+                bucket = {
+                    confidence = confidence,
+                    fieldCount = 0,
+                    farmlandIds = {},
+                    farmlandSet = {},
+                }
+                buckets[key] = bucket
+            end
+
+            bucket.fieldCount = bucket.fieldCount + 1
+            if field.farmlandId ~= nil and bucket.farmlandSet[field.farmlandId] == nil then
+                bucket.farmlandSet[field.farmlandId] = true
+                bucket.farmlandIds[#bucket.farmlandIds + 1] = field.farmlandId
+            end
+        end
+    end
+
+    return buckets
+end
+
+local function ownerBucketShouldSplit(bucket)
+    if bucket == nil then
+        return false
+    end
+
+    return (bucket.fieldCount or 0) > MAX_FIELDS_PER_OWNER_PROPERTY
+        or #(bucket.farmlandIds or {}) > MAX_FARMLANDS_PER_OWNER_PROPERTY
+end
+
+local function propertyKey(field, ownerBuckets)
+    local ownerKey, ownerConfidence = ownerBucketKey(field)
+    local ownerBucket = ownerKey ~= nil and ownerBuckets[ownerKey] or nil
+
+    if ownerBucketShouldSplit(ownerBucket) and field.farmlandId ~= nil then
+        return ownerKey .. ":farmland:" .. tostring(field.farmlandId), ownerConfidence or "medium", "ownerSplitByFarmland", ownerKey
+    end
+
+    if ownerKey ~= nil then
+        return ownerKey, ownerConfidence, "owner", ownerKey
+    end
+
+    if field.farmlandId ~= nil then
+        return "farmland:" .. tostring(field.farmlandId), "medium", "farmland", nil
+    end
+
+    return "field:" .. tostring(field.fieldId or "?"), "low", "field", nil
+end
+
+local function createProperty(key, confidence, field, groupingMode, sourceOwnerKey)
     local displayName = field.ownerName or field.npcName
+    if groupingMode == "ownerSplitByFarmland" and field.farmlandId ~= nil then
+        local ownerName = field.ownerName or field.npcName
+        if ownerName ~= nil then
+            displayName = string.format("%s - Farmland %s", ownerName, tostring(field.farmlandId))
+        else
+            displayName = string.format("Farmland %s", tostring(field.farmlandId))
+        end
+    end
     if displayName == nil and field.farmlandId ~= nil then
         displayName = string.format("Farmland %s", tostring(field.farmlandId))
     end
@@ -542,6 +604,8 @@ local function createProperty(key, confidence, field)
         ownerName = field.ownerName,
         npcName = field.npcName,
         displayName = displayName,
+        groupingMode = groupingMode or "field",
+        sourceOwnerKey = sourceOwnerKey,
         farmlandIds = {},
         fieldIds = {},
         fields = {},
@@ -620,16 +684,6 @@ function MapDiscovery.discover(options)
             if ok and fieldRecord ~= nil and fieldRecord.fieldId ~= nil then
                 fieldRecords[#fieldRecords + 1] = fieldRecord
                 appendUnique(farmlandIds, fieldRecord.farmlandId)
-
-                local key, confidence = propertyKey(fieldRecord)
-                local property = propertyByKey[key]
-                if property == nil then
-                    property = createProperty(key, confidence, fieldRecord)
-                    propertyByKey[key] = property
-                    properties[#properties + 1] = property
-                end
-
-                appendFieldToProperty(property, fieldRecord)
             else
                 skippedFieldCount = skippedFieldCount + 1
                 if not ok then
@@ -639,6 +693,40 @@ function MapDiscovery.discover(options)
                 firstSkippedFieldReason = firstSkippedFieldReason or tostring(reason or "field has no usable record")
             end
         end
+    end
+
+    local ownerBuckets = buildOwnerBuckets(fieldRecords)
+    local ownerBucketCount = 0
+    local splitOwnerBucketCount = 0
+    local largestOwnerFieldCount = 0
+    local largestOwnerFarmlandCount = 0
+    local anyOwnerProperty = false
+    local anyFarmlandProperty = false
+    local anySplitProperty = false
+
+    for _, bucket in pairs(ownerBuckets) do
+        ownerBucketCount = ownerBucketCount + 1
+        largestOwnerFieldCount = math.max(largestOwnerFieldCount, bucket.fieldCount or 0)
+        largestOwnerFarmlandCount = math.max(largestOwnerFarmlandCount, #(bucket.farmlandIds or {}))
+        if ownerBucketShouldSplit(bucket) then
+            splitOwnerBucketCount = splitOwnerBucketCount + 1
+        end
+    end
+
+    for _, fieldRecord in ipairs(fieldRecords) do
+        local key, confidence, groupingMode, sourceOwnerKey = propertyKey(fieldRecord, ownerBuckets)
+        local property = propertyByKey[key]
+        if property == nil then
+            property = createProperty(key, confidence, fieldRecord, groupingMode, sourceOwnerKey)
+            propertyByKey[key] = property
+            properties[#properties + 1] = property
+        end
+
+        appendFieldToProperty(property, fieldRecord)
+
+        anyOwnerProperty = anyOwnerProperty or groupingMode == "owner"
+        anyFarmlandProperty = anyFarmlandProperty or groupingMode == "farmland"
+        anySplitProperty = anySplitProperty or groupingMode == "ownerSplitByFarmland"
     end
 
     for _, property in ipairs(properties) do
@@ -671,6 +759,14 @@ function MapDiscovery.discover(options)
     diagnostics.skippedMissionCount = missionDiagnostics.skippedMissionCount
     diagnostics.missionErrorCount = missionDiagnostics.missionErrorCount
     diagnostics.firstSkippedMissionReason = missionDiagnostics.firstSkippedMissionReason
+    diagnostics.ownerBucketCount = ownerBucketCount
+    diagnostics.splitOwnerBucketCount = splitOwnerBucketCount
+    diagnostics.largestOwnerFieldCount = largestOwnerFieldCount
+    diagnostics.largestOwnerFarmlandCount = largestOwnerFarmlandCount
+    diagnostics.propertyGroupingMode = anySplitProperty and "ownerSplitByFarmland"
+        or anyOwnerProperty and "owner"
+        or anyFarmlandProperty and "farmland"
+        or (#properties > 0 and "field" or "none")
 
     return {
         source = #properties > 0 and "map" or "none",

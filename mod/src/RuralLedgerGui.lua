@@ -7,6 +7,8 @@ local Constants = PhobosRuralLedger.Constants
 RuralLedgerGui.modDirectory = g_currentModDirectory or ""
 RuralLedgerGui.screen = nil
 RuralLedgerGui.screenLoaded = false
+RuralLedgerGui.profilesLoaded = false
+RuralLedgerGui.farmDetailDialogLoaded = false
 RuralLedgerGui.settingsButtonInstalled = false
 
 local function logInfo(message, ...)
@@ -30,13 +32,48 @@ local function text(key, fallback)
 end
 
 function RuralLedgerGui:loadScreen()
-    if self.screenLoaded then
+    if self.screenLoaded and self.farmDetailDialogLoaded then
         return true
     end
 
     if g_gui == nil or g_gui.loadGui == nil then
         logWarn("Rural Ledger GUI could not load because g_gui is unavailable.")
         return false
+    end
+
+    if not self.profilesLoaded then
+        if g_gui.loadProfiles == nil then
+            logWarn("Rural Ledger GUI profiles could not load because g_gui:loadProfiles is unavailable.")
+            return false
+        end
+
+        local profilePath = self.modDirectory .. "gui/guiProfiles.xml"
+        if fileExists ~= nil and not fileExists(profilePath) then
+            logWarn("Rural Ledger GUI profile XML is missing: %s", profilePath)
+            return false
+        end
+
+        g_gui:loadProfiles(profilePath)
+        self.profilesLoaded = true
+        logInfo("Rural Ledger GUI profiles loaded from %s.", profilePath)
+    end
+
+    if not self.farmDetailDialogLoaded then
+        local dialog = PhobosRuralLedger.FarmDetailDialog.new()
+        local dialogPath = self.modDirectory .. "gui/RuralLedgerFarmDetailDialog.xml"
+        local dialogLoaded = g_gui:loadGui(dialogPath, Constants.FARM_DETAIL_DIALOG_NAME, dialog)
+
+        if dialogLoaded == nil then
+            logWarn("Rural Ledger farm detail dialog XML did not load: %s", dialogPath)
+            return false
+        end
+
+        self.farmDetailDialogLoaded = true
+        logInfo("Rural Ledger farm detail dialog loaded from %s.", dialogPath)
+    end
+
+    if self.screenLoaded then
+        return true
     end
 
     self.screen = PhobosRuralLedger.RuralLedgerScreen.new()

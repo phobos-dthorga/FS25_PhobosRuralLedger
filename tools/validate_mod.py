@@ -33,6 +33,11 @@ REQUIRED_DOCS = (
 )
 REQUIRED_LOCALES = ("en", "de")
 REQUIRED_L10N_KEYS = ("input_PHOBOS_RURAL_LEDGER_MENU",)
+REQUIRED_GUI_FILES = (
+    "gui/RuralLedgerScreen.xml",
+    "gui/RuralLedgerFarmDetailDialog.xml",
+    "gui/guiProfiles.xml",
+)
 FORBIDDEN_GUI_PROFILE_NAMES = {
     "button",
 }
@@ -226,6 +231,10 @@ def validate_gui_profiles(mod_root: Path, validation: Validation) -> None:
     if not gui_root.is_dir():
         return
 
+    for required_file in REQUIRED_GUI_FILES:
+        if not (mod_root / required_file).is_file():
+            validation.error(f"Missing required GUI file: {required_file}")
+
     custom_profile_extends: dict[str, str] = {}
     button_profiles: set[str] = set()
 
@@ -235,6 +244,25 @@ def validate_gui_profiles(mod_root: Path, validation: Validation) -> None:
             continue
 
         for node in tree.getroot().iter():
+            node_id = (node.get("id") or "").strip()
+            if path.name == "RuralLedgerScreen.xml" and node_id == "detailTab":
+                validation.error(
+                    "Farm Detail must not be a top-level Rural Ledger tab; use the Farmers footer action instead"
+                )
+            if path.name == "RuralLedgerScreen.xml" and node_id == "farmDetailSubTab":
+                validation.error(
+                    "Farm Detail must not be an inline Farmers sub-tab; use the context-aware footer action instead"
+                )
+            if path.name == "RuralLedgerScreen.xml" and node_id == "detailPanel":
+                validation.error(
+                    "Farm Detail must not render as an inline Farmers panel; use the read-only dialog instead"
+                )
+
+            if node.tag == "GUIProfiles" and path.name != "guiProfiles.xml":
+                validation.error(
+                    f"Screen XML must not contain inline GUIProfiles; load profiles from gui/guiProfiles.xml: {path.relative_to(mod_root)}"
+                )
+
             if node.tag == "Profile":
                 name = (node.get("name") or "").strip()
                 extends = (node.get("extends") or "").strip()
@@ -248,6 +276,10 @@ def validate_gui_profiles(mod_root: Path, validation: Validation) -> None:
 
             for attribute in ("profile", "extends"):
                 value = (node.get(attribute) or "").strip()
+                if path.name == "RuralLedgerScreen.xml" and value == "rlFarmDetailSubPanel":
+                    validation.error(
+                        "RuralLedgerScreen.xml must not reference the removed inline farm detail panel profile"
+                    )
                 if value in FORBIDDEN_GUI_PROFILE_NAMES:
                     validation.error(
                         f"GUI uses profile path that produced runtime warnings in {path.relative_to(mod_root)}: {attribute}='{value}'"
@@ -259,6 +291,19 @@ def validate_gui_profiles(mod_root: Path, validation: Validation) -> None:
             validation.error(
                 f"Custom Button profile extends plain baseReference and may trigger runtime 'button' profile warnings: {profile}"
             )
+
+
+def validate_gui_loader(mod_root: Path, validation: Validation) -> None:
+    loader_path = mod_root / "src" / "RuralLedgerGui.lua"
+    if not loader_path.is_file():
+        validation.error("Missing Rural Ledger GUI loader: src/RuralLedgerGui.lua")
+        return
+
+    loader = loader_path.read_text(encoding="utf-8")
+    if "loadProfiles" not in loader:
+        validation.error("RuralLedgerGui.lua must call g_gui:loadProfiles before loading the screen XML")
+    if "gui/guiProfiles.xml" not in loader:
+        validation.error("RuralLedgerGui.lua must load gui/guiProfiles.xml explicitly")
 
 
 def validate_xml_files(mod_root: Path, validation: Validation) -> None:
@@ -282,6 +327,7 @@ def validate_source(repo_root: Path, mod_source: str, validation: Validation) ->
     validate_moddesc(mod_root, validation)
     validate_l10n(mod_root, validation)
     validate_gui_profiles(mod_root, validation)
+    validate_gui_loader(mod_root, validation)
 
 
 def package_expected_entries(names: set[str], archive: zipfile.ZipFile, validation: Validation) -> set[str]:
@@ -303,6 +349,8 @@ def package_expected_entries(names: set[str], archive: zipfile.ZipFile, validati
         filename = node.get("filename", "").strip()
         if filename:
             expected.add(filename.replace("\\", "/"))
+
+    expected.update(REQUIRED_GUI_FILES)
 
     l10n_node = root.find("l10n")
     if l10n_node is not None:

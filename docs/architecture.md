@@ -28,8 +28,8 @@ Early Lua modules should stay small and boring:
 - `Events`: opportunity selection, reasons, cooldowns, and event history.
 - `Reports`: read-only formatting for local news, dashboards, and annual
   summaries.
-- `UiModels`: read-only display-table builders for Overview, Farmers, Farm
-  Detail, and later Market Board or opportunity cards.
+- `UiModels`: read-only display-table builders for Overview, Farmers, selected
+  Farm Detail drill-downs, and later Market Board or opportunity cards.
 - `Persistence`: save/load and schema migration.
 - `Integrations`: optional runtime-gated links to other mods.
 - `Main`: bootstrap and module load order.

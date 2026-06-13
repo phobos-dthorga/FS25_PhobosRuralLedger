@@ -104,6 +104,29 @@ Rural Ledger only records optional Precision Farming availability through
 PhobosLib's guarded integration helper. Exact pH/nitrogen reads need a separate
 runtime proof or debug probe before they become player-facing data.
 
+Runtime testing of `v0.1.5.2` confirmed that the mission-start/manual-refresh
+path can read the tested map's field data: 200 usable fields, 240 farmlands,
+41 contracts, and zero skipped discovery records. It also showed why owner
+identity cannot be the only grouping key. The map exposed one broad owner/NPC
+bucket, causing one Rural Ledger property to absorb every discovered field.
+`v0.1.5.3` keeps owner identity as context but splits oversized owner buckets
+by farmland when they exceed 24 fields or 8 farmlands. This keeps normal small
+farms grouped while turning broad NPC/map-owner buckets into property-scale
+records the player can inspect.
+
+Runtime testing of `v0.1.5.3` confirmed the split direction by showing many
+property-scale Farmers rows instead of one map-wide owner record. `v0.1.5.4`
+then adjusts the navigation hierarchy around that result: Farm Detail is a
+selected-property drill-down inside Farmers, while top tabs stay reserved for
+overview-level pages. `v0.1.5.5` refines that interaction so row selection
+only enables a bottom `Farm Detail` command; the detail itself opens in a
+read-only dialog, matching the context-action pattern used by table-heavy FS25
+screens. `v0.1.5.6` adds a double-click shortcut for the same command.
+
+The `v0.1.5.2` screenshots are preserved for reference under:
+
+`docs/assets/runtime-reference/2026-06-13-v0.1.5.2-discovery-ui/`
+
 Candidate discovery output:
 
 ```lua
@@ -189,7 +212,13 @@ Exact finance remains hidden unless debug mode or relationship rules allow it.
    pending.
 6. Harden map lifecycle timing, no-data visibility, and NPC owner lookup.
    Implemented provisionally in `v0.1.5.2`.
-7. Only after the read-only path is stable, consider land, auction, and contract
+7. Split oversized owner/NPC buckets into farmland-backed property records.
+   Implemented provisionally in `v0.1.5.3`.
+8. Move selected-property Farm Detail out of the top tabs, then expose it as a
+   context-aware Farmers footer action that opens a read-only dialog.
+   Implemented provisionally in `v0.1.5.5`; double-click shortcut added in
+   `v0.1.5.6`.
+9. Only after the read-only path is stable, consider land, auction, and contract
    hooks.
 
 ## Performance Boundary

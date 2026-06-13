@@ -17,9 +17,6 @@
             <Button profile="rlTabButton" id="farmersTab" text="$l10n_rl_tab_farmers" onClick="onClickFarmers">
                 <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
             </Button>
-            <Button profile="rlTabButton" id="detailTab" text="$l10n_rl_tab_farm_detail" onClick="onClickDetail">
-                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
-            </Button>
             <Button profile="rlTabButton" id="debugTab" text="$l10n_rl_tab_settings_debug" onClick="onClickDebug">
                 <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
             </Button>
@@ -81,23 +78,6 @@
             </ThreePartBitmap>
         </GuiElement>
 
-        <GuiElement profile="rlTabContainer" id="detailPanel" visible="false">
-            <Text profile="rlSectionTitle" id="detailTitle" position="0px 0px"/>
-            <Text profile="rlSubtleText" id="detailSubtitle" position="0px -36px"/>
-            <Text profile="rlHeadlineText" id="detailHeadline" position="0px -82px"/>
-            <Text profile="rlBodyTextWide" id="detailCause" position="0px -124px"/>
-            <Text profile="rlBodyTextWide" id="detailMeaning" position="0px -164px"/>
-            <Text profile="rlPanelHeading" position="0px -220px" text="$l10n_rl_detail_public_heading"/>
-            <SmoothList profile="rlDetailList" id="detailList">
-                <ListItem profile="rlTextListItem">
-                    <Text profile="rlTextListLine" name="line"/>
-                </ListItem>
-            </SmoothList>
-            <ThreePartBitmap profile="rlDetailSliderBox">
-                <Slider profile="fs25_listSlider" dataElementId="detailList"/>
-            </ThreePartBitmap>
-        </GuiElement>
-
         <GuiElement profile="rlTabContainer" id="debugPanel" visible="false">
             <Text profile="rlSectionTitle" id="debugTitle" position="0px 0px"/>
             <Text profile="rlSubtleText" id="debugModeText" position="0px -36px"/>
@@ -117,6 +97,9 @@
     </GuiElement>
 
     <BoxLayout profile="fs25_buttonBox" id="buttonsPanel">
+        <Button profile="rlFooterButton" text="$l10n_rl_tab_farm_detail" onClick="onClickFarmDetail" id="farmDetailFooterButton" disabled="true">
+            <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
+        </Button>
         <Button profile="rlFooterButton" text="$l10n_rl_button_refresh" onClick="onClickRefresh" id="menuButton[1]">
             <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
         </Button>
@@ -124,192 +107,4 @@
             <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
         </Button>
     </BoxLayout>
-
-    <GUIProfiles>
-        <Profile name="rlTabBox" extends="fs25_subCategorySelectorTabbedBox">
-            <position value="0px -10px"/>
-        </Profile>
-        <Profile name="rlTabButton" extends="fs25_subCategorySelectorTabbedTab">
-            <size value="245px 57px"/>
-            <imageColor value="0 0 0 0"/>
-            <imageFocusedColor value="$preset_fs25_colorMainHighlight"/>
-            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
-            <textSize value="15px"/>
-            <textBold value="true"/>
-            <textUpperCase value="true"/>
-            <textColor value="$preset_fs25_colorMainLight"/>
-            <textSelectedColor value="$preset_fs25_colorMainDark"/>
-            <textFocusedColor value="$preset_fs25_colorMainDark"/>
-            <textLayoutMode value="resize"/>
-        </Profile>
-        <Profile name="rlTabContainer" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
-            <position value="0px -90px"/>
-            <absoluteSizeOffset value="0px 90px"/>
-        </Profile>
-        <Profile name="rlSectionTitle" extends="fs25_textDefault" with="anchorTopLeft">
-            <size value="900px 40px"/>
-            <textSize value="28px"/>
-            <textBold value="true"/>
-            <textColor value="1 1 1 1"/>
-            <textLayoutMode value="resize"/>
-        </Profile>
-        <Profile name="rlSubtleText" extends="fs25_textDefault" with="anchorTopLeft">
-            <size value="1250px 28px"/>
-            <textSize value="16px"/>
-            <textColor value="0.65 0.68 0.72 1"/>
-            <textLayoutMode value="scrolling"/>
-        </Profile>
-        <Profile name="rlHeadlineText" extends="fs25_textDefault" with="anchorTopLeft">
-            <size value="1250px 32px"/>
-            <textSize value="22px"/>
-            <textBold value="true"/>
-            <textColor value="0.88 0.95 1 1"/>
-            <textLayoutMode value="scrolling"/>
-        </Profile>
-        <Profile name="rlPanelHeading" extends="fs25_textDefault" with="anchorTopLeft">
-            <size value="700px 28px"/>
-            <textSize value="18px"/>
-            <textBold value="true"/>
-            <textUpperCase value="true"/>
-            <textColor value="0.9 0.9 0.9 1"/>
-        </Profile>
-        <Profile name="rlBodyTextWide" extends="fs25_textDefault" with="anchorTopLeft">
-            <size value="1250px 28px"/>
-            <textSize value="16px"/>
-            <textColor value="0.86 0.88 0.9 1"/>
-            <textLayoutMode value="scrolling"/>
-        </Profile>
-        <Profile name="rlNoDataNotice" extends="fs25_textDefault" with="anchorTopLeft">
-            <size value="1250px 58px"/>
-            <textSize value="24px"/>
-            <textBold value="true"/>
-            <textColor value="1 0.78 0.18 1"/>
-            <textLayoutMode value="scrolling"/>
-        </Profile>
-        <Profile name="rlHeaderCell" extends="baseReference">
-            <imageColor value="0 0 0 0"/>
-            <textFocusedColor value="$preset_fs25_colorMainHighlight"/>
-            <textHighlightedColor value="$preset_fs25_colorMainHighlight"/>
-            <textSize value="14px"/>
-            <textBold value="true"/>
-            <textUpperCase value="true"/>
-            <textColor value="$preset_colorWhite_50"/>
-            <textAlignment value="left"/>
-            <textLayoutMode value="resize"/>
-        </Profile>
-        <Profile name="rlHeaderCellCenter" extends="rlHeaderCell">
-            <textAlignment value="center"/>
-        </Profile>
-        <Profile name="rlOverviewList" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
-            <position value="0px -186px"/>
-            <absoluteSizeOffset value="0px 245px"/>
-        </Profile>
-        <Profile name="rlOverviewSliderBox" extends="fs25_listSliderBox" with="anchorTopStretchingX pivotTopRight">
-            <position value="28px -186px"/>
-            <absoluteSizeOffset value="0px 245px"/>
-        </Profile>
-        <Profile name="rlFarmList" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
-            <position value="0px -124px"/>
-            <absoluteSizeOffset value="0px 154px"/>
-        </Profile>
-        <Profile name="rlFarmSliderBox" extends="fs25_listSliderBox" with="anchorTopStretchingX pivotTopRight">
-            <position value="28px -124px"/>
-            <absoluteSizeOffset value="0px 154px"/>
-        </Profile>
-        <Profile name="rlDetailList" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
-            <position value="0px -260px"/>
-            <absoluteSizeOffset value="0px 285px"/>
-        </Profile>
-        <Profile name="rlDetailSliderBox" extends="fs25_listSliderBox" with="anchorTopStretchingX pivotTopRight">
-            <position value="28px -260px"/>
-            <absoluteSizeOffset value="0px 285px"/>
-        </Profile>
-        <Profile name="rlDebugList" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
-            <position value="0px -254px"/>
-            <absoluteSizeOffset value="0px 280px"/>
-        </Profile>
-        <Profile name="rlDebugSliderBox" extends="fs25_listSliderBox" with="anchorTopStretchingX pivotTopRight">
-            <position value="28px -254px"/>
-            <absoluteSizeOffset value="0px 280px"/>
-        </Profile>
-        <Profile name="rlInfoListItem" extends="baseReference" with="anchorTopStretchingX alternating">
-            <height value="44px"/>
-            <imageColor value="$preset_fs25_colorGrey"/>
-            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
-            <alternateBackgroundColor value="$preset_fs25_colorGreyDark_50"/>
-        </Profile>
-        <Profile name="rlInfoListLabel" extends="baseReference" with="anchorStretchingYLeft">
-            <position value="16px 0px"/>
-            <size value="390px 44px"/>
-            <textSize value="15px"/>
-            <textBold value="true"/>
-            <textColor value="$preset_fs25_colorMainLight"/>
-            <textSelectedColor value="$preset_fs25_colorMainDark"/>
-            <textLayoutMode value="scrolling"/>
-        </Profile>
-        <Profile name="rlInfoListValue" extends="baseReference" with="anchorStretchingYStretchingX">
-            <position value="430px 0px"/>
-            <absoluteSizeOffset value="450px 0px"/>
-            <textSize value="15px"/>
-            <textColor value="$preset_fs25_colorMainLight"/>
-            <textSelectedColor value="$preset_fs25_colorMainDark"/>
-            <textLayoutMode value="scrolling"/>
-        </Profile>
-        <Profile name="rlFarmListItem" extends="baseReference" with="anchorTopStretchingX alternating">
-            <height value="34px"/>
-            <imageColor value="$preset_fs25_colorGrey"/>
-            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
-            <alternateBackgroundColor value="$preset_fs25_colorGreyDark_50"/>
-        </Profile>
-        <Profile name="rlRowCell" extends="baseReference" with="anchorStretchingYLeft">
-            <textSize value="13px"/>
-            <textColor value="$preset_fs25_colorMainLight"/>
-            <textSelectedColor value="$preset_fs25_colorMainDark"/>
-            <textAlignment value="left"/>
-            <textLayoutMode value="scrolling"/>
-        </Profile>
-        <Profile name="rlRowCellCenter" extends="rlRowCell">
-            <textAlignment value="center"/>
-        </Profile>
-        <Profile name="rlTextListItem" extends="baseReference" with="anchorTopStretchingX alternating">
-            <height value="34px"/>
-            <imageColor value="$preset_fs25_colorGrey"/>
-            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
-            <alternateBackgroundColor value="$preset_fs25_colorGreyDark_50"/>
-        </Profile>
-        <Profile name="rlTextListLine" extends="baseReference" with="anchorStretchingYStretchingX">
-            <position value="16px 0px"/>
-            <absoluteSizeOffset value="32px 0px"/>
-            <textSize value="15px"/>
-            <textColor value="$preset_fs25_colorMainLight"/>
-            <textSelectedColor value="$preset_fs25_colorMainDark"/>
-            <textLayoutMode value="scrolling"/>
-        </Profile>
-        <Profile name="rlSmallButton" extends="buttonOK" with="anchorTopLeft">
-            <size value="310px 45px"/>
-            <imageColor value="$preset_fs25_colorGreyDark_50"/>
-            <imageFocusedColor value="$preset_fs25_colorMainHighlight"/>
-            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
-            <textColor value="$preset_fs25_colorMainLight"/>
-            <textFocusedColor value="$preset_fs25_colorMainDark"/>
-            <textSelectedColor value="$preset_fs25_colorMainDark"/>
-            <textBold value="true"/>
-            <textUpperCase value="true"/>
-            <textSize value="14px"/>
-            <textLayoutMode value="resize"/>
-        </Profile>
-        <Profile name="rlFooterButton" extends="buttonOK">
-            <size value="210px 45px"/>
-            <imageColor value="0 0 0 0"/>
-            <imageFocusedColor value="$preset_fs25_colorMainHighlight"/>
-            <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
-            <textColor value="$preset_fs25_colorMainLight"/>
-            <textFocusedColor value="$preset_fs25_colorMainDark"/>
-            <textSelectedColor value="$preset_fs25_colorMainDark"/>
-            <textBold value="true"/>
-            <textUpperCase value="true"/>
-            <textSize value="14px"/>
-            <textLayoutMode value="resize"/>
-        </Profile>
-    </GUIProfiles>
 </GUI>
