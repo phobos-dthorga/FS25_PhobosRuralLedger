@@ -400,8 +400,8 @@ FS25-native menu containers, `SmoothList` tables, sliders, stretching profiles,
 and `$l10n_...` labels instead of a fixed 1520px absolute-position canvas.
 Farmers is list-backed, farm detail/debug output is list-backed, and compact
 farm-table columns hide lower-priority Type/Relationship fields on narrower
-containers. The reusable GUI-loading pattern remains a future `FS25_PhobosLib`
-candidate only after more than one Phobos FS25 mod needs it.
+containers. The reusable GUI-loading pattern should remain a documented
+copyable convention unless FS25 later proves a safer shared-code path.
 
 `v0.1.5.4` removed Farm Detail from the overview-level top tabs. Runtime UI
 review then clarified that selected-property drill-downs should behave like

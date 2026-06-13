@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<GUI onOpen="onOpen" onClose="onClose" onCreate="onCreate">
+    <GuiElement profile="newLayer"/>
+    <Bitmap profile="dialogFullscreenBg" id="dialogBg"/>
+
+    <GuiElement profile="rlHistoryDialog" id="dialogElement">
+        <ThreePartBitmap profile="fs25_dialogBgMiddle"/>
+        <ThreePartBitmap profile="fs25_dialogBgTop"/>
+        <ThreePartBitmap profile="fs25_dialogBgBottom"/>
+
+        <GuiElement profile="fs25_dialogContentContainer">
+            <Text profile="dialogTitle" id="historyTitle" position="0px -30px" text="$l10n_rl_history_dialog_title"/>
+            <Text profile="rlDialogSubtitle" id="historySubtitle" position="0px -78px"/>
+
+            <GuiElement profile="fs25_statisticsHeaderBox" position="0px -126px">
+                <Text profile="rlHeaderCell" position="16px 0px" size="810px 32px" text="$l10n_rl_history_public_heading"/>
+                <ThreePartBitmap profile="fs25_lineSeparatorBottom" position="0px -2dp"/>
+            </GuiElement>
+
+            <SmoothList profile="rlHistoryDialogList" id="historyList" focusInit="onOpen">
+                <ListItem profile="rlTextListItem">
+                    <Text profile="rlTextListLine" name="line"/>
+                </ListItem>
+            </SmoothList>
+            <ThreePartBitmap profile="rlHistoryDialogSliderBox">
+                <Slider profile="fs25_listSlider" dataElementId="historyList"/>
+            </ThreePartBitmap>
+        </GuiElement>
+
+        <BoxLayout profile="fs25_dialogButtonBox">
+            <Button profile="buttonBack" text="$l10n_rl_button_back" onClick="onClickBack"/>
+        </BoxLayout>
+    </GuiElement>
+</GUI>

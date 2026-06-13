@@ -349,6 +349,11 @@ local function opportunityTextEntry(opportunity)
     return OPPORTUNITY_LABELS[(opportunity or {}).type] or OPPORTUNITY_LABELS.urgent_work
 end
 
+local function opportunityTitle(opportunityType)
+    local entry = OPPORTUNITY_LABELS[opportunityType] or OPPORTUNITY_LABELS.urgent_work
+    return text(entry.title[1], entry.title[2])
+end
+
 local function buildOpportunityView(opportunity, profile)
     local entry = opportunityTextEntry(opportunity)
     local displayName = (profile or {}).displayName or (opportunity or {}).farmId or text("rl_detail_no_farm_title", "No farm selected")
@@ -386,6 +391,65 @@ local function opportunityViewsForFarm(state, farmId, profile)
     for _, opportunity in ipairs(records) do
         views[#views + 1] = buildOpportunityView(opportunity, profile)
     end
+
+    return views
+end
+
+local function historyViewsForFarm(state, farmId, profile)
+    local views = {}
+
+    if farmId == nil then
+        return views
+    end
+
+    for _, record in ipairs((state or {}).eventHistory or {}) do
+        if tostring(record.farmId or "") == tostring(farmId or "") then
+            local periodId = record.periodId or Constants.DEFAULT_PERIOD_ID
+            local actionText = nil
+            if record.type == "expired" then
+                actionText = text(
+                    "rl_history_expired",
+                    "Expired %s",
+                    opportunityTitle(record.causeCode)
+                )
+            else
+                actionText = text(
+                    "rl_history_generated",
+                    "Generated %s",
+                    opportunityTitle(record.type)
+                )
+            end
+
+            local cause = record.type == "expired"
+                and text("rl_history_cooldown_applied", "Cooldown remains in effect where applicable.")
+                or pressureLabel(record.causeCode)
+
+            views[#views + 1] = {
+                eventId = record.eventId,
+                periodId = periodId,
+                farmId = record.farmId,
+                type = record.type,
+                causeCode = record.causeCode,
+                actionText = actionText,
+                causeText = cause,
+                rowText = text(
+                    "rl_history_row",
+                    "%s: %s - %s",
+                    periodId,
+                    actionText,
+                    cause
+                ),
+            }
+        end
+    end
+
+    table.sort(views, function(left, right)
+        if tostring(left.periodId) ~= tostring(right.periodId) then
+            return tostring(left.periodId) > tostring(right.periodId)
+        end
+
+        return tostring(left.eventId or "") > tostring(right.eventId or "")
+    end)
 
     return views
 end
@@ -683,6 +747,7 @@ function UiModels.buildFarmDetail(state, farmId, options)
 
     local snapshot = snapshotsByFarmId[selectedProfile.farmId] or {}
     local opportunityViews = opportunityViewsForFarm(state, selectedProfile.farmId, selectedProfile)
+    local historyViews = historyViewsForFarm(state, selectedProfile.farmId, selectedProfile)
     local visibleLines = {
         text("rl_detail_line_profile", "Profile: %s", profileLabel(selectedProfile)),
         text("rl_detail_line_source", "Source: %s", sourceConfidenceLabel(selectedProfile)),
@@ -692,6 +757,7 @@ function UiModels.buildFarmDetail(state, farmId, options)
         text("rl_detail_line_field_condition", "Field condition: %s", fieldConditionSummary(selectedProfile)),
         text("rl_detail_line_precision", "Precision Farming: %s", precisionFarmingSummary(selectedProfile)),
         text("rl_detail_line_active_opportunities", "Active opportunities: %d", #opportunityViews),
+        text("rl_detail_line_history_events", "History events: %d", #historyViews),
         text("rl_detail_line_fields", "Fields controlled: %d", countFields(selectedProfile)),
         text("rl_detail_line_cash", "Cash position: %s", cashBand(snapshot)),
         text("rl_detail_line_debt", "Debt pressure: %s", debtBand(snapshot)),
@@ -751,7 +817,7 @@ function UiModels.buildFarmDetail(state, farmId, options)
         },
         lines = visibleLines,
         opportunities = opportunityViews,
-        history = {},
+        history = historyViews,
     }
 end
 
@@ -813,6 +879,56 @@ function UiModels.buildOpportunities(state, farmId, options)
     }
 end
 
+function UiModels.buildHistory(state, farmId, options)
+    options = options or {}
+
+    local profiles = (state or {}).profiles or {}
+    local selectedProfile = nil
+    for _, profile in ipairs(profiles) do
+        if tostring(profile.farmId) == tostring(farmId) then
+            selectedProfile = profile
+            break
+        end
+    end
+
+    if selectedProfile == nil then
+        return {
+            farmId = nil,
+            title = text("rl_history_dialog_title", "Property History"),
+            subtitle = text("rl_detail_no_farm_title", "No farm selected"),
+            rows = {
+                text("rl_history_no_selection", "Select a farm with saved history first."),
+            },
+            history = {},
+        }
+    end
+
+    local views = historyViewsForFarm(state, selectedProfile.farmId, selectedProfile)
+    local rows = {}
+
+    if #views == 0 then
+        rows[1] = text("rl_history_none_for_farm", "No saved Rural Ledger events are recorded for this property.")
+    else
+        for _, view in ipairs(views) do
+            rows[#rows + 1] = view.rowText
+        end
+    end
+
+    return {
+        farmId = selectedProfile.farmId,
+        displayName = selectedProfile.displayName or selectedProfile.farmId,
+        title = text("rl_history_dialog_title", "Property History"),
+        subtitle = text(
+            "rl_history_dialog_subtitle",
+            "%s: %d event(s)",
+            selectedProfile.displayName or selectedProfile.farmId,
+            #views
+        ),
+        rows = rows,
+        history = views,
+    }
+end
+
 function UiModels.buildDebugSummary(state, options)
     options = options or {}
 
@@ -868,6 +984,9 @@ function UiModels.buildDebugSummary(state, options)
         text("rl_debug_save_path", "Save path: %s", tostring(saveDiagnostics.path or "unavailable")),
         text("rl_debug_save_last_load", "Last opportunity load: %s", tostring(saveDiagnostics.lastLoad or "not attempted")),
         text("rl_debug_save_last_save", "Last opportunity save: %s", tostring(saveDiagnostics.lastSave or "not attempted")),
+        text("rl_debug_save_last_load_counts", "Last load counts: %d opportunities, %d events, %d cooldowns", (saveDiagnostics.lastLoadCounts or {}).opportunities or 0, (saveDiagnostics.lastLoadCounts or {}).events or 0, (saveDiagnostics.lastLoadCounts or {}).cooldowns or 0),
+        text("rl_debug_save_last_save_counts", "Last save counts: %d opportunities, %d events, %d cooldowns", (saveDiagnostics.lastSaveCounts or {}).opportunities or 0, (saveDiagnostics.lastSaveCounts or {}).events or 0, (saveDiagnostics.lastSaveCounts or {}).cooldowns or 0),
+        text("rl_debug_loaded_period", "Loaded opportunity period: %s", tostring((state or {}).loadedOpportunityPeriodId or "none")),
     }
 
     if options.includeExactFarmValues == true and snapshots[1] ~= nil then

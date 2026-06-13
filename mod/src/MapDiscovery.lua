@@ -650,13 +650,12 @@ local function buildSummaries(property, precisionFarmingAvailable)
 end
 
 local function detectPrecisionFarming()
-    if PhobosFS25 ~= nil and PhobosFS25.Integrations ~= nil and PhobosFS25.Integrations.withOptionalMod ~= nil then
-        local available = PhobosFS25.Integrations.withOptionalMod(PRECISION_FARMING_MOD)
-        return available == true
-    end
-
     if g_modIsLoaded ~= nil then
         return g_modIsLoaded[PRECISION_FARMING_MOD] == true
+    end
+
+    if g_modManager ~= nil and g_modManager.getModByName ~= nil then
+        return g_modManager:getModByName(PRECISION_FARMING_MOD) ~= nil
     end
 
     return false

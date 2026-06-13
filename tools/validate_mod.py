@@ -37,6 +37,7 @@ REQUIRED_GUI_FILES = (
     "gui/RuralLedgerScreen.xml",
     "gui/RuralLedgerFarmDetailDialog.xml",
     "gui/RuralLedgerOpportunityDialog.xml",
+    "gui/RuralLedgerHistoryDialog.xml",
     "gui/guiProfiles.xml",
 )
 FORBIDDEN_GUI_PROFILE_NAMES = {
@@ -145,13 +146,20 @@ def validate_moddesc(mod_root: Path, validation: Validation) -> None:
         for node in root.findall("./dependencies/dependency")
         if (node.text or "").strip()
     }
-    if "FS25_PhobosLib" not in dependencies:
-        validation.error("Expected dependency FS25_PhobosLib")
+    retired_dependency = "FS25_" + "Phobos" + "Lib"
+    retired_global = "Phobos" + "FS25"
+    if retired_dependency in dependencies:
+        validation.error("FS25_PhobosRuralLedger must remain self-contained and must not depend on the retired FS25 helper package")
 
     for node in root.findall("./extraSourceFiles/sourceFile"):
         filename = node.get("filename", "").strip()
         if filename and not (mod_root / filename).is_file():
             validation.error(f"modDesc.xml references missing sourceFile: {filename}")
+
+    for lua_path in (mod_root / "src").glob("*.lua"):
+        text = lua_path.read_text(encoding="utf-8")
+        if retired_global in text or retired_dependency in text:
+            validation.error(f"{lua_path.relative_to(mod_root)} must not reference retired FS25 helper globals")
 
 
 def validate_l10n(mod_root: Path, validation: Validation) -> None:

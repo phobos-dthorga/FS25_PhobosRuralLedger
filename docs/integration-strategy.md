@@ -3,8 +3,8 @@
 ## Base Rule
 
 Rural Ledger should remain useful as a standalone economy layer. Optional
-integrations must be guarded so players with only this mod and its required
-Phobos library do not see errors or broken references.
+integrations must be guarded so players with only this mod installed do not see
+errors or broken references.
 
 ## Phobos Integrations
 
@@ -16,8 +16,6 @@ Potential future tie-ins:
   supply pressure, and contractor work.
 - future Phobos production mods: local input shortages, oversupply, contract
   work, and regional demand reports.
-- `FS25_PhobosLib`: shared logging, active-mod detection, save helpers, and
-  guarded compatibility utilities.
 
 ## External Integrations
 

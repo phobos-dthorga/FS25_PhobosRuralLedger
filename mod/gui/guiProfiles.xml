@@ -198,6 +198,9 @@
     <Profile name="rlOpportunityDialog" extends="fs25_dialogBg">
         <size value="940px 720px"/>
     </Profile>
+    <Profile name="rlHistoryDialog" extends="fs25_dialogBg">
+        <size value="940px 720px"/>
+    </Profile>
     <Profile name="rlDialogSubtitle" extends="fs25_textDefault" with="anchorTopLeft">
         <size value="840px 30px"/>
         <textSize value="17px"/>
@@ -230,6 +233,14 @@
         <size value="850px 420px"/>
     </Profile>
     <Profile name="rlOpportunityDialogSliderBox" extends="fs25_listSliderBox" with="anchorTopRight">
+        <position value="-15px -168px"/>
+        <size value="6px 420px"/>
+    </Profile>
+    <Profile name="rlHistoryDialogList" extends="emptyPanel" with="anchorTopStretchingX">
+        <position value="0px -168px"/>
+        <size value="850px 420px"/>
+    </Profile>
+    <Profile name="rlHistoryDialogSliderBox" extends="fs25_listSliderBox" with="anchorTopRight">
         <position value="-15px -168px"/>
         <size value="6px 420px"/>
     </Profile>

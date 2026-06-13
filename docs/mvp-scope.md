@@ -37,7 +37,7 @@ from that pressure.
 
 ## First Development Milestones
 
-1. Confirm load order with `FS25_PhobosLib`.
+1. Confirm Rural Ledger loads as a self-contained FS25 mod.
 2. Add constants, profile data, deterministic calculation modules, and a
    fallback profile registry.
 3. Prove a read-only map discovery path for landowners, farmlands, fields,

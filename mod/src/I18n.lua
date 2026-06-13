@@ -17,10 +17,6 @@ local function formatText(text, ...)
 end
 
 function I18n.get(key, fallback, ...)
-    if PhobosFS25 ~= nil and PhobosFS25.I18n ~= nil and PhobosFS25.I18n.get ~= nil then
-        return PhobosFS25.I18n.get("FS25_PhobosRuralLedger", key, fallback, ...)
-    end
-
     local value = fallback or key
 
     if g_i18n ~= nil and g_i18n.getText ~= nil then

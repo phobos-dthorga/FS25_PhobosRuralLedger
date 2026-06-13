@@ -36,28 +36,17 @@ local function captureLog(level, source, message, ...)
     return true
 end
 
-PhobosFS25 = {
-    Logging = {
-        infoSource = function(source, message, ...)
-            return captureLog("INFO", source, message, ...)
-        end,
-        warnSource = function(source, message, ...)
-            return captureLog("WARN", source, message, ...)
-        end,
-        errorSource = function(source, message, ...)
-            return captureLog("ERROR", source, message, ...)
-        end,
-        infoOnceSource = function(source, message, ...)
-            return captureLog("INFO", source, message, ...)
-        end,
-        warnOnceSource = function(source, message, ...)
-            return captureLog("WARN", source, message, ...)
-        end,
-        errorOnceSource = function(source, message, ...)
-            return captureLog("ERROR", source, message, ...)
-        end,
-    },
-}
+_G["Phobos" .. "FS25"] = nil
+local originalPrint = print
+print = function(message)
+    local source, level, text = tostring(message or ""):match("^%[([^%]]+)%]%[([^%]]+)%]%s*(.*)$")
+    if source ~= nil and level ~= nil then
+        captureLog(level, source, "%s", text or "")
+        return
+    end
+
+    originalPrint(message)
+end
 
 local function assertEquals(expected, actual, message)
     if expected ~= actual then
@@ -516,102 +505,112 @@ assertEquals("opp_farm_01", opportunityModel.farmId, "opportunity dialog model s
 assertTrue(#opportunityModel.rows >= 3, "opportunity dialog model should include candidate rows")
 local missingOpportunityModel = UiModels.buildOpportunities(opportunityState, "missing")
 assertEquals(nil, missingOpportunityModel.farmId, "missing opportunity model should not fall back to another farm")
+local historyModel = UiModels.buildHistory(opportunityState, "opp_farm_01")
+assertEquals("opp_farm_01", historyModel.farmId, "history dialog model should match the selected farm")
+assertTrue(#historyModel.history > 0, "history model should expose public farm history events")
+assertTrue(#historyModel.rows > 0, "history dialog model should include display rows")
+local missingHistoryModel = UiModels.buildHistory(opportunityState, "missing")
+assertEquals(nil, missingHistoryModel.farmId, "missing history model should not fall back to another farm")
+
+local advanceState = {
+    periodId = "season_0001",
+    mapDiscovery = {source = "map"},
+    profiles = opportunityState.profiles,
+    ledgerSnapshots = opportunityState.ledgerSnapshots,
+    opportunities = {},
+    eventHistory = {},
+    cooldowns = {},
+}
+Opportunities.reconcile(advanceState)
+local advanceSummary = Opportunities.advancePeriod(advanceState)
+assertEquals("season_0002", advanceState.periodId, "period advance should move to the next deterministic period")
+assertTrue(advanceSummary.expiredOpportunities > 0, "period advance should expire one-period read-only opportunities")
+assertTrue(#advanceState.eventHistory >= advanceSummary.expiredOpportunities, "period advance should write bounded history for expired opportunities")
 
 local savedXmlFile = nil
+local currentXmlFile = nil
 local function markNode(file, key)
     local nodeKey = string.match(key, "^(.-)#") or key
     file.nodes[nodeKey] = true
 end
 
-PhobosFS25.Savegames = {
-    buildSavegameXmlPath = function(fileName)
-        return "savegame/" .. tostring(fileName)
-    end,
+local function installFakeXmlFile()
+    XMLFile = {
+        create = function(label, filename, rootKey)
+            savedXmlFile = {
+                label = label,
+                filename = filename,
+                rootKey = rootKey,
+                values = {},
+                nodes = {},
+                saved = false,
+                deleted = false,
+                hasProperty = function(self, key)
+                    return self.nodes[key] == true
+                end,
+                getString = function(self, key, defaultValue)
+                    local value = self.values[key]
+                    return value ~= nil and tostring(value) or defaultValue
+                end,
+                getInt = function(self, key, defaultValue)
+                    local value = tonumber(self.values[key])
+                    return value ~= nil and math.floor(value) or defaultValue
+                end,
+                getBool = function(self, key, defaultValue)
+                    local value = self.values[key]
+                    if value == nil then
+                        return defaultValue
+                    end
+                    return value == true or value == "true"
+                end,
+                setString = function(self, key, value)
+                    self.values[key] = tostring(value)
+                    markNode(self, key)
+                    return true
+                end,
+                setInt = function(self, key, value)
+                    self.values[key] = tonumber(value)
+                    markNode(self, key)
+                    return true
+                end,
+                setBool = function(self, key, value)
+                    self.values[key] = value == true and "true" or "false"
+                    markNode(self, key)
+                    return true
+                end,
+                save = function(self)
+                    self.saved = true
+                    return true
+                end,
+                delete = function(self)
+                    self.deleted = true
+                    return true
+                end,
+            }
+            savedXmlFile.nodes[rootKey] = true
+            currentXmlFile = savedXmlFile
+            return savedXmlFile
+        end,
+        loadIfExists = function()
+            return currentXmlFile
+        end,
+    }
+end
+
+g_currentMission = {
+    missionInfo = {
+        savegameDirectory = "savegame",
+    },
 }
-XMLFile = {
-    create = function()
-        error("PhobosFS25.XmlFile should be preferred over direct XMLFile fallback")
-    end,
-}
-PhobosFS25.XmlFile = {
-    create = function(label, filename, rootKey)
-        savedXmlFile = {
-            label = label,
-            filename = filename,
-            rootKey = rootKey,
-            values = {},
-            nodes = {},
-            saved = false,
-            deleted = false,
-        }
-        savedXmlFile.nodes[rootKey] = true
-        return savedXmlFile
-    end,
-    loadIfExists = function()
-        return savedXmlFile
-    end,
-    hasProperty = function(file, key)
-        return file ~= nil and file.nodes[key] == true
-    end,
-    getString = function(file, key, defaultValue)
-        local value = file ~= nil and file.values[key] or nil
-        return value ~= nil and tostring(value) or defaultValue
-    end,
-    getInt = function(file, key, defaultValue)
-        local value = file ~= nil and tonumber(file.values[key]) or nil
-        return value ~= nil and math.floor(value) or defaultValue
-    end,
-    getBool = function(file, key, defaultValue)
-        local value = file ~= nil and file.values[key] or nil
-        if value == nil then
-            return defaultValue
-        end
-        return value == true or value == "true"
-    end,
-    setString = function(file, key, value)
-        file.values[key] = tostring(value)
-        markNode(file, key)
-        return true
-    end,
-    setInt = function(file, key, value)
-        file.values[key] = tonumber(value)
-        markNode(file, key)
-        return true
-    end,
-    setBool = function(file, key, value)
-        file.values[key] = value == true and "true" or "false"
-        markNode(file, key)
-        return true
-    end,
-    forEachIndexed = function(file, keyPattern, callback, maxIterations)
-        local count = 0
-        for index = 0, (maxIterations or 10000) - 1 do
-            local key = string.format(keyPattern, index)
-            if file.nodes[key] ~= true then
-                break
-            end
-            callback(file, key, index)
-            count = count + 1
-        end
-        return count
-    end,
-    saveAndDelete = function(file)
-        file.saved = true
-        file.deleted = true
-        return true
-    end,
-    delete = function(file)
-        file.deleted = true
-        return true
-    end,
-}
+installFakeXmlFile()
 local saved, saveStatus = PhobosRuralLedger.Savegame.write(opportunityState)
 assertEquals(true, saved, "opportunity savegame write should succeed with fake XMLFile helpers")
 assertEquals("saved", saveStatus, "opportunity savegame write should report saved status")
 assertEquals("savegame/FS25_PhobosRuralLedger.xml", savedXmlFile.filename, "savegame write should target the dedicated Rural Ledger XML file")
 local saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
 assertEquals("saved (savegame/FS25_PhobosRuralLedger.xml)", saveDiagnostics.lastSave, "save diagnostics should expose the last saved path")
-assertEquals("PhobosFS25.XmlFile", saveDiagnostics.xmlAdapterSource, "PhobosLib XML adapter should be preferred when present")
+assertEquals("XMLFile", saveDiagnostics.xmlAdapterSource, "Rural Ledger should use the direct FS25 XMLFile adapter")
+assertEquals("missionInfo", saveDiagnostics.pathSource, "save diagnostics should report the local missionInfo path source")
 local loadedSave, loadStatus = PhobosRuralLedger.Savegame.read()
 assertEquals("loaded", loadStatus, "opportunity savegame read should load the fake XML file")
 assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #loadedSave.opportunities, "savegame read should round-trip opportunities")
@@ -619,14 +618,14 @@ assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #loadedSave.eventHistory, "save
 assertEquals(generatedOpportunities[1].farmId, loadedSave.opportunities[1].farmId, "savegame read should preserve opportunity farm identity")
 saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
 assertEquals("loaded (savegame/FS25_PhobosRuralLedger.xml)", saveDiagnostics.lastLoad, "save diagnostics should expose the last loaded path")
-savedXmlFile = nil
+assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, saveDiagnostics.lastLoadCounts.opportunities, "load diagnostics should include opportunity counts")
+currentXmlFile = nil
 local missingSave, missingStatus = PhobosRuralLedger.Savegame.read()
 assertEquals(nil, missingSave, "missing savegame read should return nil data")
 assertEquals("missing", missingStatus, "missing savegame read should report missing status")
 saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
 assertEquals("missing (savegame/FS25_PhobosRuralLedger.xml)", saveDiagnostics.lastLoad, "save diagnostics should expose missing-save paths")
 
-PhobosFS25.Savegames = nil
 g_currentMission = {
     missionInfo = {
         savegameDirectory = "fallbackSave",
@@ -640,93 +639,36 @@ saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
 assertEquals("missionInfo", saveDiagnostics.pathSource, "save diagnostics should report the local missionInfo fallback source")
 g_currentMission = nil
 
-PhobosFS25.XmlFile = nil
-PhobosFS25.Savegames = nil
 XMLFile = nil
 local unavailableSaved, unavailableStatus, unavailableDetails = PhobosRuralLedger.Savegame.write(opportunityState)
-assertEquals(false, unavailableSaved, "savegame write should fail clearly when helpers are unavailable")
+assertEquals(false, unavailableSaved, "savegame write should fail clearly when XMLFile is unavailable")
 assertEquals("unavailable", unavailableStatus, "unavailable savegame write should report unavailable status")
-assertEquals("xml_api_unavailable", unavailableDetails.reason, "unavailable savegame write should expose the missing helper reason")
+assertEquals("xml_api_unavailable", unavailableDetails.reason, "unavailable savegame write should expose the missing XMLFile reason")
 
 PhobosRuralLedger.Savegame._resetDiagnosticsForTests()
 savedXmlFile = nil
-PhobosFS25.XmlFile = nil
-PhobosFS25.Savegames = {
-    buildSavegameXmlPath = function(fileName)
-        return "directXml/" .. tostring(fileName)
-    end,
+currentXmlFile = nil
+g_currentMission = {
+    missionInfo = {
+        savegameDirectory = "directXml",
+    },
 }
-XMLFile = {
-    create = function(label, filename, rootKey)
-        savedXmlFile = {
-            label = label,
-            filename = filename,
-            rootKey = rootKey,
-            values = {},
-            nodes = {},
-            saved = false,
-            deleted = false,
-            hasProperty = function(self, key)
-                return self.nodes[key] == true
-            end,
-            getString = function(self, key, defaultValue)
-                local value = self.values[key]
-                return value ~= nil and tostring(value) or defaultValue
-            end,
-            getInt = function(self, key, defaultValue)
-                local value = tonumber(self.values[key])
-                return value ~= nil and math.floor(value) or defaultValue
-            end,
-            getBool = function(self, key, defaultValue)
-                local value = self.values[key]
-                if value == nil then
-                    return defaultValue
-                end
-                return value == true or value == "true"
-            end,
-            setString = function(self, key, value)
-                self.values[key] = tostring(value)
-                markNode(self, key)
-                return true
-            end,
-            setInt = function(self, key, value)
-                self.values[key] = tonumber(value)
-                markNode(self, key)
-                return true
-            end,
-            setBool = function(self, key, value)
-                self.values[key] = value == true and "true" or "false"
-                markNode(self, key)
-                return true
-            end,
-            save = function(self)
-                self.saved = true
-                return true
-            end,
-            delete = function(self)
-                self.deleted = true
-                return true
-            end,
-        }
-        savedXmlFile.nodes[rootKey] = true
-        return savedXmlFile
-    end,
-    loadIfExists = function()
-        return savedXmlFile
-    end,
-}
+installFakeXmlFile()
 local directSaved, directStatus = PhobosRuralLedger.Savegame.write(opportunityState)
-assertEquals(true, directSaved, "direct XMLFile fallback should save opportunity state")
-assertEquals("saved", directStatus, "direct XMLFile fallback should report saved status")
-assertEquals("directXml/FS25_PhobosRuralLedger.xml", savedXmlFile.filename, "direct XMLFile fallback should target the dedicated XML file")
+assertEquals(true, directSaved, "direct XMLFile adapter should save opportunity state")
+assertEquals("saved", directStatus, "direct XMLFile adapter should report saved status")
+assertEquals("directXml/FS25_PhobosRuralLedger.xml", savedXmlFile.filename, "direct XMLFile adapter should target the dedicated XML file")
 saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
-assertEquals("XMLFile", saveDiagnostics.xmlAdapterSource, "save diagnostics should expose the direct XMLFile fallback adapter")
+assertEquals("XMLFile", saveDiagnostics.xmlAdapterSource, "save diagnostics should expose the direct XMLFile adapter")
 local directLoaded, directLoadStatus = PhobosRuralLedger.Savegame.read()
-assertEquals("loaded", directLoadStatus, "direct XMLFile fallback should load opportunity state")
-assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #directLoaded.opportunities, "direct XMLFile fallback should round-trip opportunities")
-assertEquals(generatedOpportunities[1].farmId, directLoaded.opportunities[1].farmId, "direct XMLFile fallback should preserve opportunity farm identity")
-PhobosFS25.Savegames = nil
+assertEquals("loaded", directLoadStatus, "direct XMLFile adapter should load opportunity state")
+assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #directLoaded.opportunities, "direct XMLFile adapter should round-trip opportunities")
+assertEquals(generatedOpportunities[1].farmId, directLoaded.opportunities[1].farmId, "direct XMLFile adapter should preserve opportunity farm identity")
+g_currentMission = nil
 XMLFile = nil
+
+-- Retired shared-library globals must not be required for any save path.
+assertEquals(nil, _G["Phobos" .. "FS25"], "Rural Ledger smoke tests should not install retired shared-library globals")
 
 PhobosRuralLedger.Savegame._resetDiagnosticsForTests()
 local originalSaveCalls = 0
@@ -768,7 +710,6 @@ assertEquals(1, hookDiagnostics.hookAttempts, "save hook should not retry after 
 PhobosRuralLedger.saveOpportunityState = previousSaveOpportunityState
 FSBaseMission = nil
 Utils = nil
-
 
 local boundedIds = {}
 for index = 1, 20 do
@@ -1004,6 +945,7 @@ end
 
 source("mod/src/RuralLedgerFarmDetailDialog.lua")
 source("mod/src/RuralLedgerOpportunityDialog.lua")
+source("mod/src/RuralLedgerHistoryDialog.lua")
 source("mod/src/RuralLedgerScreen.lua")
 
 local profileLoadCalls = {}
@@ -1027,19 +969,22 @@ PhobosRuralLedger.Gui.screenLoaded = false
 PhobosRuralLedger.Gui.profilesLoaded = false
 PhobosRuralLedger.Gui.farmDetailDialogLoaded = false
 PhobosRuralLedger.Gui.opportunityDialogLoaded = false
+PhobosRuralLedger.Gui.historyDialogLoaded = false
 PhobosRuralLedger.Gui.screen = nil
 assertTrue(PhobosRuralLedger.Gui:loadScreen(), "GUI loader should load profiles and screen XML")
 assertEquals(1, #profileLoadCalls, "GUI profiles should load before the screen XML")
 assertEquals("mod/gui/guiProfiles.xml", profileLoadCalls[1], "GUI loader should load the dedicated Rural Ledger profile file")
-assertEquals(3, #guiLoadCalls, "dialogs and screen XML should load once on first GUI load")
+assertEquals(4, #guiLoadCalls, "dialogs and screen XML should load once on first GUI load")
 assertEquals("mod/gui/RuralLedgerFarmDetailDialog.xml", guiLoadCalls[1].path, "farm detail dialog should load before the main screen")
 assertEquals(Constants.FARM_DETAIL_DIALOG_NAME, guiLoadCalls[1].name, "farm detail dialog should use the public dialog name")
 assertEquals("mod/gui/RuralLedgerOpportunityDialog.xml", guiLoadCalls[2].path, "opportunity dialog should load before the main screen")
 assertEquals(Constants.OPPORTUNITY_DIALOG_NAME, guiLoadCalls[2].name, "opportunity dialog should use the public dialog name")
-assertEquals("mod/gui/RuralLedgerScreen.xml", guiLoadCalls[3].path, "screen XML should load after the dialogs")
+assertEquals("mod/gui/RuralLedgerHistoryDialog.xml", guiLoadCalls[3].path, "history dialog should load before the main screen")
+assertEquals(Constants.HISTORY_DIALOG_NAME, guiLoadCalls[3].name, "history dialog should use the public dialog name")
+assertEquals("mod/gui/RuralLedgerScreen.xml", guiLoadCalls[4].path, "screen XML should load after the dialogs")
 assertTrue(PhobosRuralLedger.Gui:loadScreen(), "second GUI load should reuse the cached screen")
 assertEquals(1, #profileLoadCalls, "GUI profiles should not load repeatedly")
-assertEquals(3, #guiLoadCalls, "dialogs and screen XML should not load repeatedly")
+assertEquals(4, #guiLoadCalls, "dialogs and screen XML should not load repeatedly")
 g_gui = nil
 
 local screen = PhobosRuralLedger.RuralLedgerScreen.new()
@@ -1053,6 +998,7 @@ screen.farmersTab = makeElement()
 screen.debugTab = makeElement()
 screen.farmDetailFooterButton = makeElement()
 screen.opportunityFooterButton = makeElement()
+screen.historyFooterButton = makeElement()
 screen.farmHeaderFarm = makeElement()
 screen.farmHeaderType = makeElement()
 screen.farmHeaderFields = makeElement()
@@ -1109,17 +1055,20 @@ assertTrue(farmCell.attributes.farmNameCompact.visible, "compact layout should s
 screen.isReloading = false
 assertTrue(screen.farmDetailFooterButton.disabled, "farm detail footer action should start disabled without a selected farm")
 assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should start disabled without a selected farm")
+assertTrue(screen.historyFooterButton.disabled, "history footer action should start disabled without a selected farm")
 assertTrue(screen.farmTable.onDoubleClickCallback ~= nil, "farm table should expose the SmoothList double-click callback")
 assertEquals(nil, screen.farmTable.onDoubleClick, "farm table should not depend on a speculative double-click callback")
 screen:onListSelectionChanged(screen.farmTable, 1, 0)
 assertEquals(nil, screen.selectedFarmId, "farm selection should ignore non-row zero indices")
 assertTrue(screen.farmDetailFooterButton.disabled, "farm detail footer action should remain disabled after non-row selection")
 assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should remain disabled after non-row selection")
+assertTrue(screen.historyFooterButton.disabled, "history footer action should remain disabled after non-row selection")
 screen:onListSelectionChanged(screen.farmTable, 1, 2)
 assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "farm selection should update selected farm")
 assertEquals(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.FARMERS, screen.activeSection, "farm selection should keep Farmers as the active top tab")
 assertTrue(not screen.farmDetailFooterButton.disabled, "farm detail footer action should enable after selecting a farm")
 assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should stay disabled when selected farm has no opportunities")
+assertTrue(screen.historyFooterButton.disabled, "history footer action should stay disabled when selected farm has no history")
 
 local shownDialogs = {}
 g_gui = {
@@ -1129,11 +1078,15 @@ g_gui = {
             target = {
                 receivedDetail = nil,
                 receivedOpportunities = nil,
+                receivedHistory = nil,
                 setFarmDetail = function(self, detail)
                     self.receivedDetail = detail
                 end,
                 setOpportunities = function(self, model)
                     self.receivedOpportunities = model
+                end,
+                setHistory = function(self, model)
+                    self.receivedHistory = model
                 end,
             },
         }
@@ -1155,17 +1108,33 @@ stateA.opportunities = {
         severity = Constants.STRESS_STATES.STRAINED,
     }),
 }
+stateA.eventHistory = {
+    Opportunities.normalizeHistory({
+        farmId = farmRowsA[2].farmId,
+        periodId = "season_0001",
+        type = "generated",
+        causeCode = Constants.PRESSURE_TYPES.NEGATIVE_CASH,
+        message = "Generated read-only opportunity for selected farm.",
+    }),
+}
 screen:refreshModels()
 screen:updateDisplay()
 assertTrue(not screen.opportunityFooterButton.disabled, "opportunity footer action should enable when selected farm has candidates")
+assertTrue(not screen.historyFooterButton.disabled, "history footer action should enable when selected farm has history")
 screen:onClickOpportunities()
 assertEquals(2, #shownDialogs, "opportunity footer action should open one dialog")
 assertEquals(Constants.OPPORTUNITY_DIALOG_NAME, shownDialogs[2].name, "opportunity footer action should use the registered dialog")
 assertEquals(farmRowsA[2].farmId, shownDialogs[2].target.receivedOpportunities.farmId, "opportunity dialog should receive the selected farm model")
+screen:onClickHistory()
+assertEquals(3, #shownDialogs, "history footer action should open one dialog")
+assertEquals(Constants.HISTORY_DIALOG_NAME, shownDialogs[3].name, "history footer action should use the registered dialog")
+assertEquals(farmRowsA[2].farmId, shownDialogs[3].target.receivedHistory.farmId, "history dialog should receive the selected farm model")
 stateA.opportunities = {}
+stateA.eventHistory = {}
 screen:refreshModels()
 screen:updateDisplay()
 assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should disable again when candidates disappear")
+assertTrue(screen.historyFooterButton.disabled, "history footer action should disable again when history disappears")
 
 local function farmTableElement(index)
     return {
@@ -1175,33 +1144,33 @@ local function farmTableElement(index)
 end
 
 screen:onListDoubleClick(screen.farmTable, 1, 0)
-assertEquals(2, #shownDialogs, "farm table double-click should ignore non-row zero indices")
+assertEquals(3, #shownDialogs, "farm table double-click should ignore non-row zero indices")
 assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "ignored double-click should keep the previous valid selection")
 screen:onListDoubleClick(screen.farmTable, 1, 3)
-assertEquals(3, #shownDialogs, "farm table double-click should open one dialog per activation")
+assertEquals(4, #shownDialogs, "farm table double-click should open one dialog per activation")
 assertEquals(farmRowsA[3].farmId, screen.selectedFarmId, "farm table double-click should select the clicked farm")
-assertEquals(farmRowsA[3].farmId, shownDialogs[3].target.receivedDetail.farmId, "double-click dialog should receive the clicked farm detail model")
+assertEquals(farmRowsA[3].farmId, shownDialogs[4].target.receivedDetail.farmId, "double-click dialog should receive the clicked farm detail model")
 
 screen.selectedFarmId = farmRowsA[2].farmId
 screen.farmTable.onDoubleClickCallback(screen.farmTable, 1, 4, farmTableElement(4), true)
-assertEquals(4, #shownDialogs, "SmoothList double-click callback should open the detail dialog")
+assertEquals(5, #shownDialogs, "SmoothList double-click callback should open the detail dialog")
 assertEquals(farmRowsA[4].farmId, screen.selectedFarmId, "SmoothList double-click callback should select the clicked row")
-assertEquals(farmRowsA[4].farmId, shownDialogs[4].target.receivedDetail.farmId, "SmoothList callback dialog should receive the clicked farm detail")
+assertEquals(farmRowsA[4].farmId, shownDialogs[5].target.receivedDetail.farmId, "SmoothList callback dialog should receive the clicked farm detail")
 
 screen.selectedFarmId = farmRowsA[2].farmId
 screen.farmTable.onDoubleClickCallback({callbackTarget = true}, screen.farmTable, 1, 5, farmTableElement(5), true)
-assertEquals(5, #shownDialogs, "target-prefixed SmoothList callback should open the detail dialog")
+assertEquals(6, #shownDialogs, "target-prefixed SmoothList callback should open the detail dialog")
 assertEquals(farmRowsA[5].farmId, screen.selectedFarmId, "target-prefixed SmoothList callback should select the clicked row")
-assertEquals(farmRowsA[5].farmId, shownDialogs[5].target.receivedDetail.farmId, "target-prefixed callback dialog should receive the clicked farm detail")
+assertEquals(farmRowsA[5].farmId, shownDialogs[6].target.receivedDetail.farmId, "target-prefixed callback dialog should receive the clicked farm detail")
 
 screen.selectedFarmId = farmRowsA[2].farmId
 screen.farmTable.onDoubleClickCallback({callbackTarget = true}, 1, 6, farmTableElement(6), true)
-assertEquals(6, #shownDialogs, "element-backed SmoothList callback should open the detail dialog")
+assertEquals(7, #shownDialogs, "element-backed SmoothList callback should open the detail dialog")
 assertEquals(farmRowsA[6].farmId, screen.selectedFarmId, "element-backed SmoothList callback should select the clicked row")
-assertEquals(farmRowsA[6].farmId, shownDialogs[6].target.receivedDetail.farmId, "element-backed callback dialog should receive the clicked farm detail")
+assertEquals(farmRowsA[6].farmId, shownDialogs[7].target.receivedDetail.farmId, "element-backed callback dialog should receive the clicked farm detail")
 
 screen.farmTable.onDoubleClickCallback(screen.farmTable, 1, 0, {sectionIndex = 1, indexInSection = 0, isHeader = true}, true)
-assertEquals(6, #shownDialogs, "SmoothList double-click should ignore header cells")
+assertEquals(7, #shownDialogs, "SmoothList double-click should ignore header cells")
 assertEquals(farmRowsA[6].farmId, screen.selectedFarmId, "ignored header double-click should keep the previous valid selection")
 g_gui = nil
 
@@ -1211,12 +1180,14 @@ screen:updateDisplay()
 assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "refresh should preserve a still-valid farm selection")
 assertTrue(not screen.farmDetailFooterButton.disabled, "refresh should keep the detail footer action enabled for a valid selection")
 assertTrue(screen.opportunityFooterButton.disabled, "refresh should keep the opportunity footer disabled without candidates")
+assertTrue(screen.historyFooterButton.disabled, "refresh should keep the history footer disabled without history")
 screen.selectedFarmId = "missing_farm"
 screen:refreshModels()
 screen:updateDisplay()
 assertEquals(nil, screen.selectedFarmId, "refresh should clear a missing farm selection")
 assertTrue(screen.farmDetailFooterButton.disabled, "refresh should disable the detail footer action when selection disappears")
 assertTrue(screen.opportunityFooterButton.disabled, "refresh should disable the opportunity footer action when selection disappears")
+assertTrue(screen.historyFooterButton.disabled, "refresh should disable the history footer action when selection disappears")
 
 local dialog = PhobosRuralLedger.FarmDetailDialog.new()
 dialog.detailTitle = makeElement()
@@ -1244,6 +1215,18 @@ assertTrue(#opportunityDialog.rows > 0, "opportunity dialog should expose read-o
 assertEquals(#opportunityDialog.rows, opportunityDialog:getNumberOfItemsInSection(opportunityDialog.opportunityList, 1), "opportunity dialog list count should match rows")
 opportunityDialog:onClickBack()
 assertTrue(opportunityDialog.closed, "opportunity dialog back action should close the dialog")
+
+local historyDialog = PhobosRuralLedger.HistoryDialog.new()
+historyDialog.historyTitle = makeElement()
+historyDialog.historySubtitle = makeElement()
+historyDialog.historyList = makeList()
+historyDialog:onGuiSetupFinished()
+historyDialog:setHistory(UiModels.buildHistory(opportunityState, "opp_farm_01"))
+assertTrue(historyDialog.historyTitle.text ~= "", "history dialog should render a title")
+assertTrue(#historyDialog.rows > 0, "history dialog should expose read-only rows")
+assertEquals(#historyDialog.rows, historyDialog:getNumberOfItemsInSection(historyDialog.historyList, 1), "history dialog list count should match rows")
+historyDialog:onClickBack()
+assertTrue(historyDialog.closed, "history dialog back action should close the dialog")
 
 capturedLogs = {}
 source("mod/src/PhobosRuralLedger.lua")
@@ -1282,13 +1265,37 @@ assertEquals(
     "public profile summary should include one line per generated profile"
 )
 
+local previousRuntimeState = PhobosRuralLedger.state
+local previousRuntimeSave = PhobosRuralLedger.saveOpportunityState
+local periodSaveCalls = 0
+PhobosRuralLedger.state = {
+    periodId = "season_0001",
+    mapDiscovery = {source = "map"},
+    profiles = opportunityState.profiles,
+    ledgerSnapshots = opportunityState.ledgerSnapshots,
+    opportunities = {},
+    eventHistory = {},
+    cooldowns = {},
+}
+Opportunities.reconcile(PhobosRuralLedger.state)
+PhobosRuralLedger.saveOpportunityState = function()
+    periodSaveCalls = periodSaveCalls + 1
+    return true
+end
+local runtimePeriodSummary = PhobosRuralLedger.advanceLedgerPeriod()
+assertEquals("season_0002", runtimePeriodSummary.currentPeriod, "runtime period helper should advance the ledger period")
+assertTrue(runtimePeriodSummary.expiredOpportunities > 0, "runtime period helper should expire current read-only opportunities")
+assertEquals(1, periodSaveCalls, "runtime period helper should request one save after advancing")
+PhobosRuralLedger.saveOpportunityState = previousRuntimeSave
+PhobosRuralLedger.state = previousRuntimeState
+
 capturedLogs = {}
 local logOptions = {maxLines = 2}
 local loggedReport = PhobosRuralLedger.logEconomyReport(logOptions)
 assertEquals(3, #loggedReport, "explicit report logging should respect maxLines")
 assertEquals(3, #capturedLogs, "explicit report logging should write the bounded number of lines")
 assertEquals(2, logOptions.maxLines, "report logging should not mutate caller options")
-assertEquals("PhobosRuralLedger", capturedLogs[1].source, "explicit report logging should use fake PhobosLib logger")
+assertEquals("PhobosRuralLedger", capturedLogs[1].source, "explicit report logging should use the local Rural Ledger logger")
 
 capturedLogs = {}
 installFakeMapRuntime()

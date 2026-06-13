@@ -40,13 +40,18 @@ Implemented:
 - context-aware `Opportunities` footer action and read-only opportunities
   dialog;
 - compact dedicated save XML persistence for opportunities, cooldowns, and
-  bounded event history.
+  bounded event history;
+- self-contained local helper paths for logging, translation fallback,
+  optional mod detection, save path resolution, and XMLFile access;
+- read-only property History dialog backed by bounded event history;
+- debug-only ledger period advancement foundation for save/reload and history
+  testing.
 
 ## Runtime Evidence
 
-`v0.1.0.0` was published as the first prerelease and installed with
-`FS25_PhobosLib`. The refreshed FS25 log showed both mods loading and no
-Phobos-owned errors or warnings.
+`v0.1.0.0` was published as the first prerelease and tested with the original
+shared-helper dependency installed. The refreshed FS25 log showed both mods
+loading and no Phobos-owned errors or warnings.
 
 `v0.1.1.0` was installed and loaded successfully after adding deterministic
 ledger calculations. The broader log contained unrelated errors from other
@@ -111,8 +116,8 @@ that `g_fieldManager.fields` is fully populated at that point. Discovery now
 accepts real-style `field.fieldId`, field area, `field.farmland`,
 `farmland.id`, and `farmland.npcIndex` shapes; malformed fields or missions are
 skipped into bounded diagnostics instead of crashing FS25. Precision Farming
-availability is still detected through the guarded PhobosLib integration helper,
-but exact pH and nitrogen values remain pending until a safe API is proven.
+availability is still detected through local guarded mod checks, but exact pH
+and nitrogen values remain pending until a safe API is proven.
 
 Runtime testing of `v0.1.5.2` then confirmed the trusted discovery timing:
 manual Refresh produced a clean map-backed line with 200 usable fields, 240
@@ -186,6 +191,14 @@ limited to a compact `FS25_PhobosRuralLedger.xml` file for opportunities,
 cooldowns, and bounded event history; profiles and ledger snapshots remain
 rebuilt from the live map and reconciled after discovery.
 
+Runtime testing of `v0.1.6.2` confirmed the dedicated save XML is created with
+the local FS25 XML adapter. That success also confirmed that the older FS25
+shared-library approach was adding avoidable visibility and dependency
+friction. `v0.1.7.0` therefore makes Rural Ledger self-contained, removes the
+runtime dependency, keeps the working local helper paths, adds a read-only
+History dialog, and adds a debug-only period advance foundation so opportunity
+expiry and history can be tested before any gameplay mutation is introduced.
+
 ## Persistence Boundary
 
 `Persistence.lua` currently owns table-shaped save state:
@@ -203,14 +216,12 @@ rebuilt from the live map and reconciled after discovery.
 - event history;
 - cooldowns.
 
-`v0.1.6.0` wires a narrow local save hook for opportunity state only. It uses
-`PhobosFS25.Savegames` for the current savegame XML path and
-`PhobosFS25.XmlFile` for nil-safe XML reads/writes. The hook remains provisional
-until runtime save/reload proof confirms that FS25 writes the dedicated XML file
-without Phobos-owned warnings or save failures.
+`v0.1.6.0` wires a narrow local save hook for opportunity state only. The hook
+remains provisional until runtime save/reload proof confirms that FS25 writes
+the dedicated XML file without Phobos-owned warnings or save failures.
 
-Runtime testing of `v0.1.6.0` showed a persistence gate: `FS25_PhobosLib
-v0.1.2.0` and Rural Ledger loaded cleanly, but no
+Runtime testing of `v0.1.6.0` showed a persistence gate: the original
+shared-helper package and Rural Ledger loaded cleanly, but no
 `FS25_PhobosRuralLedger.xml` file was created and the log had no Rural
 Ledger-owned save write, save failure, or missing-save lines. `v0.1.6.1`
 therefore hardens the local save hook by retrying registration from
@@ -219,28 +230,31 @@ Settings / Debug, logging the exact XML path on load/write, and treating an
 unavailable save path as a Phobos-owned hard miss.
 
 Runtime testing of `v0.1.6.1` proved that the save hook fires, but load/write
-still reported `xml_api_unavailable`. The installed `FS25_PhobosLib v0.1.2.0`
-zip contains `src/XmlFile.lua` and declares it in `modDesc.xml`, yet Rural
-Ledger used its fallback logger and could not see `PhobosFS25.XmlFile` at
-runtime. `v0.1.6.2` keeps PhobosLib as the preferred adapter, then falls back
-to the global FS25 `XMLFile` API for this dedicated save file and records the
-active XML adapter in Settings / Debug.
+still reported `xml_api_unavailable` because the shared XML wrapper was not
+visible to Rural Ledger at runtime. `v0.1.6.2` fell back to the global FS25
+`XMLFile` API for this dedicated save file and records the active XML adapter
+in Settings / Debug. The user then confirmed the save file is created.
+
+`v0.1.7.0` keeps the proven local save path, removes the retired shared-helper
+dependency entirely, and extends the save surface only with bounded history and
+debug-only period advancement.
 
 ## Next Implementation Slice
 
 Recommended next code step:
 
-1. Runtime-test `v0.1.6.2` with `FS25_PhobosLib v0.1.2.0` installed.
-2. Open Settings / Debug and confirm the save hook is registered and the save
-   path points at `FS25_PhobosRuralLedger.xml` in the active savegame folder.
-   The XML adapter should show `PhobosFS25.XmlFile` or `XMLFile`, not
-   `unavailable`.
+1. Runtime-test `v0.1.7.0` with only the Rural Ledger zip installed.
+2. Open Settings / Debug and confirm the save hook is registered, the XML
+   adapter shows `XMLFile`, and the save path points at
+   `FS25_PhobosRuralLedger.xml` in the active savegame folder.
 3. Save, exit, reload, and confirm the dedicated opportunity XML is written,
    loaded, and reconciled cleanly without duplicate candidates or stale farm
    IDs.
-4. Confirm the custom XML remains below the 50 KB MVP target on a normal save.
-5. Confirm no Phobos-owned `Error:`, `Warning:`, or `Warning (` lines appear,
+4. Select properties with generated opportunities, open Opportunities and
+   History from the footer, and confirm both dialogs match the selected row.
+5. Confirm the custom XML remains below the 50 KB MVP target on a normal save.
+6. Confirm no Phobos-owned `Error:`, `Warning:`, or `Warning (` lines appear,
    and no save failure is attributable to Rural Ledger.
-6. If the save/reload gate is clean, proceed to a small period-advance/history
-   slice or a developer-only Precision Farming probe for exact pH/nitrogen API
-   research.
+7. If the save/reload gate is clean, proceed to a developer-only Precision
+   Farming probe for exact pH/nitrogen API research or the next read-only
+   opportunity refinement.

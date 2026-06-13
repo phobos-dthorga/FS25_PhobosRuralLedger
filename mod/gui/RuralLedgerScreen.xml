@@ -83,6 +83,7 @@
             <Text profile="rlSubtleText" id="debugModeText" position="0px -36px"/>
             <Button profile="rlSmallButton" position="0px -84px" text="$l10n_rl_button_toggle_debug" onClick="onClickToggleDebug"/>
             <Button profile="rlSmallButton" position="335px -84px" text="$l10n_rl_button_refresh_display" onClick="onClickRefresh"/>
+            <Button profile="rlSmallButton" position="670px -84px" text="$l10n_rl_button_advance_period_debug" onClick="onClickAdvancePeriod" id="advancePeriodButton" visible="false"/>
             <Text profile="rlNoDataNotice" id="debugNoDataNotice" position="0px -146px" text="$l10n_rl_no_map_data_notice" visible="false"/>
             <Text profile="rlPanelHeading" position="0px -214px" text="$l10n_rl_debug_diagnostics"/>
             <SmoothList profile="rlDebugList" id="debugList">
@@ -97,6 +98,9 @@
     </GuiElement>
 
     <BoxLayout profile="fs25_buttonBox" id="buttonsPanel">
+        <Button profile="rlFooterButton" text="$l10n_rl_tab_history" onClick="onClickHistory" id="historyFooterButton" disabled="true">
+            <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
+        </Button>
         <Button profile="rlFooterButton" text="$l10n_rl_tab_opportunities" onClick="onClickOpportunities" id="opportunityFooterButton" disabled="true">
             <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
         </Button>

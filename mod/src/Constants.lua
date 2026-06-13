@@ -5,7 +5,7 @@ local Constants = PhobosRuralLedger.Constants
 
 Constants.MOD_NAME = "FS25_PhobosRuralLedger"
 Constants.DISPLAY_NAME = "Phobos' Rural Ledger"
-Constants.VERSION = "0.1.6.2"
+Constants.VERSION = "0.1.7.0"
 Constants.SAVE_SCHEMA_VERSION = 1
 Constants.DEFAULT_SEED = "phobos-rural-ledger"
 Constants.DEFAULT_PROFILE_COUNT = 8
@@ -15,6 +15,7 @@ Constants.DEFAULT_LOG_REPORT_FARM_LINES = 4
 Constants.SCREEN_NAME = "PhobosRuralLedgerScreen"
 Constants.FARM_DETAIL_DIALOG_NAME = "PhobosRuralLedgerFarmDetailDialog"
 Constants.OPPORTUNITY_DIALOG_NAME = "PhobosRuralLedgerOpportunityDialog"
+Constants.HISTORY_DIALOG_NAME = "PhobosRuralLedgerHistoryDialog"
 Constants.ACTION_OPEN_MENU = "PHOBOS_RURAL_LEDGER_MENU"
 Constants.SAVEGAME_FILE_NAME = "FS25_PhobosRuralLedger.xml"
 Constants.MAX_ACTIVE_OPPORTUNITIES = 12

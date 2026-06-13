@@ -10,6 +10,7 @@ RuralLedgerGui.screenLoaded = false
 RuralLedgerGui.profilesLoaded = false
 RuralLedgerGui.farmDetailDialogLoaded = false
 RuralLedgerGui.opportunityDialogLoaded = false
+RuralLedgerGui.historyDialogLoaded = false
 RuralLedgerGui.settingsButtonInstalled = false
 
 local function logInfo(message, ...)
@@ -41,7 +42,7 @@ local function ensureSaveHook()
 end
 
 function RuralLedgerGui:loadScreen()
-    if self.screenLoaded and self.farmDetailDialogLoaded and self.opportunityDialogLoaded then
+    if self.screenLoaded and self.farmDetailDialogLoaded and self.opportunityDialogLoaded and self.historyDialogLoaded then
         return true
     end
 
@@ -93,6 +94,20 @@ function RuralLedgerGui:loadScreen()
 
         self.opportunityDialogLoaded = true
         logInfo("Rural Ledger opportunity dialog loaded from %s.", dialogPath)
+    end
+
+    if not self.historyDialogLoaded then
+        local dialog = PhobosRuralLedger.HistoryDialog.new()
+        local dialogPath = self.modDirectory .. "gui/RuralLedgerHistoryDialog.xml"
+        local dialogLoaded = g_gui:loadGui(dialogPath, Constants.HISTORY_DIALOG_NAME, dialog)
+
+        if dialogLoaded == nil then
+            logWarn("Rural Ledger history dialog XML did not load: %s", dialogPath)
+            return false
+        end
+
+        self.historyDialogLoaded = true
+        logInfo("Rural Ledger history dialog loaded from %s.", dialogPath)
     end
 
     if self.screenLoaded then

@@ -19,14 +19,14 @@ CI also performs:
 - package validation;
 - artifact upload.
 
-The validator checks required performance docs, `modDesc.xml`, the declared
-`FS25_PhobosLib` dependency, referenced source files, and package contents.
+The validator checks required performance docs, `modDesc.xml`, the absence of
+the retired FS25 shared-helper dependency, referenced source files, and package
+contents.
 
 ## Local Runtime Recipe
 
 For the current smoke test:
 
-- install `FS25_PhobosLib.zip`;
 - install `FS25_PhobosRuralLedger.zip`;
 - load a disposable save;
 - confirm the mod loads and initializes without Phobos-owned log errors;
@@ -48,8 +48,7 @@ Record:
 - Rural-Ledger-enabled load time;
 - added seconds and percent over baseline.
 
-Use the same save and mod set except for Rural Ledger and required Phobos
-packages.
+Use the same save and mod set except for Rural Ledger.
 
 ## Log Triage
 
@@ -59,8 +58,7 @@ Search for:
 - `Warning (`
 - `FS25_PhobosRuralLedger`
 - `PhobosRuralLedger`
-- `FS25_PhobosLib`
-- `PhobosFS25`
+- retired FS25 shared-helper dependency names
 
 Classify each Phobos-owned line as:
 
@@ -73,8 +71,8 @@ Known temporary lines belong in `docs/known-log-lines.md`.
 
 ## Automation Backlog
 
-- Add a shared log-triage helper through `FS25_PhobosLib` once two repos need
-  the same parsing rules.
+- Keep log-triage rules documented as copyable conventions until FS25 proves a
+  safer shared-code path.
 - Add load-time records to release notes once runtime testing becomes regular.
 - Add package-size trend checks if player-facing assets grow beyond the MVP
   icon.

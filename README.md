@@ -57,9 +57,11 @@ reputation, and regional presets.
 
 ## Dependency Direction
 
-The mod is staged to depend on `FS25_PhobosLib` for shared Phobos FS25 helpers.
-Any helper that becomes useful across multiple Phobos FS25 mods should move
-there instead of staying local.
+The mod is now self-contained. FS25 shared-library loading proved fragile in
+runtime testing, so Rural Ledger keeps small local helpers for logging,
+translation fallback, optional mod detection, save paths, and XML handling.
+Reusable FS25 patterns should be documented as copyable conventions rather than
+introduced as a required runtime dependency.
 
 ## Performance Gate
 

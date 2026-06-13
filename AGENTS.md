@@ -21,9 +21,11 @@ commodity-pressure events.
 
 ## Dependency Rule
 
-This mod should depend on `FS25_PhobosLib` for shared helpers. Move reusable
-logging, mod detection, XML, save/load, compatibility, and small utility code
-into `FS25_PhobosLib` once it is useful to more than one Phobos FS25 mod.
+This mod must remain self-contained for FS25 runtime use. Keep reusable
+logging, mod detection, XML, save/load, compatibility, and small utility
+patterns local to Rural Ledger unless FS25 later proves a safer sharing
+mechanism. Cross-mod reuse should be documented as copyable conventions, not
+introduced as a required runtime dependency.
 
 ## Architecture Preferences
 

@@ -55,8 +55,9 @@ Document uncertainties here before implementing API-sensitive features.
 - When the official Precision Farming mod is installed, can Rural Ledger read
   pH, nitrogen, environmental score, and sample freshness without taking a hard
   dependency? Still open. `v0.1.5.2` only records guarded mod availability via
-  PhobosLib. The Soil/Fertilizer reference suggests a future diagnostic probe
-  or bridge can be useful before exact pH/nitrogen values become player-facing.
+  local optional-mod checks. The Soil/Fertilizer reference suggests a future
+  diagnostic probe or bridge can be useful before exact pH/nitrogen values
+  become player-facing.
 - Can storage ownership and capacity be inspected for NPC-like profiles?
 - Are NPC farms represented strongly enough in vanilla data to map ledgers onto
   them, and what fallback is acceptable when a map has fields but no useful

@@ -29,10 +29,10 @@ Removal condition: Disposable save/reload test writes `FS25_PhobosRuralLedger.xm
 ```text
 Line: [PhobosRuralLedger][WARN] Rural Ledger opportunity save unavailable while writing: xml_api_unavailable.
 Owner: PhobosRuralLedger
-Status: v0.1.6.1 blocker; should be removed by v0.1.6.2.
-Cause: Rural Ledger could not see `PhobosFS25.XmlFile` at runtime even though the installed PhobosLib zip contains the helper. v0.1.6.2 falls back to global FS25 `XMLFile`.
-Target: v0.1.6.2 runtime verification
-Removal condition: Saving with v0.1.6.2 logs `Rural Ledger opportunity save written to ...FS25_PhobosRuralLedger.xml` and no longer logs `xml_api_unavailable`.
+Status: Historical v0.1.6.1 blocker; resolved by the local XML adapter path.
+Cause: Rural Ledger could not see the retired shared XML wrapper at runtime. The current build uses the global FS25 `XMLFile` API directly.
+Target: v0.1.7.0 runtime verification
+Removal condition: Saving with v0.1.7.0 logs `Rural Ledger opportunity save written to ...FS25_PhobosRuralLedger.xml` and no longer logs `xml_api_unavailable`.
 ```
 
 ## Entry Template

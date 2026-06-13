@@ -101,8 +101,8 @@ The same Soil/Fertilizer reference is useful for Precision Farming boundaries.
 It exposes a diagnostic/PF-bridge style for investigating APIs, but Rural Ledger
 does not copy that code and does not fake exact pH or nitrogen values. For now,
 Rural Ledger only records optional Precision Farming availability through
-PhobosLib's guarded integration helper. Exact pH/nitrogen reads need a separate
-runtime proof or debug probe before they become player-facing data.
+local guarded mod checks. Exact pH/nitrogen reads need a separate runtime proof
+or debug probe before they become player-facing data.
 
 Runtime testing of `v0.1.5.2` confirmed that the mission-start/manual-refresh
 path can read the tested map's field data: 200 usable fields, 240 farmlands,
@@ -229,7 +229,7 @@ Map discovery can be moderately expensive, so it must be bounded:
 - cache the discovered owner/property snapshot;
 - never rescan all farms, fields, farmlands, active contracts, vehicles,
   placeables, fill types, or active mods per frame;
-- log missing optional data with PhobosLib debug/info helpers, not repeated
+- log missing optional data with local debug/info helpers, not repeated
   warnings.
 
 If a map discovery implementation causes a performance hard miss, new Rural

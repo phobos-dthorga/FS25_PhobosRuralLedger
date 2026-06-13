@@ -69,7 +69,7 @@ local function isExpired(record, currentPeriod)
         return false
     end
 
-    return periodCompare(expiresPeriod, currentPeriod) < 0
+    return periodCompare(expiresPeriod, currentPeriod) <= 0
 end
 
 local function cooldownActive(cooldowns, cooldownKey, periodId)
@@ -224,8 +224,37 @@ local function addHistory(state, opportunity)
     end
 end
 
+local function addExpiredHistory(state, opportunity, periodId)
+    state.eventHistory = state.eventHistory or {}
+
+    state.eventHistory[#state.eventHistory + 1] = normalizeHistory({
+        eventId = string.format("event_expired_%s_%s", sanitize(opportunity.opportunityId), sanitize(periodId)),
+        periodId = periodId,
+        farmId = opportunity.farmId,
+        type = "expired",
+        causeCode = opportunity.type or opportunity.causeCode,
+        message = string.format(
+            "Expired read-only opportunity %s for %s.",
+            tostring(opportunity.type),
+            tostring(opportunity.farmId)
+        ),
+    })
+
+    while #state.eventHistory > Constants.MAX_EVENT_HISTORY do
+        table.remove(state.eventHistory, 1)
+    end
+end
+
 function Opportunities.nextPeriod(periodId)
     return nextPeriod(periodId)
+end
+
+function Opportunities.periodCompare(left, right)
+    return periodCompare(left, right)
+end
+
+function Opportunities.isExpired(record, currentPeriod)
+    return isExpired(record, currentPeriod)
 end
 
 function Opportunities.normalizeOpportunity(record)
@@ -293,6 +322,21 @@ function Opportunities.reconcile(state, options)
     return retained
 end
 
+function Opportunities.pruneExpiredCooldowns(cooldowns, periodId)
+    local retained = {}
+    local removed = 0
+
+    for key, expiresPeriod in pairs(cooldowns or {}) do
+        if periodCompare(expiresPeriod, periodId) >= 0 then
+            retained[key] = expiresPeriod
+        else
+            removed = removed + 1
+        end
+    end
+
+    return retained, removed
+end
+
 function Opportunities.getForFarm(state, farmId)
     local result = {}
     if farmId == nil then
@@ -323,4 +367,51 @@ function Opportunities.recalculate(state, options)
     end
 
     return Opportunities.reconcile(state, options)
+end
+
+function Opportunities.advancePeriod(state, options)
+    options = options or {}
+    if state == nil then
+        return nil
+    end
+
+    local previousPeriod = state.periodId or Constants.DEFAULT_PERIOD_ID
+    local currentPeriod = options.periodId or nextPeriod(previousPeriod)
+    local expired = {}
+    local retained = {}
+
+    state.periodId = currentPeriod
+
+    for _, record in ipairs(state.opportunities or {}) do
+        local opportunity = normalizeOpportunity(record)
+        if opportunity ~= nil and isExpired(opportunity, currentPeriod) then
+            expired[#expired + 1] = opportunity
+            addExpiredHistory(state, opportunity, currentPeriod)
+        elseif opportunity ~= nil then
+            retained[#retained + 1] = opportunity
+        end
+    end
+
+    state.opportunities = retained
+    state.cooldowns = Opportunities.pruneExpiredCooldowns(state.cooldowns or {}, currentPeriod)
+
+    if Ledgers ~= nil and Ledgers.calculateSnapshots ~= nil then
+        state.ledgerSnapshots = Ledgers.calculateSnapshots(state.profiles or {}, currentPeriod)
+    end
+
+    Opportunities.reconcile(state, {skipHistory = options.skipHistory == true})
+
+    local cooldownCount = 0
+    for _ in pairs(state.cooldowns or {}) do
+        cooldownCount = cooldownCount + 1
+    end
+
+    return {
+        previousPeriod = previousPeriod,
+        currentPeriod = currentPeriod,
+        expiredOpportunities = #expired,
+        activeOpportunities = #(state.opportunities or {}),
+        eventCount = #(state.eventHistory or {}),
+        cooldownCount = cooldownCount,
+    }
 end

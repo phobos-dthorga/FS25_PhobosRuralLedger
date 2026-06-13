@@ -28,19 +28,11 @@ local function formatMessage(message, ...)
 end
 
 local function xmlApi()
-    if PhobosFS25 ~= nil and PhobosFS25.XmlFile ~= nil then
-        return PhobosFS25.XmlFile, "PhobosFS25.XmlFile"
-    end
-
     if XMLFile ~= nil then
         return Savegame.DirectXmlFile, "XMLFile"
     end
 
     return nil, nil
-end
-
-local function savegamesApi()
-    return PhobosFS25 ~= nil and PhobosFS25.Savegames or nil
 end
 
 local function logInfo(message, ...)
@@ -58,15 +50,7 @@ local function logInfoOnce(key, message, ...)
     end
 
     Savegame._loggedMessages[key] = true
-
-    if PhobosFS25 ~= nil
-        and PhobosFS25.Logging ~= nil
-        and PhobosFS25.Logging.infoOnceSource ~= nil
-    then
-        PhobosFS25.Logging.infoOnceSource("PhobosRuralLedger", message, ...)
-    else
-        logInfo(message, ...)
-    end
+    logInfo(message, ...)
 
     return true
 end
@@ -337,25 +321,20 @@ local function sortedPairs(map)
     end
 end
 
+local function countMap(map)
+    local count = 0
+
+    for _ in pairs(map or {}) do
+        count = count + 1
+    end
+
+    return count
+end
+
 function Savegame.describeAvailability(mission)
     local xml, xmlSource = xmlApi()
-    local savegames = savegamesApi()
-    local path = nil
-    local pathSource = nil
-
-    if savegames ~= nil and savegames.buildSavegameXmlPath ~= nil then
-        path = savegames.buildSavegameXmlPath(Constants.SAVEGAME_FILE_NAME, mission)
-        if path ~= nil then
-            pathSource = "PhobosFS25.Savegames"
-        end
-    end
-
-    if path == nil then
-        path = fallbackSavegameXmlPath(Constants.SAVEGAME_FILE_NAME, mission)
-        if path ~= nil then
-            pathSource = "missionInfo"
-        end
-    end
+    local path = fallbackSavegameXmlPath(Constants.SAVEGAME_FILE_NAME, mission)
+    local pathSource = path ~= nil and "missionInfo" or nil
 
     local reason = nil
     if xml == nil then
@@ -371,7 +350,7 @@ function Savegame.describeAvailability(mission)
         reason = reason,
         hasXmlFileApi = xml ~= nil,
         xmlAdapterSource = xmlSource or "unavailable",
-        hasSavegamesApi = savegames ~= nil,
+        hasSavegamesApi = false,
         hasMission = (mission or g_currentMission) ~= nil,
     }
 
@@ -456,6 +435,10 @@ function Savegame.read(mission)
     end, Constants.MAX_EVENT_HISTORY)
 
     xml.delete(file)
+    availability.periodId = data.periodId
+    availability.opportunityCount = #data.opportunities
+    availability.eventCount = #data.eventHistory
+    availability.cooldownCount = countMap(data.cooldowns)
     recordStatus("load", "loaded", availability)
     return data, "loaded", availability
 end
@@ -533,6 +516,10 @@ function Savegame.write(state, mission)
 
     local saved = xml.saveAndDelete(file)
     local status = saved == true and "saved" or "save_failed"
+    availability.periodId = state.periodId or Constants.DEFAULT_PERIOD_ID
+    availability.opportunityCount = math.min(#(state.opportunities or {}), Constants.MAX_ACTIVE_OPPORTUNITIES)
+    availability.eventCount = math.min(#(state.eventHistory or {}), Constants.MAX_EVENT_HISTORY)
+    availability.cooldownCount = math.min(cooldownIndex, Constants.MAX_ACTIVE_OPPORTUNITIES * 4)
     recordStatus("save", status, availability)
     return saved == true, status, availability
 end
@@ -629,6 +616,18 @@ function Savegame.getDiagnostics(mission)
         xmlAdapterSource = availability.xmlAdapterSource or "unavailable",
         lastLoad = statusText(Savegame.lastLoadStatus),
         lastSave = statusText(Savegame.lastSaveStatus),
+        lastLoadPeriod = (Savegame.lastLoadStatus or {}).periodId or "unknown",
+        lastSavePeriod = (Savegame.lastSaveStatus or {}).periodId or "unknown",
+        lastLoadCounts = {
+            opportunities = (Savegame.lastLoadStatus or {}).opportunityCount or 0,
+            events = (Savegame.lastLoadStatus or {}).eventCount or 0,
+            cooldowns = (Savegame.lastLoadStatus or {}).cooldownCount or 0,
+        },
+        lastSaveCounts = {
+            opportunities = (Savegame.lastSaveStatus or {}).opportunityCount or 0,
+            events = (Savegame.lastSaveStatus or {}).eventCount or 0,
+            cooldowns = (Savegame.lastSaveStatus or {}).cooldownCount or 0,
+        },
     }
 end
 

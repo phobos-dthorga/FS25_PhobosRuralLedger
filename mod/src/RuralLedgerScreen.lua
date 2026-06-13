@@ -26,6 +26,7 @@ function RuralLedgerScreen.new(target, customMt)
     self.cachedFarmRows = {}
     self.cachedFarmDetail = nil
     self.cachedOpportunities = nil
+    self.cachedHistory = nil
     self.cachedDebug = nil
     self.overviewRows = {}
     self.debugRows = {}
@@ -326,6 +327,21 @@ function RuralLedgerScreen:onClickOpportunities()
     self:openOpportunityDialog()
 end
 
+function RuralLedgerScreen:onClickHistory()
+    if self.selectedFarmId == nil then
+        self:updateFooterButtons()
+        return
+    end
+
+    self:refreshHistory()
+    if #(((self.cachedHistory or {}).history) or {}) == 0 then
+        self:updateFooterButtons()
+        return
+    end
+
+    self:openHistoryDialog()
+end
+
 function RuralLedgerScreen:onClickDebug()
     self:setSection(RuralLedgerScreen.SECTIONS.DEBUG)
 end
@@ -352,6 +368,21 @@ function RuralLedgerScreen:onClickToggleDebug()
             self.debugVisible and i18n("rl_log_debug_enabled", "enabled") or i18n("rl_log_debug_disabled", "disabled")
         )
     )
+end
+
+function RuralLedgerScreen:onClickAdvancePeriod()
+    if self.debugVisible ~= true then
+        self:updateDebug()
+        return
+    end
+
+    if PhobosRuralLedger.advanceLedgerPeriod ~= nil then
+        PhobosRuralLedger.advanceLedgerPeriod({mission = g_currentMission})
+    end
+
+    self:refreshModels()
+    self:setSection(RuralLedgerScreen.SECTIONS.DEBUG)
+    logInfo("%s", i18n("rl_log_period_advanced", "Rural Ledger period advanced from debug controls."))
 end
 
 function RuralLedgerScreen:onListSelectionChanged(list, section, index)
@@ -407,6 +438,7 @@ function RuralLedgerScreen:refreshModels()
     end
     self:refreshFarmDetail()
     self:refreshOpportunities()
+    self:refreshHistory()
     self.cachedDebug = PhobosRuralLedger.UiModels.buildDebugSummary(state, {
         includeExactFarmValues = self.debugVisible,
     })
@@ -424,6 +456,14 @@ end
 
 function RuralLedgerScreen:refreshOpportunities()
     self.cachedOpportunities = PhobosRuralLedger.UiModels.buildOpportunities(
+        PhobosRuralLedger.getState(),
+        self.selectedFarmId,
+        {includeDebug = self.debugVisible}
+    )
+end
+
+function RuralLedgerScreen:refreshHistory()
+    self.cachedHistory = PhobosRuralLedger.UiModels.buildHistory(
         PhobosRuralLedger.getState(),
         self.selectedFarmId,
         {includeDebug = self.debugVisible}
@@ -525,6 +565,7 @@ function RuralLedgerScreen:updateDebug()
     )
     setText(self.debugNoDataNotice, notice.text or "")
     setVisible(self.debugNoDataNotice, notice.visible == true)
+    setVisible(self.advancePeriodButton, self.debugVisible == true)
 end
 
 function RuralLedgerScreen:updateFooterButtons()
@@ -532,9 +573,12 @@ function RuralLedgerScreen:updateFooterButtons()
         and self.selectedFarmId ~= nil
     local canOpenOpportunities = canOpenDetail
         and #(((self.cachedOpportunities or {}).opportunities) or {}) > 0
+    local canOpenHistory = canOpenDetail
+        and #(((self.cachedHistory or {}).history) or {}) > 0
 
     setButtonDisabled(self.farmDetailFooterButton, not canOpenDetail)
     setButtonDisabled(self.opportunityFooterButton, not canOpenOpportunities)
+    setButtonDisabled(self.historyFooterButton, not canOpenHistory)
 end
 
 function RuralLedgerScreen:openFarmDetailDialog()
@@ -560,6 +604,19 @@ function RuralLedgerScreen:openOpportunityDialog()
 
     if target ~= nil and target.setOpportunities ~= nil then
         target:setOpportunities(self.cachedOpportunities)
+    end
+end
+
+function RuralLedgerScreen:openHistoryDialog()
+    if g_gui == nil or g_gui.showDialog == nil or Constants == nil then
+        return
+    end
+
+    local dialog = g_gui:showDialog(Constants.HISTORY_DIALOG_NAME)
+    local target = dialog ~= nil and dialog.target or nil
+
+    if target ~= nil and target.setHistory ~= nil then
+        target:setHistory(self.cachedHistory)
     end
 end
 

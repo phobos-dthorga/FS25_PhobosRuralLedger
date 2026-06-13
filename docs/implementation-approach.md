@@ -2,7 +2,8 @@
 
 ## First Playable Slice
 
-1. Bootstrap cleanly and confirm the mod loads with `FS25_PhobosLib`.
+1. Bootstrap cleanly as a self-contained FS25 mod with no required Phobos
+   helper package.
 2. Add a tiny in-memory fallback farm profile registry for early UI and ledger
    proof.
 3. Prove a read-only map discovery path for landowners, farmlands, fields,

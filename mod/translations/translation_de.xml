@@ -7,11 +7,13 @@
         <text name="rl_tab_farmers" text="Landwirte"/>
         <text name="rl_tab_farm_detail" text="Hofdetails"/>
         <text name="rl_tab_opportunities" text="Gelegenheiten"/>
+        <text name="rl_tab_history" text="Historie"/>
         <text name="rl_tab_settings_debug" text="Einstellungen / Debug"/>
         <text name="rl_button_refresh" text="Aktualisieren"/>
         <text name="rl_button_back" text="Zurück"/>
         <text name="rl_button_toggle_debug" text="Exakte Debugwerte umschalten"/>
         <text name="rl_button_refresh_display" text="Anzeigedaten aktualisieren"/>
+        <text name="rl_button_advance_period_debug" text="Zeitraum weiter (Debug)"/>
         <text name="rl_no_map_data_notice" text="Noch keine Kartendaten verfügbar. Speichere/lade das Spiel oder drücke Aktualisieren, nachdem die Karte vollständig geladen ist."/>
         <text name="rl_list_more" text=", ... (+%d weitere)"/>
 
@@ -58,6 +60,7 @@
         <text name="rl_detail_line_field_condition" text="Feldzustand: %s"/>
         <text name="rl_detail_line_precision" text="Precision Farming: %s"/>
         <text name="rl_detail_line_active_opportunities" text="Aktive Gelegenheiten: %d"/>
+        <text name="rl_detail_line_history_events" text="Historieneinträge: %d"/>
         <text name="rl_detail_line_fields" text="Kontrollierte Felder: %d"/>
         <text name="rl_detail_line_cash" text="Liquidität: %s"/>
         <text name="rl_detail_line_debt" text="Schuldendruck: %s"/>
@@ -109,6 +112,9 @@
         <text name="rl_debug_save_path" text="Speicherpfad: %s"/>
         <text name="rl_debug_save_last_load" text="Letztes Laden der Gelegenheiten: %s"/>
         <text name="rl_debug_save_last_save" text="Letztes Speichern der Gelegenheiten: %s"/>
+        <text name="rl_debug_save_last_load_counts" text="Letztes Laden: %d Gelegenheiten, %d Ereignisse, %d Abklingzeiten"/>
+        <text name="rl_debug_save_last_save_counts" text="Letztes Speichern: %d Gelegenheiten, %d Ereignisse, %d Abklingzeiten"/>
+        <text name="rl_debug_loaded_period" text="Geladener Gelegenheitszeitraum: %s"/>
         <text name="rl_debug_first_cash" text="Erste Hof-Liquidität: %s"/>
         <text name="rl_debug_first_debt" text="Erste Hof-Schulden: %s"/>
         <text name="rl_debug_first_stress" text="Erster Hof-Stresswert: %d"/>
@@ -217,6 +223,16 @@
         <text name="rl_opportunity_title_rotation_advice" text="Fruchtfolgehinweis"/>
         <text name="rl_opportunity_reason_rotation_advice" text="%s hat wenig Einkommensdiversität."/>
 
+        <text name="rl_history_dialog_title" text="Flächenhistorie"/>
+        <text name="rl_history_dialog_subtitle" text="%s: %d Ereignis(se)"/>
+        <text name="rl_history_public_heading" text="Gespeicherte Rural-Ledger-Ereignisse"/>
+        <text name="rl_history_no_selection" text="Wähle zuerst einen Hof mit gespeicherter Historie aus."/>
+        <text name="rl_history_none_for_farm" text="Für diese Fläche sind keine Rural-Ledger-Ereignisse gespeichert."/>
+        <text name="rl_history_row" text="%s: %s - %s"/>
+        <text name="rl_history_generated" text="%s erzeugt"/>
+        <text name="rl_history_expired" text="%s abgelaufen"/>
+        <text name="rl_history_cooldown_applied" text="Die Abklingzeit bleibt, sofern zutreffend, aktiv."/>
+
         <text name="rl_profile_family_farm" text="Kleiner Familienhof"/>
         <text name="rl_profile_contractor" text="Lohnunternehmer"/>
         <text name="rl_profile_dairy_operator" text="Milchviehbetrieb"/>
@@ -232,5 +248,6 @@
         <text name="rl_log_debug_visibility" text="Rural-Ledger-Debugsichtbarkeit ist %s."/>
         <text name="rl_log_debug_enabled" text="aktiviert"/>
         <text name="rl_log_debug_disabled" text="deaktiviert"/>
+        <text name="rl_log_period_advanced" text="Rural-Ledger-Zeitraum über Debugsteuerung weitergeschaltet."/>
     </texts>
 </l10n>

@@ -119,11 +119,14 @@ and last load/save result. If the FS25 XML API or active savegame path is
 unavailable, Rural Ledger logs a bounded Phobos-owned warning instead of
 silently skipping persistence.
 
-`v0.1.6.2` adds a narrow local XML adapter fallback. `PhobosFS25.XmlFile`
-remains the preferred wrapper, but if PhobosLib's global table is not visible
-in-game, Rural Ledger writes the same dedicated XML file through the global FS25
-`XMLFile` API. This fallback is intentionally local to Rural Ledger persistence
-until the shared-library visibility issue is understood.
+`v0.1.6.2` proved the local XML adapter path at runtime. The save hook writes
+the dedicated XML file through the global FS25 `XMLFile` API when available and
+records the active adapter in Settings / Debug.
+
+`v0.1.7.0` retires the FS25 shared-library dependency for Rural Ledger. Small
+helpers for logging, translation fallback, optional mod detection, save paths,
+and XML handling stay local so the mod can load, save, and test without a
+second runtime package.
 
 ## Save Versioning
 
@@ -135,10 +138,11 @@ and idempotent:
 - renamed values migrate once and keep a compatibility note;
 - invalid generated state can be rebuilt only when it is safe and documented.
 
-## Shared Library Boundary
+## Reuse Boundary
 
-Keep mod-specific economy rules in this repository. Move generic helpers to
-`FS25_PhobosLib` when they become useful beyond Rural Ledger:
+Keep mod-specific economy rules in this repository. Generic FS25 helper
+patterns may be documented for copyable reuse, but Rural Ledger should not add
+a required shared runtime dependency for:
 
 - logging wrappers;
 - active-mod detection;

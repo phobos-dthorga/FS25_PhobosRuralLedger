@@ -14,7 +14,7 @@ Use this folder as the design packet for Phobos' Rural Ledger.
 ## System Design
 
 - `architecture.md` - module boundaries, multiplayer direction, save
-  versioning, and PhobosLib boundary.
+  versioning, and FS25 self-contained reuse boundary.
 - `data-model.md` - candidate profile, ledger, opportunity, event, and regional
   data structures.
 - `map-landowner-integration.md` - map-first landowner/property rule,
