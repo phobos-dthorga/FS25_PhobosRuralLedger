@@ -1401,6 +1401,7 @@ function UiModels.buildDebugSummary(state, options)
         text("rl_debug_newspaper_pending", "Newspaper pending delivery: %s", tostring(newspaperDiagnostics.pendingDelivery or "none")),
         text("rl_debug_newspaper_clock", "Newspaper clock: %s, current %s/%s", tostring(newspaperDiagnostics.clockSource or "not checked"), tostring(newspaperDiagnostics.currentDay or "unknown"), tostring(newspaperDiagnostics.currentMinute or "unknown")),
         text("rl_debug_newspaper_gate", "Newspaper gate: %s via %s, baseline %s, previous %s/%s, crossed %s", tostring(newspaperDiagnostics.status or "not checked"), tostring(newspaperDiagnostics.trigger or "unknown"), newspaperDiagnostics.hasBaseline == true and "yes" or "no", tostring(newspaperDiagnostics.lastCheckedDay or "unknown"), tostring(newspaperDiagnostics.lastCheckedMinute or "unknown"), newspaperDiagnostics.crossedDelivery == true and "yes" or "no"),
+        text("rl_debug_newspaper_dialog", "Newspaper dialog: opened from %s, close cleanup %s", tostring(newspaperDiagnostics.lastDialogOpenSource or "none"), tostring(newspaperDiagnostics.lastDialogCloseCleanup or "none")),
         text("rl_debug_discovery_source", "Discovery source: %s", sourceLabel(discovery.source)),
         text("rl_debug_discovery_confidence", "Discovery confidence: %s", confidenceLabel(discovery.confidence)),
         text("rl_debug_discovery_trigger", "Discovery trigger: %s", tostring(discovery.trigger or diagnostics.trigger or "unknown")),

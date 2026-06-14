@@ -1450,6 +1450,7 @@ g_gui = {
                 receivedHistory = nil,
                 receivedJobDetail = nil,
                 receivedEdition = nil,
+                receivedEditionOptions = nil,
                 setFarmDetail = function(self, detail)
                     self.receivedDetail = detail
                 end,
@@ -1462,8 +1463,9 @@ g_gui = {
                 setJobDetail = function(self, model)
                     self.receivedJobDetail = model
                 end,
-                setEdition = function(self, model)
+                setEdition = function(self, model, options)
                     self.receivedEdition = model
+                    self.receivedEditionOptions = options
                 end,
             },
         }
@@ -1611,9 +1613,11 @@ screen:onClickReadNewspaper()
 assertEquals(dialogsBeforeNewspaper + 1, #shownDialogs, "read paper footer action should open one newspaper dialog")
 assertEquals(Constants.NEWSPAPER_DIALOG_NAME, shownDialogs[dialogsBeforeNewspaper + 1].name, "read paper should use the newspaper dialog")
 assertEquals(screen.cachedNewspaperRows[1].editionId, shownDialogs[dialogsBeforeNewspaper + 1].target.receivedEdition.editionId, "newspaper dialog should receive the selected edition")
+assertEquals("screenArchive", shownDialogs[dialogsBeforeNewspaper + 1].target.receivedEditionOptions.source, "read paper should mark the dialog as archive-driven")
 screen:onListDoubleClick(screen.newspaperTable, 1, 2)
 assertEquals(dialogsBeforeNewspaper + 2, #shownDialogs, "newspaper double-click should open one newspaper dialog")
 assertEquals(screen.cachedNewspaperRows[2].editionId, shownDialogs[dialogsBeforeNewspaper + 2].target.receivedEdition.editionId, "newspaper double-click should open the clicked edition")
+assertEquals("screenArchive", shownDialogs[dialogsBeforeNewspaper + 2].target.receivedEditionOptions.source, "newspaper double-click should mark the dialog as archive-driven")
 screen:setSection(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.FARMERS)
 g_gui = nil
 
@@ -1683,21 +1687,78 @@ assertEquals(#jobDetailDialog.rows, jobDetailDialog:getNumberOfItemsInSection(jo
 jobDetailDialog:onClickBack()
 assertTrue(jobDetailDialog.closed, "job detail dialog back action should close the dialog")
 
-local newspaperDialog = PhobosRuralLedger.NewspaperDialog.new()
-newspaperDialog.newspaperTitle = makeElement()
-newspaperDialog.newspaperDateline = makeElement()
-newspaperDialog.newspaperMasthead = makeElement()
-newspaperDialog.newspaperHeadline = makeElement()
-newspaperDialog.newspaperSummary = makeElement()
-newspaperDialog.newspaperList = makeList()
-newspaperDialog:onGuiSetupFinished()
-newspaperDialog:setEdition(UiModels.buildNewspaperEdition(stateA, screen.cachedNewspaperRows[1].editionId))
-assertTrue(newspaperDialog.newspaperMasthead.text ~= "", "newspaper dialog should render a masthead")
-assertTrue(newspaperDialog.newspaperHeadline.text ~= "", "newspaper dialog should render a headline")
-assertTrue(#newspaperDialog.rows > 0, "newspaper dialog should expose article rows")
-assertEquals(#newspaperDialog.rows, newspaperDialog:getNumberOfItemsInSection(newspaperDialog.newspaperList, 1), "newspaper dialog list count should match rows")
-newspaperDialog:onClickBack()
-assertTrue(newspaperDialog.closed, "newspaper dialog back action should close the dialog")
+local function runNewspaperDialogCleanupSmoke()
+    local newspaperDialog = PhobosRuralLedger.NewspaperDialog.new()
+    newspaperDialog.newspaperTitle = makeElement()
+    newspaperDialog.newspaperDateline = makeElement()
+    newspaperDialog.newspaperMasthead = makeElement()
+    newspaperDialog.newspaperHeadline = makeElement()
+    newspaperDialog.newspaperSummary = makeElement()
+    newspaperDialog.newspaperList = makeList()
+    newspaperDialog:onGuiSetupFinished()
+    newspaperDialog:setEdition(UiModels.buildNewspaperEdition(stateA, screen.cachedNewspaperRows[1].editionId), {source = "screenArchive"})
+    assertTrue(newspaperDialog.newspaperMasthead.text ~= "", "newspaper dialog should render a masthead")
+    assertTrue(newspaperDialog.newspaperHeadline.text ~= "", "newspaper dialog should render a headline")
+    assertTrue(#newspaperDialog.rows > 0, "newspaper dialog should expose article rows")
+    assertEquals(#newspaperDialog.rows, newspaperDialog:getNumberOfItemsInSection(newspaperDialog.newspaperList, 1), "newspaper dialog list count should match rows")
+    newspaperDialog:onClickBack()
+    assertTrue(newspaperDialog.closed, "newspaper dialog back action should close the dialog")
+    assertEquals("screenArchiveNoGameplayCleanup", stateA.newspaper.diagnostics.lastDialogCloseCleanup, "archive newspaper close should not force gameplay pointer cleanup")
+
+    local previousFocusManager = FocusManager
+    local previousInputBinding = g_inputBinding
+    local previousShowPointer = showPointer
+    local focusClears = 0
+    local cursorValues = {}
+    local pointerValues = {}
+    FocusManager = {
+        setFocus = function(_, value)
+            if value == nil then
+                focusClears = focusClears + 1
+            end
+        end,
+    }
+    g_inputBinding = {
+        setShowMouseCursor = function(_, value)
+            cursorValues[#cursorValues + 1] = value
+        end,
+    }
+    showPointer = function(value)
+        pointerValues[#pointerValues + 1] = value
+    end
+    stateA.newspaper.diagnostics = {}
+    local autoCleanupDialog = PhobosRuralLedger.NewspaperDialog.new()
+    autoCleanupDialog.newspaperTitle = makeElement()
+    autoCleanupDialog.newspaperDateline = makeElement()
+    autoCleanupDialog.newspaperMasthead = makeElement()
+    autoCleanupDialog.newspaperHeadline = makeElement()
+    autoCleanupDialog.newspaperSummary = makeElement()
+    autoCleanupDialog.newspaperList = makeList()
+    autoCleanupDialog:onGuiSetupFinished()
+    autoCleanupDialog:setEdition(UiModels.buildNewspaperEdition(stateA, screen.cachedNewspaperRows[1].editionId), {source = "autoDelivery"})
+    assertEquals("autoDelivery", stateA.newspaper.diagnostics.lastDialogOpenSource, "auto-delivered newspaper should record its open source")
+    autoCleanupDialog:onClickBack()
+    autoCleanupDialog:onClose()
+    assertTrue(autoCleanupDialog.closed, "auto-delivered newspaper back action should close the dialog")
+    assertEquals(1, focusClears, "auto-delivered newspaper close should clear GUI focus once")
+    assertEquals(false, cursorValues[1], "auto-delivered newspaper close should hide the mouse cursor")
+    assertEquals(false, pointerValues[1], "auto-delivered newspaper close should hide the pointer")
+    assertEquals(1, #cursorValues, "auto-delivered newspaper close cleanup should be idempotent for mouse cursor")
+    assertEquals(1, #pointerValues, "auto-delivered newspaper close cleanup should be idempotent for pointer")
+    assertEquals("autoDeliveryRestored", stateA.newspaper.diagnostics.lastDialogCloseCleanup, "auto-delivered newspaper close should record gameplay input restoration")
+    g_inputBinding = nil
+    showPointer = nil
+    local nilRuntimeDialog = PhobosRuralLedger.NewspaperDialog.new()
+    nilRuntimeDialog.newspaperList = makeList()
+    nilRuntimeDialog:setEdition(UiModels.buildNewspaperEdition(stateA, screen.cachedNewspaperRows[1].editionId), {source = "autoDelivery"})
+    assertTrue(nilRuntimeDialog:performCloseCleanup("nilRuntime"), "auto cleanup should remain safe without optional runtime APIs")
+    assertEquals("autoDeliveryNoRuntimeApi", stateA.newspaper.diagnostics.lastDialogCloseCleanup, "missing runtime APIs should be diagnosed without crashing")
+    FocusManager = previousFocusManager
+    g_inputBinding = previousInputBinding
+    showPointer = previousShowPointer
+end
+
+runNewspaperDialogCleanupSmoke()
 
 capturedLogs = {}
 source("mod/src/PhobosRuralLedger.lua")
@@ -1761,8 +1822,10 @@ g_gui = {
             name = name,
             target = {
                 edition = nil,
-                setEdition = function(self, model)
+                editionOptions = nil,
+                setEdition = function(self, model, options)
                     self.edition = model
+                    self.editionOptions = options
                 end,
             },
         }
@@ -1799,6 +1862,7 @@ PhobosRuralLedger.Gui:update(Constants.NEWSPAPER_UPDATE_INTERVAL_MS)
 assertEquals(1, #autoPaperDialogs, "GUI update should auto-open one due newspaper dialog")
 assertEquals(Constants.NEWSPAPER_DIALOG_NAME, autoPaperDialogs[1].name, "auto-open should use the newspaper dialog")
 assertEquals("daily_0021", autoPaperDialogs[1].target.edition.editionId, "auto-open should pass the delivered newspaper edition")
+assertEquals("autoDelivery", autoPaperDialogs[1].target.editionOptions.source, "auto-open should mark the dialog as auto-delivered")
 assertEquals(nil, PhobosRuralLedger.state.newspaper.pendingEditionId, "auto-open should clear the pending newspaper once shown")
 assertTrue(autoPaperSaves >= 1, "auto-open delivery should persist newspaper state")
 PhobosRuralLedger.saveOpportunityState = previousSaveOpportunityState

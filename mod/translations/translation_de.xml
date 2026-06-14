@@ -141,6 +141,7 @@
         <text name="rl_debug_newspaper_pending" text="Ausstehende Zeitungszustellung: %s"/>
         <text name="rl_debug_newspaper_clock" text="Zeitungsuhr: %s, aktuell %s/%s"/>
         <text name="rl_debug_newspaper_gate" text="Zeitungssperre: %s über %s, Basis %s, vorher %s/%s, überschritten %s"/>
+        <text name="rl_debug_newspaper_dialog" text="Zeitungsdialog: geöffnet von %s, Schließbereinigung %s"/>
         <text name="rl_debug_discovery_source" text="Erkennungsquelle: %s"/>
         <text name="rl_debug_discovery_confidence" text="Erkennungsvertrauen: %s"/>
         <text name="rl_debug_discovery_trigger" text="Erkennungsauslöser: %s"/>

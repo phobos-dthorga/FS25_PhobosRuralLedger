@@ -877,7 +877,7 @@ function RuralLedgerScreen:openNewspaperDialog()
     local target = dialog ~= nil and dialog.target or nil
 
     if target ~= nil and target.setEdition ~= nil then
-        target:setEdition(self.cachedNewspaperEdition)
+        target:setEdition(self.cachedNewspaperEdition, {source = "screenArchive"})
     end
 end
 

@@ -210,7 +210,7 @@ function RuralLedgerGui:openNewspaperEdition(edition)
     local target = dialog ~= nil and dialog.target or nil
 
     if target ~= nil and target.setEdition ~= nil then
-        target:setEdition(model)
+        target:setEdition(model, {source = "autoDelivery"})
         if PhobosRuralLedger.markNewspaperShown ~= nil then
             PhobosRuralLedger.markNewspaperShown(edition.editionId, {mission = g_currentMission})
         end

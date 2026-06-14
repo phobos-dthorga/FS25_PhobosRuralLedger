@@ -69,6 +69,9 @@ Implemented:
 - `v0.1.9.1` newspaper delivery hotfix: load/map-start checks are baseline-only,
   auto-open waits for active mission updates, and old accidental pending papers
   are kept in the archive without reopening.
+- `v0.1.9.2` newspaper input hotfix: auto-delivered papers carry explicit
+  dialog context and restore gameplay pointer/focus state on close, while
+  archive-opened papers keep normal menu UI behavior.
 
 ## Runtime Evidence
 
@@ -257,6 +260,12 @@ keeps `loadMap` and `missionStart` checks baseline-only, clears stale
 `v0.1.9.0` pending auto-open state while preserving archived editions, and
 hardens optional XML reads.
 
+Runtime testing of `v0.1.9.1` confirmed the crossing-only delivery was much
+better, but closing the auto-delivered newspaper could leave gameplay controls
+and screen interaction captured. `v0.1.9.2` treats that as a release gate and
+adds auto-delivery-only focus/pointer cleanup on close. Manual archive reads
+remain ordinary Rural Ledger UI dialogs and do not force gameplay cursor state.
+
 ## Persistence Boundary
 
 `Persistence.lua` currently owns table-shaped save state:
@@ -316,15 +325,14 @@ load-screen open.
 
 Recommended next code step:
 
-1. Runtime-test `v0.1.9.1` by loading an after-06:00 save and confirming no
-   newspaper opens on the loading screen or immediately after load.
-2. Start before 06:00 or sleep across 06:00 and confirm the paper opens once
-   only after gameplay is interactive.
-3. Open Rural Ledger > Newspaper and re-read archived editions, including the
-   accidental `v0.1.9.0` day-123 paper if present.
-4. Confirm the paper dialog keeps its off-white newspaper layout at ultrawide
+1. Runtime-test `v0.1.9.2` by triggering an auto-delivered paper across 06:00,
+   closing it, and confirming movement, camera, vehicle controls, map/menu
+   buttons, and mouse interaction recover immediately.
+2. Open Rural Ledger > Newspaper and re-read archived editions, confirming the
+   archive dialog closes back to a usable Rural Ledger screen.
+3. Confirm the paper dialog keeps its off-white newspaper layout at ultrawide
    and 1080p without clipped masthead/headline/body text.
-5. Confirm the custom XML remains below the 50 KB MVP target on a normal save.
-6. Confirm no Rural Ledger-owned `Error:`, `Warning:`, or `Warning (` lines
+4. Confirm the custom XML remains below the 50 KB MVP target on a normal save.
+5. Confirm no Rural Ledger-owned `Error:`, `Warning:`, or `Warning (` lines
    appear. If clean, proceed to leased-equipment/borrow-flow research or a
    developer-only Precision Farming probe for exact pH/nitrogen API research.

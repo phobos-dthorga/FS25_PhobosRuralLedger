@@ -141,6 +141,7 @@
         <text name="rl_debug_newspaper_pending" text="Newspaper pending delivery: %s"/>
         <text name="rl_debug_newspaper_clock" text="Newspaper clock: %s, current %s/%s"/>
         <text name="rl_debug_newspaper_gate" text="Newspaper gate: %s via %s, baseline %s, previous %s/%s, crossed %s"/>
+        <text name="rl_debug_newspaper_dialog" text="Newspaper dialog: opened from %s, close cleanup %s"/>
         <text name="rl_debug_discovery_source" text="Discovery source: %s"/>
         <text name="rl_debug_discovery_confidence" text="Discovery confidence: %s"/>
         <text name="rl_debug_discovery_trigger" text="Discovery trigger: %s"/>

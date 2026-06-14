@@ -543,6 +543,8 @@ function Newspaper.getDiagnostics(state)
         clockAvailable = diagnostics.clockAvailable == true,
         trigger = tostring(diagnostics.trigger or "unknown"),
         status = tostring(diagnostics.status or "not checked"),
+        lastDialogOpenSource = tostring(diagnostics.lastDialogOpenSource or "none"),
+        lastDialogCloseCleanup = tostring(diagnostics.lastDialogCloseCleanup or "none"),
         hasBaseline = diagnostics.hasBaseline == true,
         lastCheckedDay = diagnostics.lastCheckedDay ~= nil and tostring(diagnostics.lastCheckedDay) or "unknown",
         lastCheckedMinute = diagnostics.lastCheckedMinute ~= nil and timeLabel(diagnostics.lastCheckedMinute) or "unknown",

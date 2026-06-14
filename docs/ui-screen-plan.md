@@ -82,6 +82,9 @@ The Newspaper screen is a local archive of daily editions. It is delivered at
 established clock baseline and a later active-play update crosses that time,
 including sleep/time jumps. Loading a save after 06:00 does not catch up or
 open the paper. The archive keeps the latest seven editions.
+Auto-delivered papers restore gameplay pointer/focus state when closed;
+archive-opened papers return to the Rural Ledger screen without forcing
+gameplay cursor state.
 
 Each edition should look distinct from the dark Rural Ledger work screens:
 off-white paper background, black masthead, thin rules, a prominent headline,
