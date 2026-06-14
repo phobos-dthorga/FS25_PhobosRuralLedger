@@ -4,6 +4,8 @@ PhobosRuralLedger.Savegame = PhobosRuralLedger.Savegame or {}
 local Savegame = PhobosRuralLedger.Savegame
 local Constants = PhobosRuralLedger.Constants
 local Opportunities = PhobosRuralLedger.Opportunities
+local JobRequests = PhobosRuralLedger.JobRequests
+local Newspaper = PhobosRuralLedger.Newspaper
 
 Savegame.hookRegistered = Savegame.hookRegistered == true
 Savegame.hookStatus = Savegame.hookStatus or "not_attempted"
@@ -112,6 +114,10 @@ function Savegame.DirectXmlFile.hasProperty(xmlFile, key)
 end
 
 function Savegame.DirectXmlFile.getString(xmlFile, key, defaultValue)
+    if xmlFile ~= nil and xmlFile.hasProperty ~= nil and not Savegame.DirectXmlFile.hasProperty(xmlFile, key) then
+        return defaultValue
+    end
+
     local ok, value = callXmlMethod(xmlFile, "getString", key, defaultValue)
     if ok and value ~= nil then
         return value
@@ -126,6 +132,10 @@ function Savegame.DirectXmlFile.getString(xmlFile, key, defaultValue)
 end
 
 function Savegame.DirectXmlFile.getInt(xmlFile, key, defaultValue)
+    if xmlFile ~= nil and xmlFile.hasProperty ~= nil and not Savegame.DirectXmlFile.hasProperty(xmlFile, key) then
+        return defaultValue
+    end
+
     local ok, value = callXmlMethod(xmlFile, "getInt", key, defaultValue)
     if ok and value ~= nil then
         return value
@@ -139,6 +149,10 @@ function Savegame.DirectXmlFile.getInt(xmlFile, key, defaultValue)
 end
 
 function Savegame.DirectXmlFile.getBool(xmlFile, key, defaultValue)
+    if xmlFile ~= nil and xmlFile.hasProperty ~= nil and not Savegame.DirectXmlFile.hasProperty(xmlFile, key) then
+        return defaultValue
+    end
+
     local ok, value = callXmlMethod(xmlFile, "getBool", key, defaultValue)
     if ok and value ~= nil then
         return value == true
@@ -331,6 +345,21 @@ local function countMap(map)
     return count
 end
 
+local function normalizeNewspaper(value)
+    if Newspaper ~= nil and Newspaper.normalizeState ~= nil then
+        return Newspaper.normalizeState(value)
+    end
+
+    return {
+        lastDeliveredDay = nil,
+        lastCheckedDay = nil,
+        lastCheckedMinute = nil,
+        pendingEditionId = nil,
+        diagnostics = {},
+        editions = {},
+    }
+end
+
 function Savegame.describeAvailability(mission)
     local xml, xmlSource = xmlApi()
     local path = fallbackSavegameXmlPath(Constants.SAVEGAME_FILE_NAME, mission)
@@ -389,6 +418,9 @@ function Savegame.read(mission)
         opportunities = {},
         eventHistory = {},
         cooldowns = {},
+        jobHistory = {},
+        relationshipOverrides = {},
+        newspaper = normalizeNewspaper(nil),
     }
 
     xml.forEachIndexed(file, root .. ".opportunities.opportunity(%d)", function(_, key)
@@ -434,11 +466,86 @@ function Savegame.read(mission)
         end
     end, Constants.MAX_EVENT_HISTORY)
 
+    xml.forEachIndexed(file, root .. ".relationships.relationship(%d)", function(_, key)
+        local relationshipKey = xml.getString(file, key .. "#key", nil)
+        local score = xml.getInt(file, key .. "#score", nil)
+        if relationshipKey ~= nil and score ~= nil then
+            data.relationshipOverrides[relationshipKey] = math.max(1, math.min(5, score))
+        end
+    end, Constants.MAX_RELATIONSHIP_RECORDS)
+
+    xml.forEachIndexed(file, root .. ".jobHistory.job(%d)", function(_, key)
+        local event = JobRequests ~= nil and JobRequests.normalizeHistory ~= nil and JobRequests.normalizeHistory({
+            eventId = xml.getString(file, key .. "#eventId", nil),
+            periodId = xml.getString(file, key .. "#periodId", data.periodId),
+            requestId = xml.getString(file, key .. "#requestId", nil),
+            farmId = xml.getString(file, key .. "#farmId", nil),
+            npcKey = xml.getString(file, key .. "#npcKey", nil),
+            npcName = xml.getString(file, key .. "#npcName", nil),
+            farmlandId = xml.getString(file, key .. "#farmlandId", nil),
+            fieldId = xml.getString(file, key .. "#fieldId", nil),
+            type = xml.getString(file, key .. "#type", nil),
+            status = xml.getString(file, key .. "#status", nil),
+            relationshipDelta = xml.getInt(file, key .. "#relationshipDelta", 0),
+            message = xml.getString(file, key .. "#message", nil),
+            modVersion = xml.getString(file, key .. "#modVersion", Constants.VERSION),
+        }) or nil
+
+        if event ~= nil then
+            data.jobHistory[#data.jobHistory + 1] = event
+        end
+    end, Constants.MAX_JOB_HISTORY)
+
+    local newspaperRoot = root .. ".newspaper"
+    data.newspaper = normalizeNewspaper({
+        lastDeliveredDay = xml.getInt(file, newspaperRoot .. "#lastDeliveredDay", nil),
+        lastCheckedDay = xml.getInt(file, newspaperRoot .. "#lastCheckedDay", nil),
+        lastCheckedMinute = xml.getInt(file, newspaperRoot .. "#lastCheckedMinute", nil),
+        pendingEditionId = xml.getString(file, newspaperRoot .. "#pendingEditionId", nil),
+        editions = {},
+    })
+
+    xml.forEachIndexed(file, newspaperRoot .. ".edition(%d)", function(_, key)
+        local sections = {}
+        xml.forEachIndexed(file, key .. ".section(%d)", function(_, sectionKey)
+            local section = {
+                title = xml.getString(file, sectionKey .. "#title", nil),
+                body = xml.getString(file, sectionKey .. "#body", nil),
+            }
+            sections[#sections + 1] = section
+        end, 8)
+
+        local edition = Newspaper ~= nil and Newspaper.normalizeEdition ~= nil and Newspaper.normalizeEdition({
+            editionId = xml.getString(file, key .. "#editionId", nil),
+            day = xml.getInt(file, key .. "#day", 0),
+            deliveryMinute = xml.getInt(file, key .. "#deliveryMinute", Constants.NEWSPAPER_DELIVERY_MINUTE),
+            dateline = xml.getString(file, key .. "#dateline", nil),
+            masthead = xml.getString(file, key .. "#masthead", nil),
+            headline = xml.getString(file, key .. "#headline", nil),
+            summary = xml.getString(file, key .. "#summary", nil),
+            sections = sections,
+        }) or nil
+
+        if edition ~= nil then
+            data.newspaper.editions[#data.newspaper.editions + 1] = edition
+        end
+    end, Constants.MAX_NEWSPAPER_EDITIONS)
+
+    data.newspaper = normalizeNewspaper(data.newspaper)
+    if data.modVersion == "0.1.9.0" and data.newspaper.pendingEditionId ~= nil then
+        data.newspaper.pendingEditionId = nil
+        data.newspaper.diagnostics = data.newspaper.diagnostics or {}
+        data.newspaper.diagnostics.migration = "cleared_v0.1.9.0_pending"
+    end
+
     xml.delete(file)
     availability.periodId = data.periodId
     availability.opportunityCount = #data.opportunities
     availability.eventCount = #data.eventHistory
     availability.cooldownCount = countMap(data.cooldowns)
+    availability.jobHistoryCount = #data.jobHistory
+    availability.relationshipCount = countMap(data.relationshipOverrides)
+    availability.newspaperEditionCount = #((data.newspaper or {}).editions or {})
     recordStatus("load", "loaded", availability)
     return data, "loaded", availability
 end
@@ -514,12 +621,93 @@ function Savegame.write(state, mission)
         end
     end
 
+    local relationshipIndex = 0
+    for relationshipKey, score in sortedPairs(state.relationshipOverrides or {}) do
+        local key = string.format("%s.relationships.relationship(%d)", root, relationshipIndex)
+        xml.setString(file, key .. "#key", relationshipKey)
+        xml.setInt(file, key .. "#score", math.max(1, math.min(5, tonumber(score) or 3)))
+        relationshipIndex = relationshipIndex + 1
+        if relationshipIndex >= Constants.MAX_RELATIONSHIP_RECORDS then
+            break
+        end
+    end
+
+    for index, event in ipairs(state.jobHistory or {}) do
+        if index > Constants.MAX_JOB_HISTORY then
+            break
+        end
+
+        local key = string.format("%s.jobHistory.job(%d)", root, index - 1)
+        local record = JobRequests ~= nil and JobRequests.normalizeHistory ~= nil and JobRequests.normalizeHistory(event) or event
+        if record ~= nil then
+            xml.setString(file, key .. "#eventId", record.eventId)
+            xml.setString(file, key .. "#periodId", record.periodId)
+            xml.setString(file, key .. "#requestId", record.requestId)
+            xml.setString(file, key .. "#farmId", record.farmId)
+            xml.setString(file, key .. "#npcKey", record.npcKey)
+            xml.setString(file, key .. "#npcName", record.npcName)
+            xml.setString(file, key .. "#farmlandId", record.farmlandId)
+            xml.setString(file, key .. "#fieldId", record.fieldId)
+            xml.setString(file, key .. "#type", record.type)
+            xml.setString(file, key .. "#status", record.status)
+            xml.setInt(file, key .. "#relationshipDelta", record.relationshipDelta or 0)
+            xml.setString(file, key .. "#message", record.message)
+            xml.setString(file, key .. "#modVersion", record.modVersion)
+        end
+    end
+
+    local newspaper = normalizeNewspaper(state.newspaper)
+    local newspaperRoot = root .. ".newspaper"
+    if newspaper.lastDeliveredDay ~= nil then
+        xml.setInt(file, newspaperRoot .. "#lastDeliveredDay", newspaper.lastDeliveredDay)
+    end
+    if newspaper.lastCheckedDay ~= nil then
+        xml.setInt(file, newspaperRoot .. "#lastCheckedDay", newspaper.lastCheckedDay)
+    end
+    if newspaper.lastCheckedMinute ~= nil then
+        xml.setInt(file, newspaperRoot .. "#lastCheckedMinute", newspaper.lastCheckedMinute)
+    end
+    if newspaper.pendingEditionId ~= nil then
+        xml.setString(file, newspaperRoot .. "#pendingEditionId", newspaper.pendingEditionId)
+    end
+
+    for index, edition in ipairs(newspaper.editions or {}) do
+        if index > Constants.MAX_NEWSPAPER_EDITIONS then
+            break
+        end
+
+        local key = string.format("%s.edition(%d)", newspaperRoot, index - 1)
+        local record = Newspaper ~= nil and Newspaper.normalizeEdition ~= nil and Newspaper.normalizeEdition(edition) or edition
+        if record ~= nil then
+            xml.setString(file, key .. "#editionId", record.editionId)
+            xml.setInt(file, key .. "#day", record.day or 0)
+            xml.setInt(file, key .. "#deliveryMinute", record.deliveryMinute or Constants.NEWSPAPER_DELIVERY_MINUTE)
+            xml.setString(file, key .. "#dateline", record.dateline)
+            xml.setString(file, key .. "#masthead", record.masthead)
+            xml.setString(file, key .. "#headline", record.headline)
+            xml.setString(file, key .. "#summary", record.summary)
+
+            for sectionIndex, section in ipairs(record.sections or {}) do
+                if sectionIndex > 8 then
+                    break
+                end
+
+                local sectionKey = string.format("%s.section(%d)", key, sectionIndex - 1)
+                xml.setString(file, sectionKey .. "#title", section.title)
+                xml.setString(file, sectionKey .. "#body", section.body)
+            end
+        end
+    end
+
     local saved = xml.saveAndDelete(file)
     local status = saved == true and "saved" or "save_failed"
     availability.periodId = state.periodId or Constants.DEFAULT_PERIOD_ID
     availability.opportunityCount = math.min(#(state.opportunities or {}), Constants.MAX_ACTIVE_OPPORTUNITIES)
     availability.eventCount = math.min(#(state.eventHistory or {}), Constants.MAX_EVENT_HISTORY)
     availability.cooldownCount = math.min(cooldownIndex, Constants.MAX_ACTIVE_OPPORTUNITIES * 4)
+    availability.jobHistoryCount = math.min(#(state.jobHistory or {}), Constants.MAX_JOB_HISTORY)
+    availability.relationshipCount = math.min(relationshipIndex, Constants.MAX_RELATIONSHIP_RECORDS)
+    availability.newspaperEditionCount = math.min(#(newspaper.editions or {}), Constants.MAX_NEWSPAPER_EDITIONS)
     recordStatus("save", status, availability)
     return saved == true, status, availability
 end
@@ -622,11 +810,17 @@ function Savegame.getDiagnostics(mission)
             opportunities = (Savegame.lastLoadStatus or {}).opportunityCount or 0,
             events = (Savegame.lastLoadStatus or {}).eventCount or 0,
             cooldowns = (Savegame.lastLoadStatus or {}).cooldownCount or 0,
+            jobHistory = (Savegame.lastLoadStatus or {}).jobHistoryCount or 0,
+            relationships = (Savegame.lastLoadStatus or {}).relationshipCount or 0,
+            newspaperEditions = (Savegame.lastLoadStatus or {}).newspaperEditionCount or 0,
         },
         lastSaveCounts = {
             opportunities = (Savegame.lastSaveStatus or {}).opportunityCount or 0,
             events = (Savegame.lastSaveStatus or {}).eventCount or 0,
             cooldowns = (Savegame.lastSaveStatus or {}).cooldownCount or 0,
+            jobHistory = (Savegame.lastSaveStatus or {}).jobHistoryCount or 0,
+            relationships = (Savegame.lastSaveStatus or {}).relationshipCount or 0,
+            newspaperEditions = (Savegame.lastSaveStatus or {}).newspaperEditionCount or 0,
         },
     }
 end

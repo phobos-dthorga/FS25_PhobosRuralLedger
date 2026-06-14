@@ -7,8 +7,15 @@ local Constants = PhobosRuralLedger.Constants
 
 RuralLedgerScreen.SECTIONS = {
     OVERVIEW = "overview",
+    NEWSPAPER = "newspaper",
     FARMERS = "farmers",
+    JOBS = "jobs",
     DEBUG = "debug",
+}
+
+RuralLedgerScreen.JOB_MODES = {
+    NPC = "npc",
+    PLOT = "plot",
 }
 
 RuralLedgerScreen.MAX_ALERT_LINES = 4
@@ -19,14 +26,23 @@ function RuralLedgerScreen.new(target, customMt)
 
     self.activeSection = RuralLedgerScreen.SECTIONS.OVERVIEW
     self.selectedFarmId = nil
+    self.selectedJobRequestId = nil
+    self.selectedNewspaperEditionId = nil
+    self.activeJobMode = RuralLedgerScreen.JOB_MODES.NPC
     self.debugVisible = false
     self.isCompactLayout = false
     self.isReloading = false
     self.cachedOverview = nil
+    self.cachedNewspaper = nil
+    self.cachedNewspaperRows = {}
+    self.cachedNewspaperEdition = nil
     self.cachedFarmRows = {}
     self.cachedFarmDetail = nil
     self.cachedOpportunities = nil
+    self.cachedOpportunityFarmId = nil
     self.cachedHistory = nil
+    self.cachedJobRows = {}
+    self.cachedJobDetail = nil
     self.cachedDebug = nil
     self.overviewRows = {}
     self.debugRows = {}
@@ -88,6 +104,18 @@ local function setButtonDisabled(button, disabled)
     end
 end
 
+local function setButtonAvailable(button, available)
+    local visible = available == true
+    setVisible(button, visible)
+    setButtonDisabled(button, not visible)
+end
+
+local function invalidateLayout(element)
+    if element ~= nil and element.invalidateLayout ~= nil then
+        element:invalidateLayout()
+    end
+end
+
 local function reloadList(list)
     if list ~= nil and list.reloadData ~= nil then
         list:reloadData()
@@ -117,6 +145,34 @@ local function containsFarmId(rows, farmId)
 
     for _, row in ipairs(rows) do
         if row.farmId == farmId then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function containsRequestId(rows, requestId)
+    if rows == nil or requestId == nil then
+        return false
+    end
+
+    for _, row in ipairs(rows) do
+        if tostring(row.requestId or "") == tostring(requestId or "") then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function containsEditionId(rows, editionId)
+    if rows == nil or editionId == nil then
+        return false
+    end
+
+    for _, row in ipairs(rows) do
+        if tostring(row.editionId or "") == tostring(editionId or "") then
             return true
         end
     end
@@ -260,7 +316,9 @@ end
 
 function RuralLedgerScreen:setupLists()
     self:setupList(self.overviewList, false)
+    self:setupList(self.newspaperTable, true)
     self:setupList(self.farmTable, true)
+    self:setupList(self.jobTable, true)
     self:setupList(self.debugList, false)
 end
 
@@ -294,8 +352,28 @@ function RuralLedgerScreen:onClickOverview()
     self:setSection(RuralLedgerScreen.SECTIONS.OVERVIEW)
 end
 
+function RuralLedgerScreen:onClickNewspaper()
+    self:setSection(RuralLedgerScreen.SECTIONS.NEWSPAPER)
+end
+
 function RuralLedgerScreen:onClickFarmers()
     self:setSection(RuralLedgerScreen.SECTIONS.FARMERS)
+end
+
+function RuralLedgerScreen:onClickJobs()
+    self:setSection(RuralLedgerScreen.SECTIONS.JOBS)
+end
+
+function RuralLedgerScreen:onClickJobsByNpc()
+    self.activeJobMode = RuralLedgerScreen.JOB_MODES.NPC
+    self:refreshJobs()
+    self:setSection(RuralLedgerScreen.SECTIONS.JOBS)
+end
+
+function RuralLedgerScreen:onClickJobsByPlot()
+    self.activeJobMode = RuralLedgerScreen.JOB_MODES.PLOT
+    self:refreshJobs()
+    self:setSection(RuralLedgerScreen.SECTIONS.JOBS)
 end
 
 function RuralLedgerScreen:onClickDetail()
@@ -313,12 +391,13 @@ function RuralLedgerScreen:onClickFarmDetail()
 end
 
 function RuralLedgerScreen:onClickOpportunities()
-    if self.selectedFarmId == nil then
+    local farmId = self:getContextFarmId()
+    if farmId == nil then
         self:updateFooterButtons()
         return
     end
 
-    self:refreshOpportunities()
+    self:refreshOpportunities(farmId)
     if #(((self.cachedOpportunities or {}).opportunities) or {}) == 0 then
         self:updateFooterButtons()
         return
@@ -340,6 +419,45 @@ function RuralLedgerScreen:onClickHistory()
     end
 
     self:openHistoryDialog()
+end
+
+function RuralLedgerScreen:onClickReadNewspaper()
+    if self.selectedNewspaperEditionId == nil then
+        self:updateFooterButtons()
+        return
+    end
+
+    self:refreshNewspaperEdition()
+    self:openNewspaperDialog()
+end
+
+function RuralLedgerScreen:onClickJobDetail()
+    if self.selectedJobRequestId == nil then
+        self:updateFooterButtons()
+        return
+    end
+
+    self:refreshJobDetail()
+    self:openJobDetailDialog()
+end
+
+function RuralLedgerScreen:onClickStartContract()
+    if self.selectedJobRequestId == nil then
+        self:updateFooterButtons()
+        return
+    end
+
+    local ok = false
+    if PhobosRuralLedger.startJobContract ~= nil then
+        ok = PhobosRuralLedger.startJobContract(self.selectedJobRequestId, {mission = g_currentMission})
+    end
+
+    self:refreshModels()
+    self:setSection(RuralLedgerScreen.SECTIONS.JOBS)
+
+    if ok then
+        logInfo("%s", i18n("rl_log_job_start_requested", "Rural Ledger requested contract start."))
+    end
 end
 
 function RuralLedgerScreen:onClickDebug()
@@ -386,7 +504,43 @@ function RuralLedgerScreen:onClickAdvancePeriod()
 end
 
 function RuralLedgerScreen:onListSelectionChanged(list, section, index)
-    if self.isReloading or list ~= self.farmTable then
+    if self.isReloading then
+        return
+    end
+
+    if list == self.newspaperTable then
+        local row = rowAtListIndex(self.cachedNewspaperRows, index)
+        if row == nil then
+            self.selectedNewspaperEditionId = nil
+            self:refreshNewspaperEdition()
+            self:updateFooterButtons()
+            return
+        end
+
+        self.selectedNewspaperEditionId = row.editionId
+        self:refreshNewspaperEdition()
+        self:setSection(RuralLedgerScreen.SECTIONS.NEWSPAPER)
+        return
+    end
+
+    if list == self.jobTable then
+        local row = rowAtListIndex(self.cachedJobRows, index)
+        if row == nil then
+            self.selectedJobRequestId = nil
+            self:refreshJobDetail()
+            self:refreshOpportunities(nil)
+            self:updateFooterButtons()
+            return
+        end
+
+        self.selectedJobRequestId = row.requestId
+        self:refreshJobDetail()
+        self:refreshOpportunities(self:getContextFarmId())
+        self:setSection(RuralLedgerScreen.SECTIONS.JOBS)
+        return
+    end
+
+    if list ~= self.farmTable then
         return
     end
 
@@ -394,19 +548,50 @@ function RuralLedgerScreen:onListSelectionChanged(list, section, index)
     if row == nil then
         self.selectedFarmId = nil
         self:refreshFarmDetail()
-        self:refreshOpportunities()
+        self:refreshOpportunities(nil)
         self:updateFooterButtons()
         return
     end
 
     self.selectedFarmId = row.farmId
     self:refreshFarmDetail()
-    self:refreshOpportunities()
+    self:refreshOpportunities(self.selectedFarmId)
     self:setSection(RuralLedgerScreen.SECTIONS.FARMERS)
 end
 
 function RuralLedgerScreen:onListDoubleClick(list, ...)
-    if self.isReloading or list ~= self.farmTable then
+    if self.isReloading then
+        return
+    end
+
+    if list == self.newspaperTable then
+        local row = rowFromListCallback(self.cachedNewspaperRows, list, ...)
+        if row == nil then
+            return
+        end
+
+        self.selectedNewspaperEditionId = row.editionId
+        self:refreshNewspaperEdition()
+        self:setSection(RuralLedgerScreen.SECTIONS.NEWSPAPER)
+        self:onClickReadNewspaper()
+        return
+    end
+
+    if list == self.jobTable then
+        local row = rowFromListCallback(self.cachedJobRows, list, ...)
+        if row == nil then
+            return
+        end
+
+        self.selectedJobRequestId = row.requestId
+        self:refreshJobDetail()
+        self:refreshOpportunities(self:getContextFarmId())
+        self:setSection(RuralLedgerScreen.SECTIONS.JOBS)
+        self:onClickJobDetail()
+        return
+    end
+
+    if list ~= self.farmTable then
         return
     end
 
@@ -417,12 +602,16 @@ function RuralLedgerScreen:onListDoubleClick(list, ...)
 
     self.selectedFarmId = row.farmId
     self:refreshFarmDetail()
-    self:refreshOpportunities()
+    self:refreshOpportunities(self.selectedFarmId)
     self:setSection(RuralLedgerScreen.SECTIONS.FARMERS)
     self:onClickFarmDetail()
 end
 
 function RuralLedgerScreen:refreshModels()
+    if PhobosRuralLedger.refreshJobRequests ~= nil then
+        PhobosRuralLedger.refreshJobRequests({trigger = "screen", log = false})
+    end
+
     local state = PhobosRuralLedger.getState()
 
     self:adaptLayout()
@@ -430,19 +619,52 @@ function RuralLedgerScreen:refreshModels()
         maxAlerts = RuralLedgerScreen.MAX_ALERT_LINES,
         includeDebug = self.debugVisible,
     })
+    self:refreshNewspaperArchive()
+    if not containsEditionId(self.cachedNewspaperRows, self.selectedNewspaperEditionId) then
+        self.selectedNewspaperEditionId = nil
+    end
     self.cachedFarmRows = PhobosRuralLedger.UiModels.buildFarmList(state, {
         includeDebug = self.debugVisible,
     })
     if not containsFarmId(self.cachedFarmRows, self.selectedFarmId) then
         self.selectedFarmId = nil
     end
+    self:refreshJobs()
+    if not containsRequestId(self.cachedJobRows, self.selectedJobRequestId) then
+        self.selectedJobRequestId = nil
+    end
     self:refreshFarmDetail()
-    self:refreshOpportunities()
     self:refreshHistory()
+    self:refreshJobDetail()
+    self:refreshNewspaperEdition()
+    self:refreshOpportunities(self:getContextFarmId())
     self.cachedDebug = PhobosRuralLedger.UiModels.buildDebugSummary(state, {
         includeExactFarmValues = self.debugVisible,
     })
     self:buildListRows()
+end
+
+function RuralLedgerScreen:refreshNewspaperArchive()
+    self.cachedNewspaper = PhobosRuralLedger.UiModels.buildNewspaperArchive(
+        PhobosRuralLedger.getState(),
+        {includeDebug = self.debugVisible}
+    )
+    self.cachedNewspaperRows = (self.cachedNewspaper or {}).rows or {}
+end
+
+function RuralLedgerScreen:refreshNewspaperEdition()
+    self.cachedNewspaperEdition = PhobosRuralLedger.UiModels.buildNewspaperEdition(
+        PhobosRuralLedger.getState(),
+        self.selectedNewspaperEditionId,
+        {includeDebug = self.debugVisible}
+    )
+end
+
+function RuralLedgerScreen:refreshJobs()
+    self.cachedJobRows = PhobosRuralLedger.UiModels.buildJobList(
+        PhobosRuralLedger.getState(),
+        {mode = self.activeJobMode, includeDebug = self.debugVisible}
+    )
 end
 
 function RuralLedgerScreen:refreshFarmDetail()
@@ -454,10 +676,29 @@ function RuralLedgerScreen:refreshFarmDetail()
     self.detailRows = (self.cachedFarmDetail or {}).lines or {}
 end
 
-function RuralLedgerScreen:refreshOpportunities()
+function RuralLedgerScreen:refreshJobDetail()
+    self.cachedJobDetail = PhobosRuralLedger.UiModels.buildJobDetail(
+        PhobosRuralLedger.getState(),
+        self.selectedJobRequestId,
+        {includeDebug = self.debugVisible}
+    )
+end
+
+function RuralLedgerScreen:getContextFarmId()
+    if self.activeSection == RuralLedgerScreen.SECTIONS.FARMERS then
+        return self.selectedFarmId
+    elseif self.activeSection == RuralLedgerScreen.SECTIONS.JOBS then
+        return (self.cachedJobDetail or {}).farmId
+    end
+
+    return nil
+end
+
+function RuralLedgerScreen:refreshOpportunities(farmId)
+    self.cachedOpportunityFarmId = farmId
     self.cachedOpportunities = PhobosRuralLedger.UiModels.buildOpportunities(
         PhobosRuralLedger.getState(),
-        self.selectedFarmId,
+        farmId,
         {includeDebug = self.debugVisible}
     )
 end
@@ -521,6 +762,8 @@ end
 function RuralLedgerScreen:updateDisplay()
     self:updateTabState()
     self:updateOverview()
+    self:updateNewspaper()
+    self:updateJobs()
     self:updateDebug()
     self:updateFooterButtons()
     self:reloadVisibleLists()
@@ -530,12 +773,25 @@ function RuralLedgerScreen:updateTabState()
     local active = self.activeSection
 
     setVisible(self.overviewPanel, active == RuralLedgerScreen.SECTIONS.OVERVIEW)
+    setVisible(self.newspaperPanel, active == RuralLedgerScreen.SECTIONS.NEWSPAPER)
     setVisible(self.farmersPanel, active == RuralLedgerScreen.SECTIONS.FARMERS)
+    setVisible(self.jobsPanel, active == RuralLedgerScreen.SECTIONS.JOBS)
     setVisible(self.debugPanel, active == RuralLedgerScreen.SECTIONS.DEBUG)
 
     setButtonSelected(self.overviewTab, active == RuralLedgerScreen.SECTIONS.OVERVIEW)
+    setButtonSelected(self.newspaperTab, active == RuralLedgerScreen.SECTIONS.NEWSPAPER)
     setButtonSelected(self.farmersTab, active == RuralLedgerScreen.SECTIONS.FARMERS)
+    setButtonSelected(self.jobsTab, active == RuralLedgerScreen.SECTIONS.JOBS)
     setButtonSelected(self.debugTab, active == RuralLedgerScreen.SECTIONS.DEBUG)
+end
+
+function RuralLedgerScreen:updateNewspaper()
+    local model = self.cachedNewspaper or {}
+
+    setText(self.newspaperTitle, model.title or i18n("rl_newspaper_title", "Local Newspaper"))
+    setText(self.newspaperSubtitle, model.subtitle or i18n("rl_newspaper_subtitle", "Recent editions delivered at 06:00."))
+    setText(self.newspaperEmptyText, model.emptyText or "")
+    setVisible(self.newspaperEmptyText, #((model.rows) or {}) == 0)
 end
 
 function RuralLedgerScreen:updateOverview()
@@ -546,11 +802,25 @@ function RuralLedgerScreen:updateOverview()
     setText(self.overviewSubtitle, i18n(
         "rl_overview_period",
         "Period %s / %s",
-        tostring(model.period or "-"),
-        tostring(model.regionalPreset or "-")
+        tostring(model.periodLabel or model.period or "-"),
+        tostring(model.regionalPresetLabel or model.regionalPreset or "-")
     ))
     setText(self.overviewNoDataNotice, notice.text or "")
     setVisible(self.overviewNoDataNotice, notice.visible == true)
+end
+
+function RuralLedgerScreen:updateJobs()
+    local isNpcMode = self.activeJobMode == RuralLedgerScreen.JOB_MODES.NPC
+
+    setText(self.jobsTitle, i18n("rl_jobs_title", "NPC Jobs"))
+    setText(
+        self.jobsSubtitle,
+        isNpcMode
+            and i18n("rl_jobs_subtitle_npc", "Grouped by NPC name, including farmers without active live contracts.")
+            or i18n("rl_jobs_subtitle_plot", "Grouped by plot and field, including plots without active live contracts.")
+    )
+    setButtonSelected(self.jobsByNpcButton, isNpcMode)
+    setButtonSelected(self.jobsByPlotButton, not isNpcMode)
 end
 
 function RuralLedgerScreen:updateDebug()
@@ -571,14 +841,44 @@ end
 function RuralLedgerScreen:updateFooterButtons()
     local canOpenDetail = self.activeSection == RuralLedgerScreen.SECTIONS.FARMERS
         and self.selectedFarmId ~= nil
-    local canOpenOpportunities = canOpenDetail
+    local opportunityFarmId = self:getContextFarmId()
+    if opportunityFarmId ~= self.cachedOpportunityFarmId then
+        self:refreshOpportunities(opportunityFarmId)
+    end
+
+    local canOpenOpportunities = (self.activeSection == RuralLedgerScreen.SECTIONS.FARMERS
+        or self.activeSection == RuralLedgerScreen.SECTIONS.JOBS)
+        and opportunityFarmId ~= nil
         and #(((self.cachedOpportunities or {}).opportunities) or {}) > 0
     local canOpenHistory = canOpenDetail
         and #(((self.cachedHistory or {}).history) or {}) > 0
+    local canOpenJobDetail = self.activeSection == RuralLedgerScreen.SECTIONS.JOBS
+        and self.selectedJobRequestId ~= nil
+    local canStartContract = canOpenJobDetail
+        and ((self.cachedJobDetail or {}).launchable == true)
+    local canReadNewspaper = self.activeSection == RuralLedgerScreen.SECTIONS.NEWSPAPER
+        and self.selectedNewspaperEditionId ~= nil
 
-    setButtonDisabled(self.farmDetailFooterButton, not canOpenDetail)
-    setButtonDisabled(self.opportunityFooterButton, not canOpenOpportunities)
-    setButtonDisabled(self.historyFooterButton, not canOpenHistory)
+    setButtonAvailable(self.readNewspaperFooterButton, canReadNewspaper)
+    setButtonAvailable(self.farmDetailFooterButton, canOpenDetail)
+    setButtonAvailable(self.opportunityFooterButton, canOpenOpportunities)
+    setButtonAvailable(self.historyFooterButton, canOpenHistory)
+    setButtonAvailable(self.jobDetailFooterButton, canOpenJobDetail)
+    setButtonAvailable(self.startContractFooterButton, canStartContract)
+    invalidateLayout(self.buttonsPanel)
+end
+
+function RuralLedgerScreen:openNewspaperDialog()
+    if g_gui == nil or g_gui.showDialog == nil or Constants == nil then
+        return
+    end
+
+    local dialog = g_gui:showDialog(Constants.NEWSPAPER_DIALOG_NAME)
+    local target = dialog ~= nil and dialog.target or nil
+
+    if target ~= nil and target.setEdition ~= nil then
+        target:setEdition(self.cachedNewspaperEdition)
+    end
 end
 
 function RuralLedgerScreen:openFarmDetailDialog()
@@ -620,10 +920,25 @@ function RuralLedgerScreen:openHistoryDialog()
     end
 end
 
+function RuralLedgerScreen:openJobDetailDialog()
+    if g_gui == nil or g_gui.showDialog == nil or Constants == nil then
+        return
+    end
+
+    local dialog = g_gui:showDialog(Constants.JOB_DETAIL_DIALOG_NAME)
+    local target = dialog ~= nil and dialog.target or nil
+
+    if target ~= nil and target.setJobDetail ~= nil then
+        target:setJobDetail(self.cachedJobDetail)
+    end
+end
+
 function RuralLedgerScreen:reloadVisibleLists()
     self.isReloading = true
     reloadList(self.overviewList)
+    reloadList(self.newspaperTable)
     reloadList(self.farmTable)
+    reloadList(self.jobTable)
     reloadList(self.debugList)
     self.isReloading = false
 end
@@ -635,8 +950,12 @@ end
 function RuralLedgerScreen:getNumberOfItemsInSection(list, section)
     if list == self.overviewList then
         return #self.overviewRows
+    elseif list == self.newspaperTable then
+        return #self.cachedNewspaperRows
     elseif list == self.farmTable then
         return #self.cachedFarmRows
+    elseif list == self.jobTable then
+        return #self.cachedJobRows
     elseif list == self.debugList then
         return #self.debugRows
     end
@@ -647,11 +966,26 @@ end
 function RuralLedgerScreen:populateCellForItemInSection(list, section, index, cell)
     if list == self.overviewList then
         self:populateOverviewCell(index, cell)
+    elseif list == self.newspaperTable then
+        self:populateNewspaperCell(index, cell)
     elseif list == self.farmTable then
         self:populateFarmCell(index, cell)
+    elseif list == self.jobTable then
+        self:populateJobCell(index, cell)
     elseif list == self.debugList then
         self:populateTextCell(self.debugRows[index], cell)
     end
+end
+
+function RuralLedgerScreen:populateNewspaperCell(index, cell)
+    local row = self.cachedNewspaperRows[index]
+    if row == nil then
+        return
+    end
+
+    setCellText(cell, "edition", row.deliveredText or row.dateline or "")
+    setCellText(cell, "headline", row.headline or "")
+    setCellText(cell, "summary", row.summary or "")
 end
 
 function RuralLedgerScreen:populateOverviewCell(index, cell)
@@ -690,6 +1024,20 @@ function RuralLedgerScreen:populateFarmCell(index, cell)
     setCellText(cell, "farmFieldsCompact", tostring(row.fields or ""))
     setCellText(cell, "farmStressCompact", row.stressLabel)
     setCellText(cell, "farmPressureCompact", row.primaryPressureLabel)
+end
+
+function RuralLedgerScreen:populateJobCell(index, cell)
+    local row = self.cachedJobRows[index]
+    if row == nil then
+        return
+    end
+
+    setCellText(cell, "jobNpc", row.npcName)
+    setCellText(cell, "jobPlot", row.plotLabel)
+    setCellText(cell, "jobTitle", row.jobTitle)
+    setCellText(cell, "jobStatus", row.statusLabel)
+    setCellText(cell, "jobSource", row.sourceLabel)
+    setCellText(cell, "jobRelation", row.relationshipLabel)
 end
 
 function RuralLedgerScreen:populateTextCell(line, cell)

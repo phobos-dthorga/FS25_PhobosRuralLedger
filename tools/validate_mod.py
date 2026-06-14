@@ -38,6 +38,8 @@ REQUIRED_GUI_FILES = (
     "gui/RuralLedgerFarmDetailDialog.xml",
     "gui/RuralLedgerOpportunityDialog.xml",
     "gui/RuralLedgerHistoryDialog.xml",
+    "gui/RuralLedgerJobDetailDialog.xml",
+    "gui/RuralLedgerNewspaperDialog.xml",
     "gui/guiProfiles.xml",
 )
 FORBIDDEN_GUI_PROFILE_NAMES = {
@@ -246,6 +248,8 @@ def validate_gui_profiles(mod_root: Path, validation: Validation) -> None:
 
     custom_profile_extends: dict[str, str] = {}
     button_profiles: set[str] = set()
+    saw_newspaper_table = False
+    saw_read_paper_button = False
 
     for path in sorted(gui_root.rglob("*.xml")):
         tree = parse_xml_file(path, validation)
@@ -266,6 +270,10 @@ def validate_gui_profiles(mod_root: Path, validation: Validation) -> None:
                 validation.error(
                     "Farm Detail must not render as an inline Farmers panel; use the read-only dialog instead"
                 )
+            if path.name == "RuralLedgerScreen.xml" and node_id == "newspaperTable":
+                saw_newspaper_table = True
+            if path.name == "RuralLedgerScreen.xml" and node_id == "readNewspaperFooterButton":
+                saw_read_paper_button = True
 
             if node.tag == "GUIProfiles" and path.name != "guiProfiles.xml":
                 validation.error(
@@ -275,8 +283,13 @@ def validate_gui_profiles(mod_root: Path, validation: Validation) -> None:
             if node.tag == "Profile":
                 name = (node.get("name") or "").strip()
                 extends = (node.get("extends") or "").strip()
+                traits = set((node.get("with") or "").strip().split())
                 if name:
                     custom_profile_extends[name] = extends
+                if "center" in traits:
+                    validation.error(
+                        f"GUI profile uses unresolved trait profile 'center' and can produce runtime warnings: {name or path.relative_to(mod_root)}"
+                    )
 
             if node.tag == "Button" or (node.tag == "GuiElement" and (node.get("type") or "").strip() == "button"):
                 profile = (node.get("profile") or "").strip()
@@ -301,6 +314,11 @@ def validate_gui_profiles(mod_root: Path, validation: Validation) -> None:
                 f"Custom Button profile extends plain baseReference and may trigger runtime 'button' profile warnings: {profile}"
             )
 
+    if not saw_newspaper_table:
+        validation.error("RuralLedgerScreen.xml must include the Newspaper archive SmoothList")
+    if not saw_read_paper_button:
+        validation.error("RuralLedgerScreen.xml must include the context-aware Read Paper footer action")
+
 
 def validate_gui_loader(mod_root: Path, validation: Validation) -> None:
     loader_path = mod_root / "src" / "RuralLedgerGui.lua"
@@ -313,6 +331,20 @@ def validate_gui_loader(mod_root: Path, validation: Validation) -> None:
         validation.error("RuralLedgerGui.lua must call g_gui:loadProfiles before loading the screen XML")
     if "gui/guiProfiles.xml" not in loader:
         validation.error("RuralLedgerGui.lua must load gui/guiProfiles.xml explicitly")
+
+
+def validate_ui_model_source(mod_root: Path, validation: Validation) -> None:
+    src_root = mod_root / "src"
+    if not src_root.is_dir():
+        return
+
+    raw_l10n_format = re.compile(r"string\.format\(\s*['\"]rl_")
+    for path in sorted(src_root.glob("*.lua")):
+        text = path.read_text(encoding="utf-8")
+        if raw_l10n_format.search(text):
+            validation.error(
+                f"Lua source appears to format a l10n key as player text: {path.relative_to(mod_root)}"
+            )
 
 
 def validate_xml_files(mod_root: Path, validation: Validation) -> None:
@@ -337,6 +369,7 @@ def validate_source(repo_root: Path, mod_source: str, validation: Validation) ->
     validate_l10n(mod_root, validation)
     validate_gui_profiles(mod_root, validation)
     validate_gui_loader(mod_root, validation)
+    validate_ui_model_source(mod_root, validation)
 
 
 def package_expected_entries(names: set[str], archive: zipfile.ZipFile, validation: Validation) -> set[str]:

@@ -19,14 +19,16 @@ player should know, and avoid mixing presentation with gameplay mutation.
 
 Overview tells the player what matters. Farmers lists the map-backed
 properties. Farm Detail tells them why after the player selects one.
-Opportunities tell them what they can do. History proves the world remembers.
+Jobs show which NPC farmers currently need help. Opportunities tell them what
+they can do. History proves the world remembers. The Newspaper turns those
+signals into a daily readable digest.
 
 ## Screen Roadmap
 
 | Phase | Screens | Purpose |
 | --- | --- | --- |
-| Version 1 | Overview, Farmers with Farm Detail drill-down, Settings / Debug | Read-only economy visibility, farm pressure list/detail, and diagnostics. |
-| Version 2 | Market Board, Land & Auctions, Relationships, Farm Detail tabs | Playable local-economy surfaces after opportunity, land, and relationship hooks exist. |
+| Version 1 | Overview, Newspaper, Farmers with Farm Detail drill-down, Jobs, Settings / Debug | Read-only economy visibility, daily digest/archive, farm pressure list/detail, NPC job visibility, and diagnostics. |
+| Version 2 | Market Board, Land & Auctions, Relationships, Farm Detail tabs | Deeper playable local-economy surfaces after opportunity, land, and relationship hooks mature. |
 | Version 3 | Regional Outlook, Co-op Board, Supply Chains, Disaster & Insurance, Annual Report | Regional economy office views and annual report layers before hard integrations. |
 
 Do not add empty UI promises. A screen should appear only when the state behind
@@ -39,6 +41,22 @@ detail surface. Double-clicking a row may invoke the same command as a
 convenience, but it must not be the only way to drill down. In V1, Farm Detail
 is therefore a Farmers context action, not a top-level tab or an inline
 sub-panel.
+
+`v0.1.8.0` applies the same footer-action pattern to Jobs. Selecting a job row
+only highlights it and enables `Job Detail` and, when safe, `Start Contract`.
+Double-clicking opens the same read-only detail dialog as the footer action.
+
+`v0.1.8.1` tightens that rule: unavailable footer actions are hidden, not
+greyed out. Overview should show only Back and Refresh. Farmers should show
+Farm Detail, Opportunities, and History only when the selected property can
+actually use them. Jobs should show Job Detail only after selecting a row and
+Start Contract only for launchable live contracts.
+
+`v0.1.9.0` adds Newspaper as an overview-level top tab because it summarizes
+the whole local economy rather than a selected row. The tab lists archived
+editions and exposes a `Read Paper` footer action only after the player selects
+an edition. Double-clicking an archive row opens the same read-only newspaper
+dialog. The daily auto-open uses the same dialog and model.
 
 ## Version 1 Screens
 
@@ -56,6 +74,20 @@ and decision-focused:
 
 The Overview should show only enough detail to make the local economy readable.
 It should not expose full ledgers or exact accounting values.
+
+### Newspaper
+
+The Newspaper screen is a local archive of daily editions. It is delivered at
+06:00 in-game and auto-opens once per day only after Rural Ledger has an
+established clock baseline and a later active-play update crosses that time,
+including sleep/time jumps. Loading a save after 06:00 does not catch up or
+open the paper. The archive keeps the latest seven editions.
+
+Each edition should look distinct from the dark Rural Ledger work screens:
+off-white paper background, black masthead, thin rules, a prominent headline,
+and concise article blocks. Content comes from current Rural Ledger economy,
+jobs, opportunities, history, and map discovery data. It is read-only and must
+not create contracts, mutate relationships, pay rewards, or change land.
 
 ### Farmers
 
@@ -85,6 +117,47 @@ Suggested sorts:
 - field count;
 - relationship;
 - opportunity expiry.
+
+### Jobs
+
+The Jobs screen is the first playable NPC-facing surface. It should make the
+map's farmers feel present without inventing custom contracts yet.
+
+Modes:
+
+- By NPC: one row per known NPC/property owner where possible, including rows
+  with no active live contract.
+- By Plot: one row per field/farmland/property context where possible,
+  including plots without active live contracts.
+
+Suggested columns:
+
+- NPC;
+- plot;
+- job;
+- status;
+- source;
+- relationship.
+
+Footer actions:
+
+- `Job Detail`: visible when a job row is selected; double-click opens the same
+  detail view.
+- `Start Contract`: visible only for selected live contracts that are safe to
+  launch through FS25's normal mission-start path.
+
+Job Detail should give the player enough information before starting a live
+contract: NPC, contract type, field/farmland, reward, estimated field area,
+status, source, relationship band, start eligibility, and any safe
+BetterContracts-enriched values such as profit, work time, profit per minute,
+usage/lease cost, delivery/keep hints, and monthly jobs-left status. Generated
+Rural Ledger requests must be clearly labeled as informational and
+non-launchable.
+
+The first playable slice may start existing live contracts only. It must not
+create custom contracts, refresh/delete contract lists, lease equipment,
+change land ownership, alter rewards, or mutate BetterContracts state beyond
+the safe start-event data needed by that mod's hard monthly limit.
 
 ### Farm Detail Drill-Down
 

@@ -4,7 +4,7 @@
         <position value="0px -10px"/>
     </Profile>
     <Profile name="rlTabButton" extends="fs25_subCategorySelectorTabbedTab">
-        <size value="245px 57px"/>
+        <size value="205px 57px"/>
         <imageColor value="0 0 0 0"/>
         <imageFocusedColor value="$preset_fs25_colorMainHighlight"/>
         <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
@@ -90,6 +90,14 @@
         <position value="28px -124px"/>
         <absoluteSizeOffset value="0px 150px"/>
     </Profile>
+    <Profile name="rlJobList" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
+        <position value="0px -170px"/>
+        <absoluteSizeOffset value="0px 195px"/>
+    </Profile>
+    <Profile name="rlJobSliderBox" extends="fs25_listSliderBox" with="anchorTopStretchingX pivotTopRight">
+        <position value="28px -170px"/>
+        <absoluteSizeOffset value="0px 195px"/>
+    </Profile>
     <Profile name="rlDebugList" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
         <position value="0px -254px"/>
         <absoluteSizeOffset value="0px 280px"/>
@@ -97,6 +105,14 @@
     <Profile name="rlDebugSliderBox" extends="fs25_listSliderBox" with="anchorTopStretchingX pivotTopRight">
         <position value="28px -254px"/>
         <absoluteSizeOffset value="0px 280px"/>
+    </Profile>
+    <Profile name="rlNewspaperArchiveList" extends="emptyPanel" with="anchorStretchingYStretchingX pivotTopLeft">
+        <position value="0px -124px"/>
+        <absoluteSizeOffset value="0px 150px"/>
+    </Profile>
+    <Profile name="rlNewspaperArchiveSliderBox" extends="fs25_listSliderBox" with="anchorTopStretchingX pivotTopRight">
+        <position value="28px -124px"/>
+        <absoluteSizeOffset value="0px 150px"/>
     </Profile>
     <Profile name="rlInfoListItem" extends="baseReference" with="anchorTopStretchingX alternating">
         <height value="44px"/>
@@ -172,7 +188,7 @@
     </Profile>
     <Profile name="rlFooterButton" extends="buttonBase">
         <handleFocus value="true"/>
-        <size value="210px 45px"/>
+        <size value="185px 45px"/>
         <imageColor value="0 0 0 0"/>
         <imageFocusedColor value="$preset_fs25_colorMainHighlight"/>
         <imageSelectedColor value="$preset_fs25_colorMainHighlight"/>
@@ -200,6 +216,91 @@
     </Profile>
     <Profile name="rlHistoryDialog" extends="fs25_dialogBg">
         <size value="940px 720px"/>
+    </Profile>
+    <Profile name="rlJobDetailDialog" extends="fs25_dialogBg">
+        <size value="940px 720px"/>
+    </Profile>
+    <Profile name="rlNewspaperDialog" extends="fs25_dialogBg">
+        <size value="1080px 820px"/>
+    </Profile>
+    <Profile name="rlNewspaperPaperBg" extends="baseReference" with="anchorStretchingYStretchingX">
+        <position value="0px 0px"/>
+        <absoluteSizeOffset value="0px 0px"/>
+        <imageColor value="0.92 0.88 0.76 1"/>
+    </Profile>
+    <Profile name="rlNewspaperDialogChromeTitle" extends="fs25_textDefault" with="anchorTopLeft">
+        <size value="900px 28px"/>
+        <textSize value="16px"/>
+        <textBold value="true"/>
+        <textUpperCase value="true"/>
+        <textColor value="0.11 0.1 0.08 1"/>
+        <textLayoutMode value="scrolling"/>
+    </Profile>
+    <Profile name="rlNewspaperMasthead" extends="fs25_textDefault" with="anchorTopLeft">
+        <size value="980px 56px"/>
+        <textSize value="38px"/>
+        <textBold value="true"/>
+        <textUpperCase value="true"/>
+        <textColor value="0.06 0.05 0.04 1"/>
+        <textAlignment value="center"/>
+        <textLayoutMode value="resize"/>
+    </Profile>
+    <Profile name="rlNewspaperDateline" extends="fs25_textDefault" with="anchorTopLeft">
+        <size value="980px 28px"/>
+        <textSize value="15px"/>
+        <textBold value="true"/>
+        <textUpperCase value="true"/>
+        <textColor value="0.18 0.16 0.13 1"/>
+        <textAlignment value="center"/>
+        <textLayoutMode value="scrolling"/>
+    </Profile>
+    <Profile name="rlNewspaperHeadline" extends="fs25_textDefault" with="anchorTopLeft">
+        <size value="980px 58px"/>
+        <textSize value="32px"/>
+        <textBold value="true"/>
+        <textColor value="0.08 0.07 0.05 1"/>
+        <textAlignment value="center"/>
+        <textLayoutMode value="resize"/>
+    </Profile>
+    <Profile name="rlNewspaperSummary" extends="fs25_textDefault" with="anchorTopLeft">
+        <size value="980px 28px"/>
+        <textSize value="16px"/>
+        <textColor value="0.16 0.14 0.11 1"/>
+        <textAlignment value="center"/>
+        <textLayoutMode value="scrolling"/>
+    </Profile>
+    <Profile name="rlNewspaperRule" extends="baseReference" with="anchorTopLeft">
+        <size value="980px 2px"/>
+        <imageColor value="0.08 0.07 0.05 1"/>
+    </Profile>
+    <Profile name="rlNewspaperDialogList" extends="emptyPanel" with="anchorTopStretchingX">
+        <position value="0px -290px"/>
+        <size value="980px 390px"/>
+    </Profile>
+    <Profile name="rlNewspaperDialogSliderBox" extends="fs25_listSliderBox" with="anchorTopRight">
+        <position value="-15px -290px"/>
+        <size value="6px 390px"/>
+    </Profile>
+    <Profile name="rlNewspaperArticleItem" extends="baseReference" with="anchorTopStretchingX">
+        <height value="88px"/>
+        <imageColor value="0.92 0.88 0.76 0"/>
+        <imageSelectedColor value="0.82 0.76 0.63 1"/>
+    </Profile>
+    <Profile name="rlNewspaperArticleTitle" extends="baseReference" with="anchorTopStretchingX">
+        <absoluteSizeOffset value="36px 0px"/>
+        <textSize value="17px"/>
+        <textBold value="true"/>
+        <textUpperCase value="true"/>
+        <textColor value="0.08 0.07 0.05 1"/>
+        <textSelectedColor value="0.08 0.07 0.05 1"/>
+        <textLayoutMode value="scrolling"/>
+    </Profile>
+    <Profile name="rlNewspaperArticleBody" extends="baseReference" with="anchorTopStretchingX">
+        <absoluteSizeOffset value="36px 0px"/>
+        <textSize value="15px"/>
+        <textColor value="0.12 0.1 0.08 1"/>
+        <textSelectedColor value="0.12 0.1 0.08 1"/>
+        <textLayoutMode value="scrolling"/>
     </Profile>
     <Profile name="rlDialogSubtitle" extends="fs25_textDefault" with="anchorTopLeft">
         <size value="840px 30px"/>
@@ -241,6 +342,14 @@
         <size value="850px 420px"/>
     </Profile>
     <Profile name="rlHistoryDialogSliderBox" extends="fs25_listSliderBox" with="anchorTopRight">
+        <position value="-15px -168px"/>
+        <size value="6px 420px"/>
+    </Profile>
+    <Profile name="rlJobDetailDialogList" extends="emptyPanel" with="anchorTopStretchingX">
+        <position value="0px -168px"/>
+        <size value="850px 420px"/>
+    </Profile>
+    <Profile name="rlJobDetailDialogSliderBox" extends="fs25_listSliderBox" with="anchorTopRight">
         <position value="-15px -168px"/>
         <size value="6px 420px"/>
     </Profile>

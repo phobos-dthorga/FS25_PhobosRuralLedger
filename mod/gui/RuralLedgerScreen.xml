@@ -14,7 +14,13 @@
             <Button profile="rlTabButton" id="overviewTab" text="$l10n_rl_tab_overview" onClick="onClickOverview">
                 <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
             </Button>
+            <Button profile="rlTabButton" id="newspaperTab" text="$l10n_rl_tab_newspaper" onClick="onClickNewspaper">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
             <Button profile="rlTabButton" id="farmersTab" text="$l10n_rl_tab_farmers" onClick="onClickFarmers">
+                <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
+            </Button>
+            <Button profile="rlTabButton" id="jobsTab" text="$l10n_rl_tab_jobs" onClick="onClickJobs">
                 <ThreePartBitmap profile="fs25_subCategorySelectorTabbedTabBg" name="background"/>
             </Button>
             <Button profile="rlTabButton" id="debugTab" text="$l10n_rl_tab_settings_debug" onClick="onClickDebug">
@@ -36,6 +42,30 @@
             </SmoothList>
             <ThreePartBitmap profile="rlOverviewSliderBox">
                 <Slider profile="fs25_listSlider" dataElementId="overviewList"/>
+            </ThreePartBitmap>
+        </GuiElement>
+
+        <GuiElement profile="rlTabContainer" id="newspaperPanel" visible="false">
+            <Text profile="rlSectionTitle" id="newspaperTitle" position="0px 0px" text="$l10n_rl_newspaper_title"/>
+            <Text profile="rlSubtleText" id="newspaperSubtitle" position="0px -36px" text="$l10n_rl_newspaper_subtitle"/>
+            <Text profile="rlNoDataNotice" id="newspaperEmptyText" position="0px -78px" text="$l10n_rl_newspaper_archive_empty" visible="false"/>
+
+            <GuiElement profile="fs25_statisticsHeaderBox" position="0px -82px">
+                <Text profile="rlHeaderCell" position="20px 0px" size="230px 32px" text="$l10n_rl_col_edition"/>
+                <Text profile="rlHeaderCell" position="260px 0px" size="470px 32px" text="$l10n_rl_col_headline"/>
+                <Text profile="rlHeaderCell" position="740px 0px" size="520px 32px" text="$l10n_rl_col_summary"/>
+                <ThreePartBitmap profile="fs25_lineSeparatorBottom" position="0px -2dp"/>
+            </GuiElement>
+
+            <SmoothList profile="rlNewspaperArchiveList" id="newspaperTable">
+                <ListItem profile="rlFarmListItem">
+                    <Text profile="rlRowCell" position="20px 0px" size="230px 32px" name="edition"/>
+                    <Text profile="rlRowCell" position="260px 0px" size="470px 32px" name="headline"/>
+                    <Text profile="rlRowCell" position="740px 0px" size="520px 32px" name="summary"/>
+                </ListItem>
+            </SmoothList>
+            <ThreePartBitmap profile="rlNewspaperArchiveSliderBox">
+                <Slider profile="fs25_listSlider" dataElementId="newspaperTable"/>
             </ThreePartBitmap>
         </GuiElement>
 
@@ -78,6 +108,37 @@
             </ThreePartBitmap>
         </GuiElement>
 
+        <GuiElement profile="rlTabContainer" id="jobsPanel" visible="false">
+            <Text profile="rlSectionTitle" id="jobsTitle" position="0px 0px" text="$l10n_rl_jobs_title"/>
+            <Text profile="rlSubtleText" id="jobsSubtitle" position="0px -36px" text="$l10n_rl_jobs_subtitle_npc"/>
+            <Button profile="rlSmallButton" position="0px -84px" id="jobsByNpcButton" text="$l10n_rl_jobs_mode_npc" onClick="onClickJobsByNpc"/>
+            <Button profile="rlSmallButton" position="335px -84px" id="jobsByPlotButton" text="$l10n_rl_jobs_mode_plot" onClick="onClickJobsByPlot"/>
+
+            <GuiElement profile="fs25_statisticsHeaderBox" position="0px -128px">
+                <Text profile="rlHeaderCell" position="20px 0px" size="210px 32px" text="$l10n_rl_col_npc"/>
+                <Text profile="rlHeaderCell" position="240px 0px" size="210px 32px" text="$l10n_rl_col_plot"/>
+                <Text profile="rlHeaderCell" position="460px 0px" size="310px 32px" text="$l10n_rl_col_job"/>
+                <Text profile="rlHeaderCellCenter" position="780px 0px" size="130px 32px" text="$l10n_rl_col_status"/>
+                <Text profile="rlHeaderCell" position="920px 0px" size="190px 32px" text="$l10n_rl_col_source"/>
+                <Text profile="rlHeaderCell" position="1120px 0px" size="150px 32px" text="$l10n_rl_col_relationship"/>
+                <ThreePartBitmap profile="fs25_lineSeparatorBottom" position="0px -2dp"/>
+            </GuiElement>
+
+            <SmoothList profile="rlJobList" id="jobTable">
+                <ListItem profile="rlFarmListItem">
+                    <Text profile="rlRowCell" position="20px 0px" size="210px 32px" name="jobNpc"/>
+                    <Text profile="rlRowCell" position="240px 0px" size="210px 32px" name="jobPlot"/>
+                    <Text profile="rlRowCell" position="460px 0px" size="310px 32px" name="jobTitle"/>
+                    <Text profile="rlRowCellCenter" position="780px 0px" size="130px 32px" name="jobStatus"/>
+                    <Text profile="rlRowCell" position="920px 0px" size="190px 32px" name="jobSource"/>
+                    <Text profile="rlRowCell" position="1120px 0px" size="150px 32px" name="jobRelation"/>
+                </ListItem>
+            </SmoothList>
+            <ThreePartBitmap profile="rlJobSliderBox">
+                <Slider profile="fs25_listSlider" dataElementId="jobTable"/>
+            </ThreePartBitmap>
+        </GuiElement>
+
         <GuiElement profile="rlTabContainer" id="debugPanel" visible="false">
             <Text profile="rlSectionTitle" id="debugTitle" position="0px 0px"/>
             <Text profile="rlSubtleText" id="debugModeText" position="0px -36px"/>
@@ -98,6 +159,9 @@
     </GuiElement>
 
     <BoxLayout profile="fs25_buttonBox" id="buttonsPanel">
+        <Button profile="rlFooterButton" text="$l10n_rl_button_read_paper" onClick="onClickReadNewspaper" id="readNewspaperFooterButton" disabled="true">
+            <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
+        </Button>
         <Button profile="rlFooterButton" text="$l10n_rl_tab_history" onClick="onClickHistory" id="historyFooterButton" disabled="true">
             <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
         </Button>
@@ -105,6 +169,12 @@
             <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
         </Button>
         <Button profile="rlFooterButton" text="$l10n_rl_tab_farm_detail" onClick="onClickFarmDetail" id="farmDetailFooterButton" disabled="true">
+            <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
+        </Button>
+        <Button profile="rlFooterButton" text="$l10n_rl_button_job_detail" onClick="onClickJobDetail" id="jobDetailFooterButton" disabled="true">
+            <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
+        </Button>
+        <Button profile="rlFooterButton" text="$l10n_rl_button_start_contract" onClick="onClickStartContract" id="startContractFooterButton" disabled="true">
             <Bitmap profile="fs25_buttonBoxSeparator" name="separator"/>
         </Button>
         <Button profile="rlFooterButton" text="$l10n_rl_button_refresh" onClick="onClickRefresh" id="menuButton[1]">

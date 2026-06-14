@@ -11,7 +11,9 @@ source("mod/src/Profiles.lua")
 source("mod/src/Ledgers.lua")
 source("mod/src/Simulation.lua")
 source("mod/src/Opportunities.lua")
+source("mod/src/JobRequests.lua")
 source("mod/src/UiModels.lua")
+source("mod/src/Newspaper.lua")
 source("mod/src/Reports.lua")
 source("mod/src/Persistence.lua")
 source("mod/src/Savegame.lua")
@@ -21,6 +23,8 @@ local I18n = PhobosRuralLedger.I18n
 local Ledgers = PhobosRuralLedger.Ledgers
 local MapDiscovery = PhobosRuralLedger.MapDiscovery
 local Opportunities = PhobosRuralLedger.Opportunities
+local JobRequests = PhobosRuralLedger.JobRequests
+local Newspaper = PhobosRuralLedger.Newspaper
 local Persistence = PhobosRuralLedger.Persistence
 local Reports = PhobosRuralLedger.Reports
 local Simulation = PhobosRuralLedger.Simulation
@@ -312,6 +316,15 @@ local function installFakeMapRuntime()
                 getReward = function()
                     return 28087
                 end,
+                info = {
+                    profit = 28087,
+                    workTime = 3600,
+                    perMin = 463,
+                    usage = 320,
+                    leaseCost = 320,
+                    delivery = "Deliver wrapped bales",
+                    keep = false,
+                },
                 getNPC = function()
                     return {name = "Walter"}
                 end,
@@ -422,6 +435,11 @@ assertTrue(mapRows[1].cropSummary ~= "unknown", "map farm rows should expose cro
 local mapOverview = UiModels.buildOverview(mapStateA)
 assertEquals(8, #mapOverview.cards, "map overview should include discovery cards")
 assertEquals(3, mapOverview.discovery.discoveredFields, "map overview should expose discovered field count")
+assertEquals("Season 1", mapOverview.periodLabel, "overview should expose a player-facing period label")
+assertEquals("Temperate mixed", mapOverview.regionalPresetLabel, "overview should expose a player-facing regional label")
+for _, alert in ipairs(mapOverview.alerts or {}) do
+    assertTrue(string.find(alert, "rl_", 1, true) == nil, "overview alerts should not leak l10n keys")
+end
 
 local mapDetail = UiModels.buildFarmDetail(mapStateA, mapRows[1].farmId)
 local sawFieldIds = false
@@ -435,6 +453,124 @@ for _, line in ipairs(mapDetail.lines) do
 end
 assertTrue(sawFieldIds, "map farm detail should expose field IDs")
 assertTrue(sawPrecisionFarming, "map farm detail should expose Precision Farming status")
+
+MissionStatus = {CREATED = 1, RUNNING = 2, FINISHED = 3}
+BetterContracts = {
+    config = {
+        hardMode = true,
+        hardLimit = 2,
+    },
+}
+g_modIsLoaded.FS25_BetterContracts = true
+g_currentMission.getFarmId = function()
+    return 1
+end
+g_farmManager.getFarmById = function(_, farmId)
+    if farmId == 1 then
+        return {
+            stats = {
+                jobsLeft = 2,
+            },
+        }
+    end
+
+    return {name = "Walter Farm"}
+end
+
+JobRequests.refresh(mapStateA, {trigger = "job_smoke"})
+assertEquals(2, #mapStateA.jobRequests, "jobs should include live contracts plus generated gap-fill rows")
+assertEquals("betterContracts", mapStateA.jobDiagnostics.sourcePriority, "BetterContracts should be the preferred source when loaded")
+assertEquals(1, mapStateA.jobDiagnostics.launchableRequests, "created live contracts should be launchable")
+assertEquals(1, mapStateA.jobDiagnostics.generatedRequests, "properties without live contracts should receive generated requests")
+
+local jobRowsByNpc = UiModels.buildJobList(mapStateA, {mode = "npc"})
+local jobRowsByPlot = UiModels.buildJobList(mapStateA, {mode = "plot"})
+assertEquals(#mapStateA.jobRequests, #jobRowsByNpc, "NPC job rows should cover every request")
+assertEquals(#mapStateA.jobRequests, #jobRowsByPlot, "plot job rows should cover every request")
+assertTrue(jobRowsByNpc[1].requestId ~= nil, "job rows should expose stable request ids")
+for _, row in ipairs(jobRowsByNpc) do
+    assertTrue(string.find(row.jobTitle, "fieldwork_support", 1, true) == nil, "generated job titles should be localized for players")
+    assertTrue(string.find(row.jobTitle, "_request", 1, true) == nil, "generated job titles should not leak internal request codes")
+end
+
+local launchableRequest = nil
+for _, request in ipairs(mapStateA.jobRequests) do
+    if request.launchable == true then
+        launchableRequest = request
+        break
+    end
+end
+assertTrue(launchableRequest ~= nil, "fake runtime should produce one launchable live contract")
+
+local sentEvents = {}
+MissionStartEvent = {
+    new = function(mission, farmId, hasLeasing)
+        return {
+            mission = mission,
+            farmId = farmId,
+            hasLeasing = hasLeasing,
+        }
+    end,
+}
+g_client = {
+    getServerConnection = function()
+        return {
+            sendEvent = function(_, event)
+                sentEvents[#sentEvents + 1] = event
+            end,
+        }
+    end,
+}
+local canStart, startReason = JobRequests.canStartContract(mapStateA, launchableRequest.requestId)
+assertEquals(true, canStart, "launchable live contract should pass start checks")
+assertEquals("ready", startReason, "launchable live contract should report ready")
+local launchableJobDetail = UiModels.buildJobDetail(mapStateA, launchableRequest.requestId)
+local detailText = table.concat(launchableJobDetail.rows, "\n")
+assertContains(detailText, "Estimated field area", "job detail should include estimated field area")
+assertContains(detailText, "Estimated profit", "job detail should include enriched profit")
+assertContains(detailText, "Estimated work time", "job detail should include enriched work time")
+assertContains(detailText, "Profit per minute", "job detail should include enriched profit per minute")
+assertContains(detailText, "Usage cost", "job detail should include BetterContracts usage cost")
+assertContains(detailText, "BetterContracts monthly jobs left", "job detail should explain monthly start capacity")
+local started, launchStatus = JobRequests.startContract(mapStateA, launchableRequest.requestId)
+assertEquals(true, started, "start contract should dispatch the normal MissionStartEvent")
+assertEquals("started", launchStatus, "start contract should report a started status")
+assertEquals(1, #sentEvents, "start contract should send one event")
+assertEquals(false, sentEvents[1].hasLeasing, "first launch slice should not lease equipment")
+assertEquals(1, sentEvents[1].jobsLeft, "BetterContracts monthly jobsLeft should be mirrored on the event")
+
+g_farmManager.getFarmById = function()
+    return {
+        stats = {
+            jobsLeft = 0,
+        },
+    }
+end
+local monthlyOk, monthlyReason = JobRequests.canStartContract(mapStateA, launchableRequest.requestId)
+assertEquals(false, monthlyOk, "BetterContracts hard monthly limit should block launch")
+assertEquals("monthly_job_limit", monthlyReason, "monthly limit should return a localized reason key")
+
+local launchedProfile = nil
+for _, profileEntry in ipairs(mapStateA.profiles) do
+    if tostring(profileEntry.farmId or "") == tostring(launchableRequest.farmId or "") then
+        launchedProfile = profileEntry
+        break
+    end
+end
+assertTrue(launchedProfile ~= nil, "launchable request should map back to a profile")
+local beforeRelationship = launchedProfile.relationshipScore or 3
+function PhobosRuralLedger.getState()
+    return mapStateA
+end
+JobRequests.recordMissionOutcome(launchableRequest.missionRef, true)
+assertEquals(math.min(5, beforeRelationship + 1), launchedProfile.relationshipScore, "successful linked job should raise relationship one band")
+assertTrue(#mapStateA.jobHistory > 0, "job outcome should append bounded job history")
+
+MissionStartEvent = nil
+g_client = nil
+BetterContracts = nil
+MissionStatus = nil
+g_modIsLoaded.FS25_BetterContracts = nil
 
 local opportunityState = {
     periodId = "season_0001",
@@ -512,6 +648,119 @@ assertTrue(#historyModel.rows > 0, "history dialog model should include display 
 local missingHistoryModel = UiModels.buildHistory(opportunityState, "missing")
 assertEquals(nil, missingHistoryModel.farmId, "missing history model should not fall back to another farm")
 
+local clockHours = Newspaper.readClock({environment = {currentDay = 2, dayTime = 6}})
+assertEquals(true, clockHours.available, "newspaper clock should read hour-shaped dayTime")
+assertEquals(360, clockHours.minute, "hour-shaped dayTime should normalize to minutes")
+local clockMinutes = Newspaper.readClock({environment = {currentDay = 2, dayTime = 361}})
+assertEquals("minutes", clockMinutes.source, "minute-shaped dayTime should be detected")
+assertEquals(361, clockMinutes.minute, "minute-shaped dayTime should remain minutes")
+local clockMilliseconds = Newspaper.readClock({environment = {currentDay = 2, dayTime = 21600000}})
+assertEquals("milliseconds", clockMilliseconds.source, "millisecond-shaped dayTime should be detected")
+assertEquals(360, clockMilliseconds.minute, "millisecond-shaped dayTime should normalize to minutes")
+
+local newspaperState = {
+    periodId = opportunityState.periodId,
+    regionalPreset = Constants.DEFAULT_REGIONAL_PRESET,
+    mapDiscovery = opportunityState.mapDiscovery,
+    profiles = opportunityState.profiles,
+    ledgerSnapshots = opportunityState.ledgerSnapshots,
+    opportunities = opportunityState.opportunities,
+    eventHistory = opportunityState.eventHistory,
+    jobRequests = {},
+    jobHistory = {},
+    newspaper = Newspaper.createEmptyState(),
+}
+local loadAfterSixEdition, loadAfterSixStatus = Newspaper.deliverIfDue(newspaperState, {
+    clock = {available = true, day = 123, minute = 1271, source = "minutes", timeLabel = "21:11"},
+    trigger = "mapLoad",
+})
+assertEquals(nil, loadAfterSixEdition, "newspaper should not catch up when the first loaded clock sample is after 06:00")
+assertEquals("baseline", loadAfterSixStatus, "first loaded clock sample after 06:00 should only establish the baseline")
+assertEquals(0, #newspaperState.newspaper.editions, "after-06 load baseline should not add an archive edition")
+newspaperState.newspaper = Newspaper.createEmptyState()
+local beforeEdition, beforeStatus = Newspaper.deliverIfDue(newspaperState, {
+    clock = {available = true, day = 7, minute = Constants.NEWSPAPER_DELIVERY_MINUTE - 1, source = "minutes"},
+})
+assertEquals(nil, beforeEdition, "newspaper should not deliver before 06:00")
+assertEquals("baseline", beforeStatus, "first pre-delivery check should establish the baseline")
+local exactEdition, exactStatus = Newspaper.deliverIfDue(newspaperState, {
+    clock = {available = true, day = 7, minute = Constants.NEWSPAPER_DELIVERY_MINUTE, source = "minutes"},
+})
+assertEquals("delivered", exactStatus, "newspaper should deliver when an existing baseline crosses exactly 06:00")
+assertEquals("daily_0007", exactEdition.editionId, "newspaper edition ID should be day-stable")
+assertEquals(exactEdition.editionId, newspaperState.newspaper.pendingEditionId, "newspaper delivery should queue the latest edition")
+assertEquals(1, #newspaperState.newspaper.editions, "newspaper delivery should add one archive edition")
+local duplicateEdition, duplicateStatus = Newspaper.deliverIfDue(newspaperState, {
+    clock = {available = true, day = 7, minute = 720, source = "minutes"},
+})
+assertEquals(nil, duplicateEdition, "newspaper should not duplicate same-day delivery")
+assertEquals("not_due", duplicateStatus, "same-day duplicate check should report not due")
+assertTrue(Newspaper.markPendingShown(newspaperState, exactEdition.editionId), "marking a pending paper as shown should clear pending state")
+assertEquals(nil, newspaperState.newspaper.pendingEditionId, "shown newspaper should no longer be pending")
+
+local sleepJumpState = {
+    periodId = opportunityState.periodId,
+    regionalPreset = Constants.DEFAULT_REGIONAL_PRESET,
+    mapDiscovery = opportunityState.mapDiscovery,
+    profiles = opportunityState.profiles,
+    ledgerSnapshots = opportunityState.ledgerSnapshots,
+    opportunities = opportunityState.opportunities,
+    eventHistory = opportunityState.eventHistory,
+    jobRequests = {},
+    newspaper = Newspaper.createEmptyState({lastCheckedDay = 8, lastCheckedMinute = 300}),
+}
+local sleepEdition, sleepStatus = Newspaper.deliverIfDue(sleepJumpState, {
+    clock = {available = true, day = 8, minute = 480, source = "minutes"},
+})
+assertEquals("delivered", sleepStatus, "newspaper should deliver after a sleep-style jump past 06:00")
+assertEquals(true, sleepJumpState.newspaper.diagnostics.crossedDelivery, "sleep jump delivery should record that 06:00 was crossed")
+
+local baselineOnlyState = {
+    periodId = opportunityState.periodId,
+    mapDiscovery = opportunityState.mapDiscovery,
+    profiles = opportunityState.profiles,
+    ledgerSnapshots = opportunityState.ledgerSnapshots,
+    opportunities = opportunityState.opportunities,
+    eventHistory = opportunityState.eventHistory,
+    jobRequests = {},
+    newspaper = Newspaper.createEmptyState({lastCheckedDay = 9, lastCheckedMinute = Constants.NEWSPAPER_DELIVERY_MINUTE - 1}),
+}
+local baselineOnlyEdition, baselineOnlyStatus = Newspaper.deliverIfDue(baselineOnlyState, {
+    clock = {available = true, day = 9, minute = Constants.NEWSPAPER_DELIVERY_MINUTE, source = "minutes"},
+    baselineOnly = true,
+})
+assertEquals(nil, baselineOnlyEdition, "baseline-only lifecycle checks should not deliver even when 06:00 is crossed")
+assertEquals("baseline", baselineOnlyStatus, "baseline-only lifecycle checks should report baseline status")
+assertEquals(0, #baselineOnlyState.newspaper.editions, "baseline-only lifecycle checks should not add archive editions")
+
+local archiveState = newspaperState
+for day = 8, 16 do
+    archiveState.newspaper.pendingEditionId = nil
+    Newspaper.deliverIfDue(archiveState, {
+        clock = {available = true, day = day, minute = Constants.NEWSPAPER_DELIVERY_MINUTE, source = "minutes"},
+    })
+end
+assertEquals(Constants.MAX_NEWSPAPER_EDITIONS, #archiveState.newspaper.editions, "newspaper archive should cap to the latest seven editions")
+assertEquals(16, archiveState.newspaper.editions[1].day, "newspaper archive should keep newest editions first")
+assertEquals(10, archiveState.newspaper.editions[#archiveState.newspaper.editions].day, "newspaper archive should drop oldest editions past the cap")
+
+local archiveModel = UiModels.buildNewspaperArchive(archiveState)
+assertEquals(Constants.MAX_NEWSPAPER_EDITIONS, #archiveModel.rows, "newspaper archive UI model should expose capped rows")
+local editionModel = UiModels.buildNewspaperEdition(archiveState, archiveModel.rows[1].editionId)
+assertTrue(#editionModel.rows >= 5, "newspaper edition model should include article sections")
+assertTrue(string.find(editionModel.headline, "rl_", 1, true) == nil, "newspaper headline should not leak l10n keys")
+for _, row in ipairs(editionModel.rows) do
+    assertTrue(string.find(row.title or "", "rl_", 1, true) == nil, "newspaper section title should not leak l10n keys")
+    assertTrue(string.find(row.body or "", "rl_", 1, true) == nil, "newspaper section body should not leak l10n keys")
+end
+local unavailableEdition, unavailableStatus, unavailableClock = Newspaper.deliverIfDue({
+    newspaper = Newspaper.createEmptyState(),
+}, {clock = {available = false, reason = "clock_missing", source = "unavailable"}})
+assertEquals(nil, unavailableEdition, "unavailable clock should not create an edition")
+assertEquals("clock_unavailable", unavailableStatus, "unavailable clock should report diagnostics status")
+assertEquals("clock_missing", unavailableClock.reason, "unavailable clock should preserve the reason")
+opportunityState.newspaper = archiveState.newspaper
+
 local advanceState = {
     periodId = "season_0001",
     mapDiscovery = {source = "map"},
@@ -532,6 +781,7 @@ local currentXmlFile = nil
 local function markNode(file, key)
     local nodeKey = string.match(key, "^(.-)#") or key
     file.nodes[nodeKey] = true
+    file.nodes[key] = true
 end
 
 local function installFakeXmlFile()
@@ -603,6 +853,25 @@ g_currentMission = {
     },
 }
 installFakeXmlFile()
+opportunityState.relationshipOverrides = {
+    ["npc:test_farmer"] = 4,
+}
+opportunityState.jobHistory = {
+    JobRequests.normalizeHistory({
+        eventId = "job_history_smoke",
+        periodId = "season_0001",
+        requestId = "job_smoke_001",
+        farmId = "opp_farm_01",
+        npcKey = "npc:test_farmer",
+        npcName = "Test Farmer",
+        farmlandId = 1,
+        fieldId = 1,
+        type = "job_outcome",
+        status = "completed",
+        relationshipDelta = 1,
+        message = "Smoke job completed.",
+    }),
+}
 local saved, saveStatus = PhobosRuralLedger.Savegame.write(opportunityState)
 assertEquals(true, saved, "opportunity savegame write should succeed with fake XMLFile helpers")
 assertEquals("saved", saveStatus, "opportunity savegame write should report saved status")
@@ -611,14 +880,53 @@ local saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
 assertEquals("saved (savegame/FS25_PhobosRuralLedger.xml)", saveDiagnostics.lastSave, "save diagnostics should expose the last saved path")
 assertEquals("XMLFile", saveDiagnostics.xmlAdapterSource, "Rural Ledger should use the direct FS25 XMLFile adapter")
 assertEquals("missionInfo", saveDiagnostics.pathSource, "save diagnostics should report the local missionInfo path source")
+assertEquals(Constants.MAX_NEWSPAPER_EDITIONS, saveDiagnostics.lastSaveCounts.newspaperEditions, "save diagnostics should include newspaper edition counts")
 local loadedSave, loadStatus = PhobosRuralLedger.Savegame.read()
 assertEquals("loaded", loadStatus, "opportunity savegame read should load the fake XML file")
 assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #loadedSave.opportunities, "savegame read should round-trip opportunities")
 assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, #loadedSave.eventHistory, "savegame read should round-trip event history")
+assertEquals(1, #loadedSave.jobHistory, "savegame read should round-trip job history")
+assertEquals(4, loadedSave.relationshipOverrides["npc:test_farmer"], "savegame read should round-trip relationship overrides")
+assertEquals(Constants.MAX_NEWSPAPER_EDITIONS, #loadedSave.newspaper.editions, "savegame read should round-trip newspaper editions")
+assertEquals(16, loadedSave.newspaper.editions[1].day, "savegame read should preserve newest newspaper edition first")
 assertEquals(generatedOpportunities[1].farmId, loadedSave.opportunities[1].farmId, "savegame read should preserve opportunity farm identity")
 saveDiagnostics = PhobosRuralLedger.Savegame.getDiagnostics()
 assertEquals("loaded (savegame/FS25_PhobosRuralLedger.xml)", saveDiagnostics.lastLoad, "save diagnostics should expose the last loaded path")
 assertEquals(Constants.MAX_ACTIVE_OPPORTUNITIES, saveDiagnostics.lastLoadCounts.opportunities, "load diagnostics should include opportunity counts")
+assertEquals(1, saveDiagnostics.lastLoadCounts.jobHistory, "load diagnostics should include job history counts")
+assertEquals(1, saveDiagnostics.lastLoadCounts.relationships, "load diagnostics should include relationship counts")
+assertEquals(Constants.MAX_NEWSPAPER_EDITIONS, saveDiagnostics.lastLoadCounts.newspaperEditions, "load diagnostics should include newspaper edition counts")
+
+currentXmlFile = XMLFile.create("MissingNewspaperSmoke", "savegame/FS25_PhobosRuralLedger.xml", Constants.SAVE_KEYS.ROOT)
+currentXmlFile:setInt(Constants.SAVE_KEYS.ROOT .. "#schemaVersion", Constants.SAVE_SCHEMA_VERSION)
+currentXmlFile:setString(Constants.SAVE_KEYS.ROOT .. "#modVersion", "0.1.8.1")
+currentXmlFile:setString(Constants.SAVE_KEYS.ROOT .. ".state#periodId", "season_0001")
+local noPaperSave, noPaperStatus = PhobosRuralLedger.Savegame.read()
+assertEquals("loaded", noPaperStatus, "savegame read should tolerate saves without newspaper nodes")
+assertEquals(0, #noPaperSave.newspaper.editions, "missing newspaper nodes should load as an empty archive")
+assertEquals(nil, noPaperSave.newspaper.pendingEditionId, "missing newspaper nodes should not create pending delivery")
+
+currentXmlFile = XMLFile.create("PendingMigrationSmoke", "savegame/FS25_PhobosRuralLedger.xml", Constants.SAVE_KEYS.ROOT)
+currentXmlFile:setInt(Constants.SAVE_KEYS.ROOT .. "#schemaVersion", Constants.SAVE_SCHEMA_VERSION)
+currentXmlFile:setString(Constants.SAVE_KEYS.ROOT .. "#modVersion", "0.1.9.0")
+currentXmlFile:setString(Constants.SAVE_KEYS.ROOT .. ".state#periodId", "season_0001")
+local oldPaperRoot = Constants.SAVE_KEYS.ROOT .. ".newspaper"
+currentXmlFile:setInt(oldPaperRoot .. "#lastDeliveredDay", 123)
+currentXmlFile:setInt(oldPaperRoot .. "#lastCheckedDay", 123)
+currentXmlFile:setInt(oldPaperRoot .. "#lastCheckedMinute", 1271)
+currentXmlFile:setString(oldPaperRoot .. "#pendingEditionId", "daily_0123")
+currentXmlFile:setString(oldPaperRoot .. ".edition(0)#editionId", "daily_0123")
+currentXmlFile:setInt(oldPaperRoot .. ".edition(0)#day", 123)
+currentXmlFile:setInt(oldPaperRoot .. ".edition(0)#deliveryMinute", Constants.NEWSPAPER_DELIVERY_MINUTE)
+currentXmlFile:setString(oldPaperRoot .. ".edition(0)#dateline", "Day 123, 06:00 edition")
+currentXmlFile:setString(oldPaperRoot .. ".edition(0)#masthead", "The Rural Ledger")
+currentXmlFile:setString(oldPaperRoot .. ".edition(0)#headline", "Accidental Load Paper")
+currentXmlFile:setString(oldPaperRoot .. ".edition(0)#summary", "Saved from v0.1.9.0")
+local migratedPaperSave, migratedPaperStatus = PhobosRuralLedger.Savegame.read()
+assertEquals("loaded", migratedPaperStatus, "savegame read should load v0.1.9.0 newspaper data")
+assertEquals(1, #migratedPaperSave.newspaper.editions, "v0.1.9.0 migration should preserve archived editions")
+assertEquals(nil, migratedPaperSave.newspaper.pendingEditionId, "v0.1.9.0 migration should clear stale pending newspaper auto-open state")
+
 currentXmlFile = nil
 local missingSave, missingStatus = PhobosRuralLedger.Savegame.read()
 assertEquals(nil, missingSave, "missing savegame read should return nil data")
@@ -946,6 +1254,8 @@ end
 source("mod/src/RuralLedgerFarmDetailDialog.lua")
 source("mod/src/RuralLedgerOpportunityDialog.lua")
 source("mod/src/RuralLedgerHistoryDialog.lua")
+source("mod/src/RuralLedgerJobDetailDialog.lua")
+source("mod/src/RuralLedgerNewspaperDialog.lua")
 source("mod/src/RuralLedgerScreen.lua")
 
 local profileLoadCalls = {}
@@ -970,35 +1280,53 @@ PhobosRuralLedger.Gui.profilesLoaded = false
 PhobosRuralLedger.Gui.farmDetailDialogLoaded = false
 PhobosRuralLedger.Gui.opportunityDialogLoaded = false
 PhobosRuralLedger.Gui.historyDialogLoaded = false
+PhobosRuralLedger.Gui.jobDetailDialogLoaded = false
+PhobosRuralLedger.Gui.newspaperDialogLoaded = false
 PhobosRuralLedger.Gui.screen = nil
 assertTrue(PhobosRuralLedger.Gui:loadScreen(), "GUI loader should load profiles and screen XML")
 assertEquals(1, #profileLoadCalls, "GUI profiles should load before the screen XML")
 assertEquals("mod/gui/guiProfiles.xml", profileLoadCalls[1], "GUI loader should load the dedicated Rural Ledger profile file")
-assertEquals(4, #guiLoadCalls, "dialogs and screen XML should load once on first GUI load")
+assertEquals(6, #guiLoadCalls, "dialogs and screen XML should load once on first GUI load")
 assertEquals("mod/gui/RuralLedgerFarmDetailDialog.xml", guiLoadCalls[1].path, "farm detail dialog should load before the main screen")
 assertEquals(Constants.FARM_DETAIL_DIALOG_NAME, guiLoadCalls[1].name, "farm detail dialog should use the public dialog name")
 assertEquals("mod/gui/RuralLedgerOpportunityDialog.xml", guiLoadCalls[2].path, "opportunity dialog should load before the main screen")
 assertEquals(Constants.OPPORTUNITY_DIALOG_NAME, guiLoadCalls[2].name, "opportunity dialog should use the public dialog name")
 assertEquals("mod/gui/RuralLedgerHistoryDialog.xml", guiLoadCalls[3].path, "history dialog should load before the main screen")
 assertEquals(Constants.HISTORY_DIALOG_NAME, guiLoadCalls[3].name, "history dialog should use the public dialog name")
-assertEquals("mod/gui/RuralLedgerScreen.xml", guiLoadCalls[4].path, "screen XML should load after the dialogs")
+assertEquals("mod/gui/RuralLedgerJobDetailDialog.xml", guiLoadCalls[4].path, "job detail dialog should load before the main screen")
+assertEquals(Constants.JOB_DETAIL_DIALOG_NAME, guiLoadCalls[4].name, "job detail dialog should use the public dialog name")
+assertEquals("mod/gui/RuralLedgerNewspaperDialog.xml", guiLoadCalls[5].path, "newspaper dialog should load before the main screen")
+assertEquals(Constants.NEWSPAPER_DIALOG_NAME, guiLoadCalls[5].name, "newspaper dialog should use the public dialog name")
+assertEquals("mod/gui/RuralLedgerScreen.xml", guiLoadCalls[6].path, "screen XML should load after the dialogs")
 assertTrue(PhobosRuralLedger.Gui:loadScreen(), "second GUI load should reuse the cached screen")
 assertEquals(1, #profileLoadCalls, "GUI profiles should not load repeatedly")
-assertEquals(4, #guiLoadCalls, "dialogs and screen XML should not load repeatedly")
+assertEquals(6, #guiLoadCalls, "dialogs and screen XML should not load repeatedly")
 g_gui = nil
 
 local screen = PhobosRuralLedger.RuralLedgerScreen.new()
 screen.screenContainer = {absSize = {1300}}
 screen.farmersPanel = {absSize = {1300}}
 screen.overviewPanel = makeElement()
+screen.newspaperPanel = makeElement()
 screen.farmersPanel.setVisible = makeElement().setVisible
+screen.jobsPanel = makeElement()
 screen.debugPanel = makeElement()
+screen.buttonsPanel = makeElement()
+screen.buttonsPanel.invalidateCount = 0
+screen.buttonsPanel.invalidateLayout = function(self)
+    self.invalidateCount = self.invalidateCount + 1
+end
 screen.overviewTab = makeElement()
+screen.newspaperTab = makeElement()
 screen.farmersTab = makeElement()
+screen.jobsTab = makeElement()
 screen.debugTab = makeElement()
+screen.readNewspaperFooterButton = makeElement()
 screen.farmDetailFooterButton = makeElement()
 screen.opportunityFooterButton = makeElement()
 screen.historyFooterButton = makeElement()
+screen.jobDetailFooterButton = makeElement()
+screen.startContractFooterButton = makeElement()
 screen.farmHeaderFarm = makeElement()
 screen.farmHeaderType = makeElement()
 screen.farmHeaderFields = makeElement()
@@ -1011,22 +1339,38 @@ screen.farmHeaderStressCompact = makeElement()
 screen.farmHeaderPressureCompact = makeElement()
 screen.overviewTitle = makeElement()
 screen.overviewSubtitle = makeElement()
+screen.newspaperTitle = makeElement()
+screen.newspaperSubtitle = makeElement()
+screen.jobsTitle = makeElement()
+screen.jobsSubtitle = makeElement()
+screen.jobsByNpcButton = makeElement()
+screen.jobsByPlotButton = makeElement()
 screen.debugTitle = makeElement()
 screen.debugModeText = makeElement()
 screen.overviewNoDataNotice = makeElement()
+screen.newspaperEmptyText = makeElement()
 screen.debugNoDataNotice = makeElement()
 screen.overviewList = makeList()
+screen.newspaperTable = makeList()
 screen.farmTable = makeList()
+screen.jobTable = makeList()
 screen.debugList = makeList()
 
 function PhobosRuralLedger.getState()
     return stateA
 end
 
+stateA.newspaper = archiveState.newspaper
+JobRequests.refresh(stateA, {trigger = "screen_smoke"})
 screen:onGuiSetupFinished()
 assertEquals(nil, PhobosRuralLedger.RuralLedgerScreen.SECTIONS.DETAIL, "farm detail should not be a top-level section")
+assertEquals("newspaper", PhobosRuralLedger.RuralLedgerScreen.SECTIONS.NEWSPAPER, "newspaper should be a top-level overview section")
 assertTrue(screen.farmTable.dataSource == screen, "farm table should use the screen as data source")
+assertTrue(screen.jobTable.dataSource == screen, "job table should use the screen as data source")
+assertTrue(screen.newspaperTable.dataSource == screen, "newspaper archive should use the screen as data source")
 assertEquals(#farmRowsA, screen:getNumberOfItemsInSection(screen.farmTable, 1), "farm table item count should match cached rows")
+assertEquals(#screen.cachedJobRows, screen:getNumberOfItemsInSection(screen.jobTable, 1), "job table item count should match cached rows")
+assertEquals(Constants.MAX_NEWSPAPER_EDITIONS, screen:getNumberOfItemsInSection(screen.newspaperTable, 1), "newspaper archive count should match cached rows")
 
 local farmCell = makeCell({
     "farmName",
@@ -1044,6 +1388,27 @@ screen:populateCellForItemInSection(screen.farmTable, 1, 1, farmCell)
 assertTrue(farmCell.attributes.farmName.visible, "standard layout should show standard farm column")
 assertTrue(not farmCell.attributes.farmNameCompact.visible, "standard layout should hide compact farm column")
 
+local jobCell = makeCell({
+    "jobNpc",
+    "jobPlot",
+    "jobTitle",
+    "jobStatus",
+    "jobSource",
+    "jobRelation",
+})
+screen:populateCellForItemInSection(screen.jobTable, 1, 1, jobCell)
+assertTrue(jobCell.attributes.jobNpc.text ~= "", "job rows should render NPC text")
+assertTrue(jobCell.attributes.jobTitle.text ~= "", "job rows should render a job title")
+
+local newspaperCell = makeCell({
+    "edition",
+    "headline",
+    "summary",
+})
+screen:populateCellForItemInSection(screen.newspaperTable, 1, 1, newspaperCell)
+assertTrue(newspaperCell.attributes.edition.text ~= "", "newspaper archive should render an edition label")
+assertTrue(newspaperCell.attributes.headline.text ~= "", "newspaper archive should render a headline")
+
 screen.screenContainer.absSize = {900}
 screen.farmersPanel.absSize = {900}
 screen:adaptLayout()
@@ -1053,22 +1418,26 @@ assertTrue(not farmCell.attributes.farmRelation.visible, "compact layout should 
 assertTrue(farmCell.attributes.farmNameCompact.visible, "compact layout should show compact farm column")
 
 screen.isReloading = false
-assertTrue(screen.farmDetailFooterButton.disabled, "farm detail footer action should start disabled without a selected farm")
-assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should start disabled without a selected farm")
-assertTrue(screen.historyFooterButton.disabled, "history footer action should start disabled without a selected farm")
+assertTrue(not screen.readNewspaperFooterButton.visible, "read paper footer action should start hidden without an archive selection")
+assertTrue(not screen.farmDetailFooterButton.visible, "farm detail footer action should start hidden without a selected farm")
+assertTrue(not screen.opportunityFooterButton.visible, "opportunity footer action should start hidden without a selected farm")
+assertTrue(not screen.historyFooterButton.visible, "history footer action should start hidden without a selected farm")
+assertTrue(not screen.jobDetailFooterButton.visible, "job detail footer action should start hidden without a selected job")
+assertTrue(not screen.startContractFooterButton.visible, "start contract footer action should start hidden without a selected job")
 assertTrue(screen.farmTable.onDoubleClickCallback ~= nil, "farm table should expose the SmoothList double-click callback")
+assertTrue(screen.jobTable.onDoubleClickCallback ~= nil, "job table should expose the SmoothList double-click callback")
 assertEquals(nil, screen.farmTable.onDoubleClick, "farm table should not depend on a speculative double-click callback")
 screen:onListSelectionChanged(screen.farmTable, 1, 0)
 assertEquals(nil, screen.selectedFarmId, "farm selection should ignore non-row zero indices")
-assertTrue(screen.farmDetailFooterButton.disabled, "farm detail footer action should remain disabled after non-row selection")
-assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should remain disabled after non-row selection")
-assertTrue(screen.historyFooterButton.disabled, "history footer action should remain disabled after non-row selection")
+assertTrue(not screen.farmDetailFooterButton.visible, "farm detail footer action should remain hidden after non-row selection")
+assertTrue(not screen.opportunityFooterButton.visible, "opportunity footer action should remain hidden after non-row selection")
+assertTrue(not screen.historyFooterButton.visible, "history footer action should remain hidden after non-row selection")
 screen:onListSelectionChanged(screen.farmTable, 1, 2)
 assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "farm selection should update selected farm")
 assertEquals(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.FARMERS, screen.activeSection, "farm selection should keep Farmers as the active top tab")
-assertTrue(not screen.farmDetailFooterButton.disabled, "farm detail footer action should enable after selecting a farm")
-assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should stay disabled when selected farm has no opportunities")
-assertTrue(screen.historyFooterButton.disabled, "history footer action should stay disabled when selected farm has no history")
+assertTrue(screen.farmDetailFooterButton.visible, "farm detail footer action should appear after selecting a farm")
+assertTrue(not screen.opportunityFooterButton.visible, "opportunity footer action should stay hidden when selected farm has no opportunities")
+assertTrue(not screen.historyFooterButton.visible, "history footer action should stay hidden when selected farm has no history")
 
 local shownDialogs = {}
 g_gui = {
@@ -1079,6 +1448,8 @@ g_gui = {
                 receivedDetail = nil,
                 receivedOpportunities = nil,
                 receivedHistory = nil,
+                receivedJobDetail = nil,
+                receivedEdition = nil,
                 setFarmDetail = function(self, detail)
                     self.receivedDetail = detail
                 end,
@@ -1087,6 +1458,12 @@ g_gui = {
                 end,
                 setHistory = function(self, model)
                     self.receivedHistory = model
+                end,
+                setJobDetail = function(self, model)
+                    self.receivedJobDetail = model
+                end,
+                setEdition = function(self, model)
+                    self.receivedEdition = model
                 end,
             },
         }
@@ -1119,8 +1496,8 @@ stateA.eventHistory = {
 }
 screen:refreshModels()
 screen:updateDisplay()
-assertTrue(not screen.opportunityFooterButton.disabled, "opportunity footer action should enable when selected farm has candidates")
-assertTrue(not screen.historyFooterButton.disabled, "history footer action should enable when selected farm has history")
+assertTrue(screen.opportunityFooterButton.visible, "opportunity footer action should appear when selected farm has candidates")
+assertTrue(screen.historyFooterButton.visible, "history footer action should appear when selected farm has history")
 screen:onClickOpportunities()
 assertEquals(2, #shownDialogs, "opportunity footer action should open one dialog")
 assertEquals(Constants.OPPORTUNITY_DIALOG_NAME, shownDialogs[2].name, "opportunity footer action should use the registered dialog")
@@ -1133,8 +1510,58 @@ stateA.opportunities = {}
 stateA.eventHistory = {}
 screen:refreshModels()
 screen:updateDisplay()
-assertTrue(screen.opportunityFooterButton.disabled, "opportunity footer action should disable again when candidates disappear")
-assertTrue(screen.historyFooterButton.disabled, "history footer action should disable again when history disappears")
+assertTrue(not screen.opportunityFooterButton.visible, "opportunity footer action should hide again when candidates disappear")
+assertTrue(not screen.historyFooterButton.visible, "history footer action should hide again when history disappears")
+
+screen:onClickJobs()
+assertEquals(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.JOBS, screen.activeSection, "Jobs tab should become the active top-level section")
+assertTrue(not screen.jobDetailFooterButton.visible, "job detail footer action should remain hidden before a job selection")
+screen:onListSelectionChanged(screen.jobTable, 1, 1)
+assertEquals(screen.cachedJobRows[1].requestId, screen.selectedJobRequestId, "job selection should store the selected request id")
+assertEquals(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.JOBS, screen.activeSection, "job selection should keep Jobs as the active top tab")
+assertTrue(screen.jobDetailFooterButton.visible, "job detail footer action should appear after selecting a job")
+assertTrue(not screen.startContractFooterButton.visible, "start contract action should stay hidden for generated non-launchable requests")
+screen:onClickJobDetail()
+assertEquals(4, #shownDialogs, "job detail footer action should open one dialog")
+assertEquals(Constants.JOB_DETAIL_DIALOG_NAME, shownDialogs[4].name, "job detail footer action should use the registered dialog")
+assertEquals(screen.cachedJobRows[1].requestId, shownDialogs[4].target.receivedJobDetail.requestId, "job detail dialog should receive the selected request model")
+
+local selectedJobFarmId = shownDialogs[4].target.receivedJobDetail.farmId
+stateA.opportunities = {
+    Opportunities.normalizeOpportunity({
+        farmId = selectedJobFarmId,
+        type = "urgent_work",
+        causeCode = Constants.PRESSURE_TYPES.NEGATIVE_CASH,
+        sourcePeriod = "season_0001",
+        expiresPeriod = "season_0002",
+        severity = Constants.STRESS_STATES.STRAINED,
+    }),
+}
+screen:refreshModels()
+screen:onClickJobs()
+screen:onListSelectionChanged(screen.jobTable, 1, 1)
+assertTrue(screen.opportunityFooterButton.visible, "Jobs selection should show Opportunities when its property has candidates")
+screen:onClickOpportunities()
+assertEquals(5, #shownDialogs, "Jobs Opportunities action should open one dialog")
+assertEquals(Constants.OPPORTUNITY_DIALOG_NAME, shownDialogs[5].name, "Jobs Opportunities action should use the registered opportunity dialog")
+assertEquals(selectedJobFarmId, shownDialogs[5].target.receivedOpportunities.farmId, "Jobs Opportunities action should resolve the selected job property")
+stateA.opportunities = {}
+screen:refreshModels()
+screen:onClickJobs()
+
+screen:onClickJobsByPlot()
+assertEquals(PhobosRuralLedger.RuralLedgerScreen.JOB_MODES.PLOT, screen.activeJobMode, "Jobs By Plot toggle should switch the row model mode")
+assertTrue(screen.jobsByPlotButton.selected, "Jobs By Plot toggle should become selected")
+screen:onClickJobsByNpc()
+assertEquals(PhobosRuralLedger.RuralLedgerScreen.JOB_MODES.NPC, screen.activeJobMode, "Jobs By NPC toggle should switch the row model mode")
+assertTrue(screen.jobsByNpcButton.selected, "Jobs By NPC toggle should become selected")
+
+screen:onListDoubleClick(screen.jobTable, 1, 2)
+assertEquals(6, #shownDialogs, "job table double-click should open a detail dialog")
+assertEquals(screen.cachedJobRows[2].requestId, screen.selectedJobRequestId, "job table double-click should select the clicked job")
+assertEquals(screen.cachedJobRows[2].requestId, shownDialogs[6].target.receivedJobDetail.requestId, "job double-click dialog should receive the clicked job detail")
+
+local dialogsBeforeFarmDoubleClick = #shownDialogs
 
 local function farmTableElement(index)
     return {
@@ -1144,50 +1571,66 @@ local function farmTableElement(index)
 end
 
 screen:onListDoubleClick(screen.farmTable, 1, 0)
-assertEquals(3, #shownDialogs, "farm table double-click should ignore non-row zero indices")
+assertEquals(dialogsBeforeFarmDoubleClick, #shownDialogs, "farm table double-click should ignore non-row zero indices")
 assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "ignored double-click should keep the previous valid selection")
 screen:onListDoubleClick(screen.farmTable, 1, 3)
-assertEquals(4, #shownDialogs, "farm table double-click should open one dialog per activation")
+assertEquals(dialogsBeforeFarmDoubleClick + 1, #shownDialogs, "farm table double-click should open one dialog per activation")
 assertEquals(farmRowsA[3].farmId, screen.selectedFarmId, "farm table double-click should select the clicked farm")
-assertEquals(farmRowsA[3].farmId, shownDialogs[4].target.receivedDetail.farmId, "double-click dialog should receive the clicked farm detail model")
+assertEquals(farmRowsA[3].farmId, shownDialogs[dialogsBeforeFarmDoubleClick + 1].target.receivedDetail.farmId, "double-click dialog should receive the clicked farm detail model")
 
 screen.selectedFarmId = farmRowsA[2].farmId
 screen.farmTable.onDoubleClickCallback(screen.farmTable, 1, 4, farmTableElement(4), true)
-assertEquals(5, #shownDialogs, "SmoothList double-click callback should open the detail dialog")
+assertEquals(dialogsBeforeFarmDoubleClick + 2, #shownDialogs, "SmoothList double-click callback should open the detail dialog")
 assertEquals(farmRowsA[4].farmId, screen.selectedFarmId, "SmoothList double-click callback should select the clicked row")
-assertEquals(farmRowsA[4].farmId, shownDialogs[5].target.receivedDetail.farmId, "SmoothList callback dialog should receive the clicked farm detail")
+assertEquals(farmRowsA[4].farmId, shownDialogs[dialogsBeforeFarmDoubleClick + 2].target.receivedDetail.farmId, "SmoothList callback dialog should receive the clicked farm detail")
 
 screen.selectedFarmId = farmRowsA[2].farmId
 screen.farmTable.onDoubleClickCallback({callbackTarget = true}, screen.farmTable, 1, 5, farmTableElement(5), true)
-assertEquals(6, #shownDialogs, "target-prefixed SmoothList callback should open the detail dialog")
+assertEquals(dialogsBeforeFarmDoubleClick + 3, #shownDialogs, "target-prefixed SmoothList callback should open the detail dialog")
 assertEquals(farmRowsA[5].farmId, screen.selectedFarmId, "target-prefixed SmoothList callback should select the clicked row")
-assertEquals(farmRowsA[5].farmId, shownDialogs[6].target.receivedDetail.farmId, "target-prefixed callback dialog should receive the clicked farm detail")
+assertEquals(farmRowsA[5].farmId, shownDialogs[dialogsBeforeFarmDoubleClick + 3].target.receivedDetail.farmId, "target-prefixed callback dialog should receive the clicked farm detail")
 
 screen.selectedFarmId = farmRowsA[2].farmId
 screen.farmTable.onDoubleClickCallback({callbackTarget = true}, 1, 6, farmTableElement(6), true)
-assertEquals(7, #shownDialogs, "element-backed SmoothList callback should open the detail dialog")
+assertEquals(dialogsBeforeFarmDoubleClick + 4, #shownDialogs, "element-backed SmoothList callback should open the detail dialog")
 assertEquals(farmRowsA[6].farmId, screen.selectedFarmId, "element-backed SmoothList callback should select the clicked row")
-assertEquals(farmRowsA[6].farmId, shownDialogs[7].target.receivedDetail.farmId, "element-backed callback dialog should receive the clicked farm detail")
+assertEquals(farmRowsA[6].farmId, shownDialogs[dialogsBeforeFarmDoubleClick + 4].target.receivedDetail.farmId, "element-backed callback dialog should receive the clicked farm detail")
 
 screen.farmTable.onDoubleClickCallback(screen.farmTable, 1, 0, {sectionIndex = 1, indexInSection = 0, isHeader = true}, true)
-assertEquals(7, #shownDialogs, "SmoothList double-click should ignore header cells")
+assertEquals(dialogsBeforeFarmDoubleClick + 4, #shownDialogs, "SmoothList double-click should ignore header cells")
 assertEquals(farmRowsA[6].farmId, screen.selectedFarmId, "ignored header double-click should keep the previous valid selection")
+
+local dialogsBeforeNewspaper = #shownDialogs
+screen:onClickNewspaper()
+assertEquals(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.NEWSPAPER, screen.activeSection, "Newspaper tab should become the active top-level section")
+assertTrue(not screen.readNewspaperFooterButton.visible, "read paper footer action should stay hidden without an archive selection")
+screen:onListSelectionChanged(screen.newspaperTable, 1, 1)
+assertEquals(screen.cachedNewspaperRows[1].editionId, screen.selectedNewspaperEditionId, "newspaper selection should store the selected edition id")
+assertTrue(screen.readNewspaperFooterButton.visible, "read paper footer action should appear after selecting an edition")
+screen:onClickReadNewspaper()
+assertEquals(dialogsBeforeNewspaper + 1, #shownDialogs, "read paper footer action should open one newspaper dialog")
+assertEquals(Constants.NEWSPAPER_DIALOG_NAME, shownDialogs[dialogsBeforeNewspaper + 1].name, "read paper should use the newspaper dialog")
+assertEquals(screen.cachedNewspaperRows[1].editionId, shownDialogs[dialogsBeforeNewspaper + 1].target.receivedEdition.editionId, "newspaper dialog should receive the selected edition")
+screen:onListDoubleClick(screen.newspaperTable, 1, 2)
+assertEquals(dialogsBeforeNewspaper + 2, #shownDialogs, "newspaper double-click should open one newspaper dialog")
+assertEquals(screen.cachedNewspaperRows[2].editionId, shownDialogs[dialogsBeforeNewspaper + 2].target.receivedEdition.editionId, "newspaper double-click should open the clicked edition")
+screen:setSection(PhobosRuralLedger.RuralLedgerScreen.SECTIONS.FARMERS)
 g_gui = nil
 
 screen.selectedFarmId = farmRowsA[2].farmId
 screen:refreshModels()
 screen:updateDisplay()
 assertEquals(farmRowsA[2].farmId, screen.selectedFarmId, "refresh should preserve a still-valid farm selection")
-assertTrue(not screen.farmDetailFooterButton.disabled, "refresh should keep the detail footer action enabled for a valid selection")
-assertTrue(screen.opportunityFooterButton.disabled, "refresh should keep the opportunity footer disabled without candidates")
-assertTrue(screen.historyFooterButton.disabled, "refresh should keep the history footer disabled without history")
+assertTrue(screen.farmDetailFooterButton.visible, "refresh should keep the detail footer action visible for a valid selection")
+assertTrue(not screen.opportunityFooterButton.visible, "refresh should keep the opportunity footer hidden without candidates")
+assertTrue(not screen.historyFooterButton.visible, "refresh should keep the history footer hidden without history")
 screen.selectedFarmId = "missing_farm"
 screen:refreshModels()
 screen:updateDisplay()
 assertEquals(nil, screen.selectedFarmId, "refresh should clear a missing farm selection")
-assertTrue(screen.farmDetailFooterButton.disabled, "refresh should disable the detail footer action when selection disappears")
-assertTrue(screen.opportunityFooterButton.disabled, "refresh should disable the opportunity footer action when selection disappears")
-assertTrue(screen.historyFooterButton.disabled, "refresh should disable the history footer action when selection disappears")
+assertTrue(not screen.farmDetailFooterButton.visible, "refresh should hide the detail footer action when selection disappears")
+assertTrue(not screen.opportunityFooterButton.visible, "refresh should hide the opportunity footer action when selection disappears")
+assertTrue(not screen.historyFooterButton.visible, "refresh should hide the history footer action when selection disappears")
 
 local dialog = PhobosRuralLedger.FarmDetailDialog.new()
 dialog.detailTitle = makeElement()
@@ -1228,13 +1671,41 @@ assertEquals(#historyDialog.rows, historyDialog:getNumberOfItemsInSection(histor
 historyDialog:onClickBack()
 assertTrue(historyDialog.closed, "history dialog back action should close the dialog")
 
+local jobDetailDialog = PhobosRuralLedger.JobDetailDialog.new()
+jobDetailDialog.jobDetailTitle = makeElement()
+jobDetailDialog.jobDetailSubtitle = makeElement()
+jobDetailDialog.jobDetailList = makeList()
+jobDetailDialog:onGuiSetupFinished()
+jobDetailDialog:setJobDetail(UiModels.buildJobDetail(stateA, screen.cachedJobRows[1].requestId))
+assertTrue(jobDetailDialog.jobDetailTitle.text ~= "", "job detail dialog should render a title")
+assertTrue(#jobDetailDialog.rows > 0, "job detail dialog should expose read-only rows")
+assertEquals(#jobDetailDialog.rows, jobDetailDialog:getNumberOfItemsInSection(jobDetailDialog.jobDetailList, 1), "job detail dialog list count should match rows")
+jobDetailDialog:onClickBack()
+assertTrue(jobDetailDialog.closed, "job detail dialog back action should close the dialog")
+
+local newspaperDialog = PhobosRuralLedger.NewspaperDialog.new()
+newspaperDialog.newspaperTitle = makeElement()
+newspaperDialog.newspaperDateline = makeElement()
+newspaperDialog.newspaperMasthead = makeElement()
+newspaperDialog.newspaperHeadline = makeElement()
+newspaperDialog.newspaperSummary = makeElement()
+newspaperDialog.newspaperList = makeList()
+newspaperDialog:onGuiSetupFinished()
+newspaperDialog:setEdition(UiModels.buildNewspaperEdition(stateA, screen.cachedNewspaperRows[1].editionId))
+assertTrue(newspaperDialog.newspaperMasthead.text ~= "", "newspaper dialog should render a masthead")
+assertTrue(newspaperDialog.newspaperHeadline.text ~= "", "newspaper dialog should render a headline")
+assertTrue(#newspaperDialog.rows > 0, "newspaper dialog should expose article rows")
+assertEquals(#newspaperDialog.rows, newspaperDialog:getNumberOfItemsInSection(newspaperDialog.newspaperList, 1), "newspaper dialog list count should match rows")
+newspaperDialog:onClickBack()
+assertTrue(newspaperDialog.closed, "newspaper dialog back action should close the dialog")
+
 capturedLogs = {}
 source("mod/src/PhobosRuralLedger.lua")
 
 assertEquals(
-    Constants.DEFAULT_LOG_REPORT_FARM_LINES + 2,
+    Constants.DEFAULT_LOG_REPORT_FARM_LINES + 3,
     #capturedLogs,
-    "bootstrap logging should include discovery plus one header and the default farm line count"
+    "bootstrap logging should include discovery, jobs, one header, and the default farm line count"
 )
 assertEquals("PhobosRuralLedger", capturedLogs[1].source, "bootstrap log lines should use the Rural Ledger source")
 assertTrue(
@@ -1242,7 +1713,7 @@ assertTrue(
     "bootstrap log should include the discovery summary"
 )
 assertTrue(
-    string.find(capturedLogs[2].text, "Local economy report") ~= nil,
+    string.find(capturedLogs[3].text, "Local economy report") ~= nil,
     "bootstrap log should include the report header"
 )
 assertEquals("none", PhobosRuralLedger.getState().mapDiscovery.source, "bootstrap should not permanently run real discovery")
@@ -1250,6 +1721,90 @@ assertTrue(
     not PhobosRuralLedger.getState().mapDiscovery.mapReadyAttempted,
     "bootstrap state should remain not map-ready until a later lifecycle pass"
 )
+
+local previousSaveOpportunityState = PhobosRuralLedger.saveOpportunityState
+local stateBeforeAutoPaper = PhobosRuralLedger.state
+local autoPaperDialogs = {}
+local autoPaperSaves = 0
+PhobosRuralLedger.saveOpportunityState = function()
+    autoPaperSaves = autoPaperSaves + 1
+    return true
+end
+PhobosRuralLedger.state = {
+    periodId = opportunityState.periodId,
+    regionalPreset = Constants.DEFAULT_REGIONAL_PRESET,
+    mapDiscovery = opportunityState.mapDiscovery,
+    profiles = opportunityState.profiles,
+    ledgerSnapshots = opportunityState.ledgerSnapshots,
+    opportunities = opportunityState.opportunities,
+    eventHistory = opportunityState.eventHistory,
+    jobRequests = {},
+    jobHistory = {},
+    newspaper = Newspaper.createEmptyState(),
+}
+g_currentMission = {
+    environment = {
+        currentDay = 21,
+        dayTime = 21600000,
+    },
+    missionInfo = {
+        savegameDirectory = "paperSave",
+    },
+}
+g_gui = {
+    loadProfiles = function() end,
+    loadGui = function()
+        return true
+    end,
+    showDialog = function(_, name)
+        autoPaperDialogs[#autoPaperDialogs + 1] = {
+            name = name,
+            target = {
+                edition = nil,
+                setEdition = function(self, model)
+                    self.edition = model
+                end,
+            },
+        }
+        return autoPaperDialogs[#autoPaperDialogs]
+    end,
+}
+PhobosRuralLedger.Gui.modDirectory = "mod/"
+PhobosRuralLedger.Gui.screenLoaded = false
+PhobosRuralLedger.Gui.profilesLoaded = false
+PhobosRuralLedger.Gui.farmDetailDialogLoaded = false
+PhobosRuralLedger.Gui.opportunityDialogLoaded = false
+PhobosRuralLedger.Gui.historyDialogLoaded = false
+PhobosRuralLedger.Gui.jobDetailDialogLoaded = false
+PhobosRuralLedger.Gui.newspaperDialogLoaded = false
+PhobosRuralLedger.Gui.newspaperUpdateMs = 0
+PhobosRuralLedger.Gui.missionStarted = false
+PhobosRuralLedger.state.newspaper = Newspaper.createEmptyState({
+    lastCheckedDay = 21,
+    lastCheckedMinute = Constants.NEWSPAPER_DELIVERY_MINUTE - 1,
+})
+PhobosRuralLedger.Gui:checkNewspaperDelivery("loadMap", false)
+assertEquals(0, #autoPaperDialogs, "loadMap newspaper check should not auto-open a dialog")
+assertEquals(0, #PhobosRuralLedger.state.newspaper.editions, "loadMap newspaper check should not deliver an edition")
+PhobosRuralLedger.state.newspaper = Newspaper.createEmptyState()
+PhobosRuralLedger.Gui:update(Constants.NEWSPAPER_UPDATE_INTERVAL_MS)
+assertEquals(0, #autoPaperDialogs, "GUI update should not auto-open a newspaper before mission start")
+PhobosRuralLedger.Gui.missionStarted = true
+PhobosRuralLedger.Gui:update(Constants.NEWSPAPER_UPDATE_INTERVAL_MS)
+assertEquals(0, #autoPaperDialogs, "first mission-ready newspaper update should only establish a clock baseline")
+g_currentMission.environment.dayTime = 21600000 + 60000
+PhobosRuralLedger.state.newspaper.lastCheckedDay = 21
+PhobosRuralLedger.state.newspaper.lastCheckedMinute = Constants.NEWSPAPER_DELIVERY_MINUTE - 1
+PhobosRuralLedger.Gui:update(Constants.NEWSPAPER_UPDATE_INTERVAL_MS)
+assertEquals(1, #autoPaperDialogs, "GUI update should auto-open one due newspaper dialog")
+assertEquals(Constants.NEWSPAPER_DIALOG_NAME, autoPaperDialogs[1].name, "auto-open should use the newspaper dialog")
+assertEquals("daily_0021", autoPaperDialogs[1].target.edition.editionId, "auto-open should pass the delivered newspaper edition")
+assertEquals(nil, PhobosRuralLedger.state.newspaper.pendingEditionId, "auto-open should clear the pending newspaper once shown")
+assertTrue(autoPaperSaves >= 1, "auto-open delivery should persist newspaper state")
+PhobosRuralLedger.saveOpportunityState = previousSaveOpportunityState
+PhobosRuralLedger.state = stateBeforeAutoPaper
+g_gui = nil
+g_currentMission = nil
 
 local publicReportA = PhobosRuralLedger.getEconomyReport({maxLines = 2})
 local publicReportB = PhobosRuralLedger.getEconomyReport({maxLines = 2})

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<GUI onOpen="onOpen" onClose="onClose" onCreate="onCreate">
+    <GuiElement profile="newLayer"/>
+    <Bitmap profile="dialogFullscreenBg" id="dialogBg"/>
+
+    <GuiElement profile="rlNewspaperDialog" id="dialogElement">
+        <Bitmap profile="rlNewspaperPaperBg"/>
+
+        <GuiElement profile="fs25_dialogContentContainer">
+            <Text profile="rlNewspaperDialogChromeTitle" id="newspaperTitle" position="0px -18px" text="$l10n_rl_newspaper_dialog_title"/>
+            <Text profile="rlNewspaperMasthead" id="newspaperMasthead" position="0px -72px" text="$l10n_rl_newspaper_masthead"/>
+            <Text profile="rlNewspaperDateline" id="newspaperDateline" position="0px -132px"/>
+            <Text profile="rlNewspaperHeadline" id="newspaperHeadline" position="0px -174px"/>
+            <Text profile="rlNewspaperSummary" id="newspaperSummary" position="0px -236px"/>
+            <Bitmap profile="rlNewspaperRule" position="0px -266px"/>
+
+            <SmoothList profile="rlNewspaperDialogList" id="newspaperList" focusInit="onOpen">
+                <ListItem profile="rlNewspaperArticleItem">
+                    <Text profile="rlNewspaperArticleTitle" position="18px -5px" name="title"/>
+                    <Text profile="rlNewspaperArticleBody" position="18px -35px" name="body"/>
+                </ListItem>
+            </SmoothList>
+            <ThreePartBitmap profile="rlNewspaperDialogSliderBox">
+                <Slider profile="fs25_listSlider" dataElementId="newspaperList"/>
+            </ThreePartBitmap>
+        </GuiElement>
+
+        <BoxLayout profile="fs25_dialogButtonBox">
+            <Button profile="buttonBack" text="$l10n_rl_button_back" onClick="onClickBack"/>
+        </BoxLayout>
+    </GuiElement>
+</GUI>

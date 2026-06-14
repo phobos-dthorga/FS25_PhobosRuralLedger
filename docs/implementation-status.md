@@ -45,7 +45,30 @@ Implemented:
   optional mod detection, save path resolution, and XMLFile access;
 - read-only property History dialog backed by bounded event history;
 - debug-only ledger period advancement foundation for save/reload and history
-  testing.
+  testing;
+- first playable NPC Jobs tab, grouped by NPC or plot, with live-contract rows
+  discovered from BetterContracts when available or vanilla contracts
+  otherwise;
+- Rural Ledger-generated non-launchable gap-fill job requests for NPCs/plots
+  without a live contract;
+- context-aware `Job Detail` and `Start Contract` footer actions;
+- live contract start through the normal `MissionStartEvent` path without
+  leased equipment;
+- Rural Ledger-local relationship band overrides and bounded job history
+  persisted in the dedicated save XML;
+- `v0.1.8.1` footer polish where unavailable Farmers/Jobs actions are hidden
+  instead of shown disabled;
+- localized generated job labels and overview alerts, avoiding raw internal
+  keys such as `rl_overview_alert_row` or `fieldwork_support request`;
+- richer read-only Job Detail rows for NPC, plot, reward, field area, status,
+  relationship, start eligibility, and BetterContracts-enriched values when
+  available;
+- `v0.1.9.0` daily rural newspaper foundation: a 06:00 in-game delivery check,
+  classic off-white newspaper dialog, top-level archive tab, and optional
+  bounded newspaper save data.
+- `v0.1.9.1` newspaper delivery hotfix: load/map-start checks are baseline-only,
+  auto-open waits for active mission updates, and old accidental pending papers
+  are kept in the archive without reopening.
 
 ## Runtime Evidence
 
@@ -199,6 +222,41 @@ runtime dependency, keeps the working local helper paths, adds a read-only
 History dialog, and adds a debug-only period advance foundation so opportunity
 expiry and history can be tested before any gameplay mutation is introduced.
 
+`v0.1.8.0` adds the first playable NPC job layer. The new Jobs tab can group
+requests by NPC name or by plot, prefers BetterContracts-enriched live mission
+data when that mod is detected, falls back to vanilla field missions, and fills
+missing NPC/property rows with Rural Ledger-generated non-launchable requests.
+The only gameplay bridge in this slice is starting an existing live contract
+through `MissionStartEvent` with no leased equipment. Rural Ledger does not
+create contracts, refresh/delete contract lists, mutate land, change rewards,
+or write live mission objects to XML. Contract outcomes are observed through a
+local `AbstractMission.finish` append and recorded as Rural Ledger relationship
+band changes plus bounded job history.
+
+Runtime testing of `v0.1.8.0` confirmed that contract discovery/start
+integration is working, but exposed UI polish gates: unavailable footer actions
+were visible, the Overview leaked raw l10n keys, generated job rows leaked
+internal request codes, the Opportunities action could appear without useful
+context, and Job Detail did not provide enough contract information before
+starting a mission. `v0.1.8.1` is the targeted hotfix for that evidence.
+
+`v0.1.9.0` adds the first daily local newspaper slice. The paper is delivered
+once per in-game day at 06:00 when the clock reaches or crosses that time,
+including sleep/time jumps. It auto-opens a pending edition only after the GUI
+is ready, and the Newspaper tab keeps the newest seven editions for re-reading.
+Articles summarize existing economy, job, opportunity, relationship/history,
+and discovery data without creating contracts, paying rewards, changing land,
+or mutating relationships.
+
+Runtime testing of `v0.1.9.0` found three hard misses: a paper could deliver
+and open over the loading screen from a first clock sample at 21:11, the
+newspaper dialog profile referenced an unresolved `center` trait, and optional
+newspaper save reads could trigger XML schema errors on existing saves.
+`v0.1.9.1` changes delivery to crossing-only after an established baseline,
+keeps `loadMap` and `missionStart` checks baseline-only, clears stale
+`v0.1.9.0` pending auto-open state while preserving archived editions, and
+hardens optional XML reads.
+
 ## Persistence Boundary
 
 `Persistence.lua` currently owns table-shaped save state:
@@ -215,6 +273,10 @@ expiry and history can be tested before any gameplay mutation is introduced.
 - opportunities;
 - event history;
 - cooldowns.
+- relationship overrides;
+- bounded job history.
+- optional newspaper state: last delivered day, pending edition, clock
+  diagnostics, and up to seven archived editions.
 
 `v0.1.6.0` wires a narrow local save hook for opportunity state only. The hook
 remains provisional until runtime save/reload proof confirms that FS25 writes
@@ -239,22 +301,30 @@ in Settings / Debug. The user then confirmed the save file is created.
 dependency entirely, and extends the save surface only with bounded history and
 debug-only period advancement.
 
+`v0.1.8.0` extends the same XML file with relationship overrides and bounded
+job history. Live contract objects are reconstructed from the current runtime
+mission managers and are never persisted. `v0.1.8.1` does not change the save
+shape.
+
+`v0.1.9.0` extends the XML file with optional newspaper data. Missing
+newspaper nodes are treated as an empty archive so older saves remain
+compatible. `v0.1.9.1` additionally clears stale pending newspaper IDs loaded
+from `v0.1.9.0`, preserving the archived paper but preventing another automatic
+load-screen open.
+
 ## Next Implementation Slice
 
 Recommended next code step:
 
-1. Runtime-test `v0.1.7.0` with only the Rural Ledger zip installed.
-2. Open Settings / Debug and confirm the save hook is registered, the XML
-   adapter shows `XMLFile`, and the save path points at
-   `FS25_PhobosRuralLedger.xml` in the active savegame folder.
-3. Save, exit, reload, and confirm the dedicated opportunity XML is written,
-   loaded, and reconciled cleanly without duplicate candidates or stale farm
-   IDs.
-4. Select properties with generated opportunities, open Opportunities and
-   History from the footer, and confirm both dialogs match the selected row.
+1. Runtime-test `v0.1.9.1` by loading an after-06:00 save and confirming no
+   newspaper opens on the loading screen or immediately after load.
+2. Start before 06:00 or sleep across 06:00 and confirm the paper opens once
+   only after gameplay is interactive.
+3. Open Rural Ledger > Newspaper and re-read archived editions, including the
+   accidental `v0.1.9.0` day-123 paper if present.
+4. Confirm the paper dialog keeps its off-white newspaper layout at ultrawide
+   and 1080p without clipped masthead/headline/body text.
 5. Confirm the custom XML remains below the 50 KB MVP target on a normal save.
-6. Confirm no Phobos-owned `Error:`, `Warning:`, or `Warning (` lines appear,
-   and no save failure is attributable to Rural Ledger.
-7. If the save/reload gate is clean, proceed to a developer-only Precision
-   Farming probe for exact pH/nitrogen API research or the next read-only
-   opportunity refinement.
+6. Confirm no Rural Ledger-owned `Error:`, `Warning:`, or `Warning (` lines
+   appear. If clean, proceed to leased-equipment/borrow-flow research or a
+   developer-only Precision Farming probe for exact pH/nitrogen API research.

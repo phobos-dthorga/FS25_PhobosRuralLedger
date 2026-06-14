@@ -7,6 +7,8 @@ local Profiles = PhobosRuralLedger.Profiles
 local Ledgers = PhobosRuralLedger.Ledgers
 local MapDiscovery = PhobosRuralLedger.MapDiscovery
 local Opportunities = PhobosRuralLedger.Opportunities
+local JobRequests = PhobosRuralLedger.JobRequests
+local Newspaper = PhobosRuralLedger.Newspaper
 
 local function copyArray(values)
     local result = {}
@@ -58,6 +60,37 @@ local function normalizeEventHistory(values)
     end
 
     return result
+end
+
+local function normalizeJobHistory(values)
+    local result = {}
+
+    for _, value in ipairs(values or {}) do
+        local record = JobRequests ~= nil
+            and JobRequests.normalizeHistory ~= nil
+            and JobRequests.normalizeHistory(value)
+            or value
+        if record ~= nil then
+            result[#result + 1] = record
+        end
+    end
+
+    return result
+end
+
+local function normalizeNewspaper(value)
+    if Newspaper ~= nil and Newspaper.normalizeState ~= nil then
+        return Newspaper.normalizeState(value)
+    end
+
+    return {
+        lastDeliveredDay = nil,
+        lastCheckedDay = nil,
+        lastCheckedMinute = nil,
+        pendingEditionId = nil,
+        diagnostics = {},
+        editions = {},
+    }
 end
 
 local function emptyMapDiscovery(options)
@@ -116,6 +149,10 @@ function Persistence.createInitialState(options)
         opportunities = {},
         eventHistory = {},
         cooldowns = {},
+        jobRequests = {},
+        jobHistory = {},
+        relationshipOverrides = {},
+        newspaper = normalizeNewspaper(options.newspaper),
     }
 end
 
@@ -134,6 +171,10 @@ function Persistence.exportState(state)
         opportunities = normalizeOpportunities(source.opportunities),
         eventHistory = normalizeEventHistory(source.eventHistory),
         cooldowns = copyMap(source.cooldowns),
+        jobRequests = copyArray(source.jobRequests),
+        jobHistory = normalizeJobHistory(source.jobHistory),
+        relationshipOverrides = copyMap(source.relationshipOverrides),
+        newspaper = normalizeNewspaper(source.newspaper),
     }
 end
 
@@ -153,7 +194,13 @@ function Persistence.migrateState(data)
         migrated.opportunities = migrated.opportunities or {}
         migrated.eventHistory = migrated.eventHistory or {}
         migrated.cooldowns = migrated.cooldowns or {}
+        migrated.jobRequests = migrated.jobRequests or {}
+        migrated.jobHistory = migrated.jobHistory or {}
+        migrated.relationshipOverrides = migrated.relationshipOverrides or {}
+        migrated.newspaper = normalizeNewspaper(migrated.newspaper)
     end
+
+    migrated.newspaper = normalizeNewspaper(migrated.newspaper)
 
     return migrated
 end
@@ -211,6 +258,10 @@ function Persistence.importState(data, options)
         opportunities = normalizeOpportunities(migrated.opportunities),
         eventHistory = normalizeEventHistory(migrated.eventHistory),
         cooldowns = copyMap(migrated.cooldowns),
+        jobRequests = copyArray(migrated.jobRequests),
+        jobHistory = normalizeJobHistory(migrated.jobHistory),
+        relationshipOverrides = copyMap(migrated.relationshipOverrides),
+        newspaper = normalizeNewspaper(migrated.newspaper),
     }
 end
 

@@ -5,7 +5,7 @@ local Constants = PhobosRuralLedger.Constants
 
 Constants.MOD_NAME = "FS25_PhobosRuralLedger"
 Constants.DISPLAY_NAME = "Phobos' Rural Ledger"
-Constants.VERSION = "0.1.7.0"
+Constants.VERSION = "0.1.9.1"
 Constants.SAVE_SCHEMA_VERSION = 1
 Constants.DEFAULT_SEED = "phobos-rural-ledger"
 Constants.DEFAULT_PROFILE_COUNT = 8
@@ -16,10 +16,18 @@ Constants.SCREEN_NAME = "PhobosRuralLedgerScreen"
 Constants.FARM_DETAIL_DIALOG_NAME = "PhobosRuralLedgerFarmDetailDialog"
 Constants.OPPORTUNITY_DIALOG_NAME = "PhobosRuralLedgerOpportunityDialog"
 Constants.HISTORY_DIALOG_NAME = "PhobosRuralLedgerHistoryDialog"
+Constants.JOB_DETAIL_DIALOG_NAME = "PhobosRuralLedgerJobDetailDialog"
+Constants.NEWSPAPER_DIALOG_NAME = "PhobosRuralLedgerNewspaperDialog"
 Constants.ACTION_OPEN_MENU = "PHOBOS_RURAL_LEDGER_MENU"
 Constants.SAVEGAME_FILE_NAME = "FS25_PhobosRuralLedger.xml"
 Constants.MAX_ACTIVE_OPPORTUNITIES = 12
 Constants.MAX_EVENT_HISTORY = 50
+Constants.MAX_JOB_REQUESTS = 120
+Constants.MAX_JOB_HISTORY = 80
+Constants.MAX_RELATIONSHIP_RECORDS = 160
+Constants.NEWSPAPER_DELIVERY_MINUTE = 6 * 60
+Constants.MAX_NEWSPAPER_EDITIONS = 7
+Constants.NEWSPAPER_UPDATE_INTERVAL_MS = 1000
 
 Constants.STRESS_STATES = {
     STABLE = "stable",
@@ -81,4 +89,7 @@ Constants.SAVE_KEYS = {
     OPPORTUNITIES = "opportunities",
     EVENT_HISTORY = "eventHistory",
     COOLDOWNS = "cooldowns",
+    JOB_HISTORY = "jobHistory",
+    RELATIONSHIPS = "relationships",
+    NEWSPAPER = "newspaper",
 }

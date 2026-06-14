@@ -11,7 +11,11 @@ RuralLedgerGui.profilesLoaded = false
 RuralLedgerGui.farmDetailDialogLoaded = false
 RuralLedgerGui.opportunityDialogLoaded = false
 RuralLedgerGui.historyDialogLoaded = false
+RuralLedgerGui.jobDetailDialogLoaded = false
+RuralLedgerGui.newspaperDialogLoaded = false
 RuralLedgerGui.settingsButtonInstalled = false
+RuralLedgerGui.newspaperUpdateMs = 0
+RuralLedgerGui.missionStarted = RuralLedgerGui.missionStarted == true
 
 local function logInfo(message, ...)
     if PhobosRuralLedger.logInfo ~= nil then
@@ -41,8 +45,22 @@ local function ensureSaveHook()
     end
 end
 
+local function ensureJobOutcomeHook()
+    if PhobosRuralLedger.JobRequests ~= nil
+        and PhobosRuralLedger.JobRequests.ensureOutcomeHookRegistered ~= nil
+    then
+        PhobosRuralLedger.JobRequests.ensureOutcomeHookRegistered()
+    end
+end
+
 function RuralLedgerGui:loadScreen()
-    if self.screenLoaded and self.farmDetailDialogLoaded and self.opportunityDialogLoaded and self.historyDialogLoaded then
+    if self.screenLoaded
+        and self.farmDetailDialogLoaded
+        and self.opportunityDialogLoaded
+        and self.historyDialogLoaded
+        and self.jobDetailDialogLoaded
+        and self.newspaperDialogLoaded
+    then
         return true
     end
 
@@ -110,6 +128,34 @@ function RuralLedgerGui:loadScreen()
         logInfo("Rural Ledger history dialog loaded from %s.", dialogPath)
     end
 
+    if not self.jobDetailDialogLoaded then
+        local dialog = PhobosRuralLedger.JobDetailDialog.new()
+        local dialogPath = self.modDirectory .. "gui/RuralLedgerJobDetailDialog.xml"
+        local dialogLoaded = g_gui:loadGui(dialogPath, Constants.JOB_DETAIL_DIALOG_NAME, dialog)
+
+        if dialogLoaded == nil then
+            logWarn("Rural Ledger job detail dialog XML did not load: %s", dialogPath)
+            return false
+        end
+
+        self.jobDetailDialogLoaded = true
+        logInfo("Rural Ledger job detail dialog loaded from %s.", dialogPath)
+    end
+
+    if not self.newspaperDialogLoaded then
+        local dialog = PhobosRuralLedger.NewspaperDialog.new()
+        local dialogPath = self.modDirectory .. "gui/RuralLedgerNewspaperDialog.xml"
+        local dialogLoaded = g_gui:loadGui(dialogPath, Constants.NEWSPAPER_DIALOG_NAME, dialog)
+
+        if dialogLoaded == nil then
+            logWarn("Rural Ledger newspaper dialog XML did not load: %s", dialogPath)
+            return false
+        end
+
+        self.newspaperDialogLoaded = true
+        logInfo("Rural Ledger newspaper dialog loaded from %s.", dialogPath)
+    end
+
     if self.screenLoaded then
         return true
     end
@@ -140,6 +186,57 @@ function RuralLedgerGui:openScreen()
     end
 
     g_gui:showGui(Constants.SCREEN_NAME)
+end
+
+function RuralLedgerGui:openNewspaperEdition(edition)
+    if edition == nil then
+        return false
+    end
+
+    if not self:loadScreen() then
+        return false
+    end
+
+    if g_gui == nil or g_gui.showDialog == nil then
+        return false
+    end
+
+    local model = PhobosRuralLedger.UiModels.buildNewspaperEdition(
+        PhobosRuralLedger.getState(),
+        edition.editionId,
+        {}
+    )
+    local dialog = g_gui:showDialog(Constants.NEWSPAPER_DIALOG_NAME)
+    local target = dialog ~= nil and dialog.target or nil
+
+    if target ~= nil and target.setEdition ~= nil then
+        target:setEdition(model)
+        if PhobosRuralLedger.markNewspaperShown ~= nil then
+            PhobosRuralLedger.markNewspaperShown(edition.editionId, {mission = g_currentMission})
+        end
+        return true
+    end
+
+    return false
+end
+
+function RuralLedgerGui:checkNewspaperDelivery(trigger, allowAutoOpen)
+    if PhobosRuralLedger.checkNewspaperDelivery ~= nil then
+        PhobosRuralLedger.checkNewspaperDelivery({
+            mission = g_currentMission,
+            trigger = trigger or "gui",
+            logUnavailable = false,
+            baselineOnly = allowAutoOpen ~= true,
+        })
+    end
+
+    if allowAutoOpen ~= true or self.missionStarted ~= true then
+        return
+    end
+
+    if PhobosRuralLedger.getPendingNewspaperEdition ~= nil then
+        self:openNewspaperEdition(PhobosRuralLedger.getPendingNewspaperEdition())
+    end
 end
 
 function RuralLedgerGui.onOpenAction()
@@ -225,17 +322,37 @@ end
 
 function RuralLedgerGui:loadMap()
     ensureSaveHook()
+    ensureJobOutcomeHook()
     self:loadScreen()
     if PhobosRuralLedger.tryMapReadyDiscovery ~= nil then
         PhobosRuralLedger.tryMapReadyDiscovery("mapLoad")
     end
+    self:checkNewspaperDelivery("mapLoad", false)
 end
 
 function RuralLedgerGui:onStartMission()
+    self.missionStarted = true
     ensureSaveHook()
+    ensureJobOutcomeHook()
     if PhobosRuralLedger.tryMapReadyDiscovery ~= nil then
         PhobosRuralLedger.tryMapReadyDiscovery("missionStart")
     end
+    self:checkNewspaperDelivery("missionStart", false)
+end
+
+function RuralLedgerGui:update(dt)
+    if self.missionStarted ~= true then
+        return
+    end
+
+    local delta = tonumber(dt) or Constants.NEWSPAPER_UPDATE_INTERVAL_MS
+    self.newspaperUpdateMs = (self.newspaperUpdateMs or 0) + delta
+    if self.newspaperUpdateMs < Constants.NEWSPAPER_UPDATE_INTERVAL_MS then
+        return
+    end
+
+    self.newspaperUpdateMs = 0
+    self:checkNewspaperDelivery("update", true)
 end
 
 local function onMissionStarted()

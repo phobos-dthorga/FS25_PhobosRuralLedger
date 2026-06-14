@@ -141,6 +141,91 @@ Example opportunity types:
 Opportunity records should carry enough cause data to render a report after
 reload. Do not rely on recalculating the exact reason from current state.
 
+## Job Request
+
+```text
+request_id
+source
+npc_key
+npc_name
+farm_id
+farmland_id
+field_id
+mission_id
+contract_type
+title
+reward_text
+status
+launchable
+relationship_effect
+```
+
+`v0.1.8.0` rebuilds job requests from runtime data after map/mission-ready
+refresh. BetterContracts-enriched missions are preferred when available,
+vanilla field missions are the fallback, and Rural Ledger-generated requests
+fill NPC/property gaps without becoming launchable contracts.
+
+`v0.1.8.1` keeps job requests read-only but enriches their UI-facing detail
+shape where runtime data exists: estimated field area, profit, work time,
+profit per minute, usage or lease cost, delivery/keep hints, and
+BetterContracts monthly jobs-left status. Generated Rural Ledger requests keep
+stable internal type codes but must be rendered through localized player-facing
+labels in UI models.
+
+Live mission/contract objects must never be saved. Persist only local history,
+relationship overrides, and compact identifiers that can be reconciled against
+the next runtime discovery pass.
+
+## Newspaper State
+
+`v0.1.9.0` adds optional newspaper state to the dedicated Rural Ledger XML:
+
+```text
+last_delivered_day
+last_checked_day
+last_checked_minute
+pending_edition_id
+editions[0..6]
+```
+
+Each archived edition stores only compact, player-facing text:
+
+```text
+edition_id
+day
+delivery_minute
+dateline
+masthead
+headline
+summary
+sections[0..7].title
+sections[0..7].body
+```
+
+The newspaper is generated from existing Rural Ledger state and remains
+informational. It must not persist live contract objects, field manager
+objects, GUI objects, or any mutable gameplay state beyond its own archive and
+pending-delivery marker. Missing newspaper nodes are valid and mean the save
+has no delivered editions yet.
+
+`v0.1.9.1` treats the first valid clock read after loading as a baseline only.
+An edition is created only when a later clock read crosses 06:00. Existing
+`v0.1.9.0` editions remain in the archive, but stale pending markers from that
+version are cleared on load so accidental load-screen papers do not reopen.
+
+## Relationship Override
+
+```text
+relationship_key
+score
+last_changed_period
+```
+
+Relationship overrides are Rural Ledger-local. A successful linked job raises
+the score by one band, while failed, cancelled, or timed-out linked jobs lower
+it by one band. Scores are clamped from 1 to 5 and do not currently alter
+vanilla or BetterContracts rewards, discounts, land prices, or mission lists.
+
 ## Event History
 
 ```text
@@ -156,6 +241,9 @@ cooldown_key
 
 History is useful for annual reports, cooldowns, and avoiding repetitive
 messages. Keep it bounded by period count or max record count.
+
+`v0.1.8.0` also stores bounded job-history records with request ID, NPC key,
+field/farmland identifiers, status, relationship delta, and a compact message.
 
 ## Regional Preset
 

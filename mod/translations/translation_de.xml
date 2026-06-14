@@ -8,9 +8,14 @@
         <text name="rl_tab_farm_detail" text="Hofdetails"/>
         <text name="rl_tab_opportunities" text="Gelegenheiten"/>
         <text name="rl_tab_history" text="Historie"/>
+        <text name="rl_tab_jobs" text="Jobs"/>
+        <text name="rl_tab_newspaper" text="Zeitung"/>
         <text name="rl_tab_settings_debug" text="Einstellungen / Debug"/>
         <text name="rl_button_refresh" text="Aktualisieren"/>
         <text name="rl_button_back" text="Zurück"/>
+        <text name="rl_button_read_paper" text="Zeitung lesen"/>
+        <text name="rl_button_job_detail" text="Jobdetails"/>
+        <text name="rl_button_start_contract" text="Auftrag starten"/>
         <text name="rl_button_toggle_debug" text="Exakte Debugwerte umschalten"/>
         <text name="rl_button_refresh_display" text="Anzeigedaten aktualisieren"/>
         <text name="rl_button_advance_period_debug" text="Zeitraum weiter (Debug)"/>
@@ -38,6 +43,44 @@
         <text name="rl_col_main_pressure" text="Hauptdruck"/>
         <text name="rl_col_relationship" text="Beziehung"/>
         <text name="rl_col_source" text="Quelle"/>
+        <text name="rl_col_npc" text="NPC"/>
+        <text name="rl_col_plot" text="Fläche"/>
+        <text name="rl_col_job" text="Job"/>
+        <text name="rl_col_status" text="Status"/>
+        <text name="rl_col_edition" text="Ausgabe"/>
+        <text name="rl_col_headline" text="Schlagzeile"/>
+        <text name="rl_col_summary" text="Zusammenfassung"/>
+
+        <text name="rl_jobs_title" text="NPC-Jobs"/>
+        <text name="rl_jobs_subtitle_npc" text="Nach NPC-Namen gruppiert, inklusive Landwirten ohne aktive Live-Aufträge."/>
+        <text name="rl_jobs_subtitle_plot" text="Nach Fläche und Feld gruppiert, inklusive Flächen ohne aktive Live-Aufträge."/>
+        <text name="rl_jobs_mode_npc" text="Nach NPC"/>
+        <text name="rl_jobs_mode_plot" text="Nach Fläche"/>
+
+        <text name="rl_newspaper_title" text="Lokalzeitung"/>
+        <text name="rl_newspaper_subtitle" text="Aktuelle Ausgaben, zugestellt um 06:00 Uhr."/>
+        <text name="rl_newspaper_archive_empty" text="Es wurde noch keine Ausgabe zugestellt."/>
+        <text name="rl_newspaper_archive_row" text="Tag %d um %s"/>
+        <text name="rl_newspaper_dialog_title" text="Landzeitung"/>
+        <text name="rl_newspaper_masthead" text="The Rural Ledger"/>
+        <text name="rl_newspaper_dateline_unknown" text="Datumszeile nicht verfügbar"/>
+        <text name="rl_newspaper_dateline_day_time" text="Tag %d, Ausgabe %s"/>
+        <text name="rl_newspaper_headline_default" text="Morgenbericht"/>
+        <text name="rl_newspaper_headline_pressure" text="%d Höfe unter morgendlichem Druck"/>
+        <text name="rl_newspaper_headline_steady" text="Ruhiger Morgen im Bezirk"/>
+        <text name="rl_newspaper_summary" text="%d Höfe erfasst, %d Gelegenheiten, %d Live-Aufträge."/>
+        <text name="rl_newspaper_section_local_economy" text="Lokale Wirtschaft"/>
+        <text name="rl_newspaper_section_farms_pressure" text="Höfe unter Druck"/>
+        <text name="rl_newspaper_section_jobs_contracts" text="Jobs &amp; Aufträge"/>
+        <text name="rl_newspaper_section_public_opportunities" text="Öffentliche Gelegenheiten"/>
+        <text name="rl_newspaper_section_community_notes" text="Gemeindenotizen"/>
+        <text name="rl_newspaper_local_economy_body" text="%s. Rural Ledger erfasst %d kartengestützte Flächen und %d erkannte Felder."/>
+        <text name="rl_newspaper_farms_pressure_body" text="%s Der wichtigste Druck heute ist %s."/>
+        <text name="rl_newspaper_jobs_body" text="%d Jobanfrage(n) stehen auf der Liste, davon sind %d Live-Auftrag/-Aufträge startbereit."/>
+        <text name="rl_newspaper_opportunities_body" text="%d öffentliche Gelegenheitskandidat(en) sind für belastete Höfe sichtbar. Sie bleiben vorerst rein informativ."/>
+        <text name="rl_newspaper_community_body" text="%s %s bleibt heute Morgen die Fläche mit der größten Aufmerksamkeit."/>
+        <text name="rl_newspaper_community_body_history" text="Die Gemeindenotizen verzeichnen %d aktuelle Rural-Ledger-Ereignis(se) und halten lokale Arbeit in Erinnerung."/>
+        <text name="rl_newspaper_community_body_quiet" text="Die Gemeindebücher sind heute Morgen ruhig, doch der Bezirk beobachtet Feldarbeit und Aufträge weiter genau."/>
 
         <text name="rl_detail_public_heading" text="Öffentliche Hofdetails"/>
         <text name="rl_detail_no_farm_title" text="Kein Hof ausgewählt"/>
@@ -48,6 +91,7 @@
         <text name="rl_detail_headline" text="%s ist %s."/>
         <text name="rl_detail_player_meaning" text="Öffentliche Aufträge sind in diesem Abschnitt noch nicht aktiv."/>
         <text name="rl_detail_player_meaning_opportunities" text="%d schreibgeschützte öffentliche Gelegenheiten sind sichtbar."/>
+        <text name="rl_detail_player_meaning_jobs" text="%d Jobanfrage(n) sind im Jobs-Tab sichtbar."/>
         <text name="rl_detail_player_meaning_none" text="Für diese Fläche sind keine öffentlichen Gelegenheiten aktiv."/>
         <text name="rl_detail_support_debt" text="Schuldendruck ist %s"/>
         <text name="rl_detail_support_risk" text="Risikopuffer ist %s"/>
@@ -60,6 +104,7 @@
         <text name="rl_detail_line_field_condition" text="Feldzustand: %s"/>
         <text name="rl_detail_line_precision" text="Precision Farming: %s"/>
         <text name="rl_detail_line_active_opportunities" text="Aktive Gelegenheiten: %d"/>
+        <text name="rl_detail_line_active_jobs" text="Verknüpfte Jobs: %d"/>
         <text name="rl_detail_line_history_events" text="Historieneinträge: %d"/>
         <text name="rl_detail_line_fields" text="Kontrollierte Felder: %d"/>
         <text name="rl_detail_line_cash" text="Liquidität: %s"/>
@@ -85,6 +130,17 @@
         <text name="rl_debug_snapshots" text="Kontostände: %d"/>
         <text name="rl_debug_opportunities" text="Gelegenheiten: %d"/>
         <text name="rl_debug_events" text="Ereignisse: %d"/>
+        <text name="rl_debug_jobs_total" text="Jobs: %d gesamt, %d startbar"/>
+        <text name="rl_debug_jobs_sources" text="Jobquellen: BetterContracts %d, Vanilla %d, generiert %d"/>
+        <text name="rl_debug_jobs_launch" text="Jobstart: %s, Versuche %d, Grund %s"/>
+        <text name="rl_debug_jobs_outcome_hook" text="Jobabschluss-Hook: %s"/>
+        <text name="rl_debug_jobs_relationships" text="Beziehungsdatensätze: %d, Jobhistorie: %d"/>
+        <text name="rl_debug_newspaper_delivery" text="Zeitungszustellung: %s"/>
+        <text name="rl_debug_newspaper_last_day" text="Zeitung zuletzt zugestellt an Tag: %s"/>
+        <text name="rl_debug_newspaper_archive" text="Zeitungsarchiv: %d Ausgabe(n)"/>
+        <text name="rl_debug_newspaper_pending" text="Ausstehende Zeitungszustellung: %s"/>
+        <text name="rl_debug_newspaper_clock" text="Zeitungsuhr: %s, aktuell %s/%s"/>
+        <text name="rl_debug_newspaper_gate" text="Zeitungssperre: %s über %s, Basis %s, vorher %s/%s, überschritten %s"/>
         <text name="rl_debug_discovery_source" text="Erkennungsquelle: %s"/>
         <text name="rl_debug_discovery_confidence" text="Erkennungsvertrauen: %s"/>
         <text name="rl_debug_discovery_trigger" text="Erkennungsauslöser: %s"/>
@@ -112,8 +168,8 @@
         <text name="rl_debug_save_path" text="Speicherpfad: %s"/>
         <text name="rl_debug_save_last_load" text="Letztes Laden der Gelegenheiten: %s"/>
         <text name="rl_debug_save_last_save" text="Letztes Speichern der Gelegenheiten: %s"/>
-        <text name="rl_debug_save_last_load_counts" text="Letztes Laden: %d Gelegenheiten, %d Ereignisse, %d Abklingzeiten"/>
-        <text name="rl_debug_save_last_save_counts" text="Letztes Speichern: %d Gelegenheiten, %d Ereignisse, %d Abklingzeiten"/>
+        <text name="rl_debug_save_last_load_counts" text="Letztes Laden: %d Gelegenheiten, %d Ereignisse, %d Abklingzeiten, %d Jobs, %d Beziehungen, %d Zeitungen"/>
+        <text name="rl_debug_save_last_save_counts" text="Letztes Speichern: %d Gelegenheiten, %d Ereignisse, %d Abklingzeiten, %d Jobs, %d Beziehungen, %d Zeitungen"/>
         <text name="rl_debug_loaded_period" text="Geladener Gelegenheitszeitraum: %s"/>
         <text name="rl_debug_first_cash" text="Erste Hof-Liquidität: %s"/>
         <text name="rl_debug_first_debt" text="Erste Hof-Schulden: %s"/>
@@ -124,6 +180,8 @@
         <text name="rl_report_row" text="%s ist %s: Marge %s, Liquidität %s, %s."/>
         <text name="rl_overview_alert_row" text="%s: %s, %s"/>
         <text name="rl_farm_last_note" text="%s / %s"/>
+        <text name="rl_period_season" text="Saison %d"/>
+        <text name="rl_regional_temperate_mixed" text="Gemischt gemäßigt"/>
 
         <text name="rl_pressure_none" text="Kein dominanter Druck"/>
         <text name="rl_pressure_negative_cash" text="Liquidität ist knapp"/>
@@ -233,6 +291,65 @@
         <text name="rl_history_expired" text="%s abgelaufen"/>
         <text name="rl_history_cooldown_applied" text="Die Abklingzeit bleibt, sofern zutreffend, aktiv."/>
 
+        <text name="rl_job_detail_dialog_title" text="Jobdetails"/>
+        <text name="rl_job_detail_dialog_subtitle" text="%s - %s"/>
+        <text name="rl_job_detail_public_heading" text="Verknüpfte Jobanfrage"/>
+        <text name="rl_job_no_selection" text="Wähle zuerst einen Job aus."/>
+        <text name="rl_job_source_better_contracts" text="BetterContracts"/>
+        <text name="rl_job_source_vanilla" text="Vanilla-Aufträge"/>
+        <text name="rl_job_source_rural_ledger" text="Rural Ledger"/>
+        <text name="rl_job_source_unknown" text="Unbekannte Quelle"/>
+        <text name="rl_job_status_created" text="Verfügbar"/>
+        <text name="rl_job_status_running" text="Läuft"/>
+        <text name="rl_job_status_finished" text="Abgeschlossen"/>
+        <text name="rl_job_status_no_active_job" text="Kein aktiver Job"/>
+        <text name="rl_job_status_unknown" text="Unbekannt"/>
+        <text name="rl_job_type_harvest_support" text="Erntehilfe"/>
+        <text name="rl_job_type_fieldwork_support" text="Feldarbeitshilfe"/>
+        <text name="rl_job_type_transport_support" text="Transporthilfe"/>
+        <text name="rl_job_type_cultivation_support" text="Bodenbearbeitungshilfe"/>
+        <text name="rl_job_generated_title" text="%s-Anfrage"/>
+        <text name="rl_job_blocked_no_selection" text="Wähle zuerst einen startbaren Live-Auftrag aus."/>
+        <text name="rl_job_blocked_generated_only" text="Dies ist eine Rural-Ledger-Anfrage, kein startbarer Live-Auftrag."/>
+        <text name="rl_job_blocked_mission_not_created" text="Der verknüpfte Auftrag ist nicht mehr startbar."/>
+        <text name="rl_job_blocked_not_launchable" text="Dieser Job kann nicht aus Rural Ledger gestartet werden."/>
+        <text name="rl_job_blocked_monthly_limit" text="Das monatliche BetterContracts-Joblimit ist erreicht."/>
+        <text name="rl_job_blocked_event_unavailable" text="Das FS25-Auftragsstartereignis ist nicht verfügbar."/>
+        <text name="rl_job_blocked_connection_unavailable" text="Die Serververbindung ist nicht verfügbar."/>
+        <text name="rl_job_blocked_jobs_unavailable" text="Jobanfragen sind noch nicht verfügbar."/>
+        <text name="rl_job_relationship_effect" text="Erfolg %+d, Fehlschlag %+d"/>
+        <text name="rl_job_plot_field_farmland" text="Feld %s / Flurstück %s"/>
+        <text name="rl_job_plot_field" text="Feld %s"/>
+        <text name="rl_job_plot_farmland" text="Flurstück %s"/>
+        <text name="rl_job_plot_unknown" text="Unbekannte Fläche"/>
+        <text name="rl_job_title_unknown" text="Nicht gelistete Anfrage"/>
+        <text name="rl_job_area_ha" text="%.2f ha"/>
+        <text name="rl_job_time_hours_minutes" text="%dh %02dm"/>
+        <text name="rl_job_time_minutes" text="%d Min."/>
+        <text name="rl_job_detail_npc" text="NPC: %s"/>
+        <text name="rl_job_detail_property" text="Fläche: %s"/>
+        <text name="rl_job_detail_plot" text="Parzelle: %s"/>
+        <text name="rl_job_detail_source" text="Quelle: %s"/>
+        <text name="rl_job_detail_type" text="Typ: %s"/>
+        <text name="rl_job_detail_reward" text="Belohnung: %s"/>
+        <text name="rl_job_detail_field_area" text="Geschätzte Feldgröße: %s"/>
+        <text name="rl_job_detail_status" text="Status: %s"/>
+        <text name="rl_job_detail_relationship" text="Beziehung: %s"/>
+        <text name="rl_job_detail_effect" text="Beziehungseffekt: %s"/>
+        <text name="rl_job_detail_generated_note" text="Informative Rural-Ledger-Anfrage; kein Live-Auftrag kann gestartet werden."/>
+        <text name="rl_job_detail_profit" text="Geschätzter Gewinn: %s"/>
+        <text name="rl_job_detail_work_time" text="Geschätzte Arbeitszeit: %s"/>
+        <text name="rl_job_detail_profit_per_minute" text="Gewinn pro Minute: %s"/>
+        <text name="rl_job_detail_usage_cost" text="Nutzungskosten: %s"/>
+        <text name="rl_job_detail_lease_cost" text="Leihkosten: %s"/>
+        <text name="rl_job_detail_delivery" text="Abgabe: %s"/>
+        <text name="rl_job_detail_keep" text="Produkt behalten: %s"/>
+        <text name="rl_job_detail_monthly_jobs" text="BetterContracts-Jobs diesen Monat übrig: %s / %s"/>
+        <text name="rl_job_detail_launch_ready" text="Auftrag starten ist unten verfügbar."/>
+        <text name="rl_job_detail_launch_blocked" text="Auftrag starten nicht verfügbar: %s"/>
+        <text name="rl_job_detail_debug_request" text="Debug-Anfrage-ID: %s"/>
+        <text name="rl_job_detail_debug_mission" text="Debug-Auftrags-ID: %s"/>
+
         <text name="rl_profile_family_farm" text="Kleiner Familienhof"/>
         <text name="rl_profile_contractor" text="Lohnunternehmer"/>
         <text name="rl_profile_dairy_operator" text="Milchviehbetrieb"/>
@@ -249,5 +366,6 @@
         <text name="rl_log_debug_enabled" text="aktiviert"/>
         <text name="rl_log_debug_disabled" text="deaktiviert"/>
         <text name="rl_log_period_advanced" text="Rural-Ledger-Zeitraum über Debugsteuerung weitergeschaltet."/>
+        <text name="rl_log_job_start_requested" text="Rural Ledger hat einen Auftragsstart angefordert."/>
     </texts>
 </l10n>

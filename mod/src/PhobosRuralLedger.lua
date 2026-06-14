@@ -6,7 +6,9 @@ local Reports = PhobosRuralLedger.Reports
 local Simulation = PhobosRuralLedger.Simulation
 local MapDiscovery = PhobosRuralLedger.MapDiscovery
 local Opportunities = PhobosRuralLedger.Opportunities
+local JobRequests = PhobosRuralLedger.JobRequests
 local Savegame = PhobosRuralLedger.Savegame
+local Newspaper = PhobosRuralLedger.Newspaper
 
 PhobosRuralLedger.MOD_NAME = Constants.MOD_NAME
 PhobosRuralLedger.DISPLAY_NAME = Constants.DISPLAY_NAME
@@ -168,8 +170,15 @@ function PhobosRuralLedger.applyOpportunitySaveData(data)
     PhobosRuralLedger.state.opportunities = data.opportunities or {}
     PhobosRuralLedger.state.eventHistory = data.eventHistory or {}
     PhobosRuralLedger.state.cooldowns = data.cooldowns or {}
+    PhobosRuralLedger.state.jobHistory = data.jobHistory or {}
+    PhobosRuralLedger.state.relationshipOverrides = data.relationshipOverrides or {}
+    PhobosRuralLedger.state.newspaper = data.newspaper or PhobosRuralLedger.state.newspaper
     PhobosRuralLedger.state.loadedOpportunityPeriodId = data.periodId
     PhobosRuralLedger.state.loadedOpportunityModVersion = data.modVersion
+
+    if JobRequests ~= nil and JobRequests.applyRelationshipOverrides ~= nil then
+        JobRequests.applyRelationshipOverrides(PhobosRuralLedger.state)
+    end
 
     return true
 end
@@ -191,11 +200,13 @@ function PhobosRuralLedger.loadOpportunityStateOnce(mission)
     if status == "loaded" and PhobosRuralLedger.applyOpportunitySaveData(data) then
         PhobosRuralLedger.opportunitySavegameLoaded = true
         logInfo(
-            "Rural Ledger opportunity save loaded from %s: %d opportunities, %d events, %d cooldowns.",
+            "Rural Ledger save loaded from %s: %d opportunities, %d events, %d cooldowns, %d job history records, %d relationship records.",
             tostring((details or {}).path or "unknown path"),
             #(data.opportunities or {}),
             #(data.eventHistory or {}),
-            countMap(data.cooldowns)
+            countMap(data.cooldowns),
+            #(data.jobHistory or {}),
+            countMap(data.relationshipOverrides)
         )
         return true
     elseif status == "missing" then
@@ -219,6 +230,80 @@ function PhobosRuralLedger.loadOpportunityStateOnce(mission)
     end
 
     return false
+end
+
+function PhobosRuralLedger.refreshJobRequests(options)
+    if JobRequests ~= nil and JobRequests.refresh ~= nil then
+        return JobRequests.refresh(PhobosRuralLedger.state, options)
+    end
+
+    return {}
+end
+
+function PhobosRuralLedger.startJobContract(requestId, options)
+    if JobRequests == nil or JobRequests.startContract == nil then
+        return false, "jobs_unavailable"
+    end
+
+    local ok, status, request = JobRequests.startContract(PhobosRuralLedger.state, requestId, options)
+    if ok and Savegame ~= nil and Savegame.write ~= nil then
+        PhobosRuralLedger.saveOpportunityState((options or {}).mission or g_currentMission)
+    end
+
+    if PhobosRuralLedger.state ~= nil and JobRequests.getDiagnostics ~= nil then
+        PhobosRuralLedger.state.jobDiagnostics = JobRequests.getDiagnostics(PhobosRuralLedger.state)
+    end
+
+    return ok, status, request
+end
+
+function PhobosRuralLedger.checkNewspaperDelivery(options)
+    if Newspaper == nil or Newspaper.deliverIfDue == nil or PhobosRuralLedger.state == nil then
+        return nil, "newspaper_unavailable"
+    end
+
+    local edition, status, clock = Newspaper.deliverIfDue(PhobosRuralLedger.state, options)
+    if status == "delivered" and edition ~= nil then
+        logInfo(
+            "Rural Ledger newspaper delivered for day %s at %s: %s.",
+            tostring(edition.day or "?"),
+            tostring((clock or {}).timeLabel or "unknown"),
+            tostring(edition.headline or "")
+        )
+
+        if Savegame ~= nil and Savegame.write ~= nil then
+            PhobosRuralLedger.saveOpportunityState((options or {}).mission or g_currentMission)
+        end
+    elseif status == "clock_unavailable" and (options or {}).logUnavailable == true then
+        logWarnOnce(
+            "newspaper-clock-unavailable-" .. tostring((clock or {}).reason or "unknown"),
+            "Rural Ledger newspaper clock unavailable: %s.",
+            tostring((clock or {}).reason or "unknown")
+        )
+    end
+
+    return edition, status, clock
+end
+
+function PhobosRuralLedger.getPendingNewspaperEdition()
+    if Newspaper == nil or Newspaper.getPendingEdition == nil then
+        return nil
+    end
+
+    return Newspaper.getPendingEdition(PhobosRuralLedger.state)
+end
+
+function PhobosRuralLedger.markNewspaperShown(editionId, options)
+    if Newspaper == nil or Newspaper.markPendingShown == nil then
+        return false
+    end
+
+    local changed = Newspaper.markPendingShown(PhobosRuralLedger.state, editionId)
+    if changed and Savegame ~= nil and Savegame.write ~= nil and (options or {}).skipSave ~= true then
+        PhobosRuralLedger.saveOpportunityState((options or {}).mission or g_currentMission)
+    end
+
+    return changed
 end
 
 function PhobosRuralLedger.reconcileOpportunities(options)
@@ -248,6 +333,8 @@ function PhobosRuralLedger.advanceLedgerPeriod(options)
         PhobosRuralLedger.saveOpportunityState((options or {}).mission or g_currentMission)
     end
 
+    PhobosRuralLedger.refreshJobRequests({trigger = "periodAdvance"})
+
     return summary
 end
 
@@ -257,12 +344,15 @@ function PhobosRuralLedger.saveOpportunityState(mission)
     end
 
     PhobosRuralLedger.reconcileOpportunities({skipHistory = true})
+    PhobosRuralLedger.refreshJobRequests({trigger = "save", log = false})
     local saved, status, details = Savegame.write(PhobosRuralLedger.state, mission)
     if saved then
         logInfo(
-            "Rural Ledger opportunity save written to %s: %d opportunities.",
+            "Rural Ledger save written to %s: %d opportunities, %d job history records, %d relationship records.",
             tostring((details or {}).path or "unknown path"),
-            #((PhobosRuralLedger.state or {}).opportunities or {})
+            #((PhobosRuralLedger.state or {}).opportunities or {}),
+            #((PhobosRuralLedger.state or {}).jobHistory or {}),
+            countMap((PhobosRuralLedger.state or {}).relationshipOverrides)
         )
     elseif status == "unavailable" then
         logWarnOnce(
@@ -311,9 +401,13 @@ function PhobosRuralLedger.refreshMapBackedState(options)
     PhobosRuralLedger.state.opportunities = previous.opportunities or PhobosRuralLedger.state.opportunities
     PhobosRuralLedger.state.eventHistory = previous.eventHistory or PhobosRuralLedger.state.eventHistory
     PhobosRuralLedger.state.cooldowns = previous.cooldowns or PhobosRuralLedger.state.cooldowns
+    PhobosRuralLedger.state.jobHistory = previous.jobHistory or PhobosRuralLedger.state.jobHistory
+    PhobosRuralLedger.state.relationshipOverrides = previous.relationshipOverrides or PhobosRuralLedger.state.relationshipOverrides
+    PhobosRuralLedger.state.newspaper = previous.newspaper or PhobosRuralLedger.state.newspaper
     Simulation.calculatePeriod(PhobosRuralLedger.state)
     PhobosRuralLedger.loadOpportunityStateOnce(options.mission or g_currentMission)
     PhobosRuralLedger.reconcileOpportunities()
+    PhobosRuralLedger.refreshJobRequests({trigger = trigger})
     logMapDiscoverySummary(PhobosRuralLedger.state.mapDiscovery)
 
     return PhobosRuralLedger.state
@@ -382,6 +476,7 @@ function PhobosRuralLedger.bootstrap()
     logMapDiscoverySummary(PhobosRuralLedger.state.mapDiscovery)
     Simulation.calculatePeriod(PhobosRuralLedger.state)
     PhobosRuralLedger.reconcileOpportunities()
+    PhobosRuralLedger.refreshJobRequests({trigger = "bootstrap"})
     PhobosRuralLedger.reportLines = PhobosRuralLedger.logEconomyReport()
 end
 
